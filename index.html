@@ -490,6 +490,7 @@
         let currentUser = null;
         let currentUserData = null;
         let allJobs = [];
+        let usingFallbackJobs = true;
         let allApps = [];
         let allFees = [];
         let allChats = [];
@@ -704,6 +705,7 @@
             { title: "Insurance Underwriter", country: "France", category: "Finance & Accounting", salary: "EUR 3,200 – 4,200 / month", desc: "Commercial insurance underwriter for Paris office. French language and insurance certification required." },
             { title: "Bookkeeper", country: "Poland", category: "Finance & Accounting", salary: "PLN 5,000 – 7,000 / month", desc: "Full-charge bookkeeper for Warsaw office. Knowledge of Polish accounting standards." }
         ];
+        allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
 
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
         function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -759,7 +761,6 @@
             toast(`📧 Email notification sent to ${to}`, 'ok');
         }
 
-        let usingFallbackJobs = false;
         let countryJobCounts = {};
         function computeCountryCounts() {
             const c = {};
@@ -1044,13 +1045,19 @@
             if (unsubscribeJobs) unsubscribeJobs();
             try {
                 unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
-                    allJobs = [];
-                    snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
-                    usingFallbackJobs = allJobs.length === 0;
+                    const live = [];
+                    snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
+                    if (live.length > 0) {
+                        allJobs = live;
+                        usingFallbackJobs = false;
+                    } else if (!usingFallbackJobs) {
+                        allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
+                        usingFallbackJobs = true;
+                    }
                     computeCountryCounts();
                     if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
                 }, (err) => {
-                    if (usingFallbackJobs === undefined || usingFallbackJobs) {
+                    if (!usingFallbackJobs) {
                         allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
                         usingFallbackJobs = true;
                         computeCountryCounts();
