@@ -1010,11 +1010,9 @@
                         subscribeToRealtime();
                         subscribeChats();
                         if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
-                    } else if (ROUTE.view === 'complete-profile') {
                     } else {
                         currentUserData = { type: 'needs-profile' };
-                        navigate("complete-profile");
-                        return;
+                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
                     }
                     }
                 } else {
@@ -1086,9 +1084,8 @@
             if (currentUser && currentUserData) {
                 const unread = getUnreadCount();
                 const msgBadge = unread ? `<span class="msg-count">${unread}</span>` : '';
-                if (currentUserData.type === 'applicant') {
-                    rightHtml = `<a class="nav-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
-                <a class="nav-link" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
+                if (currentUserData.type === 'applicant' || currentUserData.type === 'needs-profile') {
+                    rightHtml = `<a class="nav-link" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
                 <button class="btn btn-outline btn-sm" data-action="logout">Log out</button>`;
                 } else if (currentUserData.type === 'admin') {
                     rightHtml = `<a class="nav-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
@@ -1131,7 +1128,6 @@
                 case "status": html = viewStatus(); break;
                 case "fees": html = viewFees(); break;
                 case "login": html = viewLogin(); break;
-                case "complete-profile": html = viewCompleteProfile(); break;
                 case "applicant-dashboard": html = viewApplicantDashboard(); break;
                 case "admin-dashboard": html = viewAdminDashboard(); break;
                 case "admin-jobs": html = viewAdminJobs(); break;
@@ -1149,7 +1145,6 @@
             if (ROUTE.view === "apply") wireApplyForm();
             if (ROUTE.view === "status") wireStatusForm();
             if (ROUTE.view === "login") wireLogin();
-            if (ROUTE.view === "complete-profile") wireCompleteProfile();
             if (ROUTE.view === "admin-dashboard") wireAdminDashboard();
             if (ROUTE.view === "admin-jobs") wireAdminJobs();
             if (ROUTE.view === "admin-fees") wireAdminFees();
@@ -1830,75 +1825,37 @@
             document.getElementById('switchToSignIn')?.addEventListener('click', () => { loginMode = 'signin'; renderCurrentView(); });
         }
 
-        function viewCompleteProfile() {
-            if (!currentUser) return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in first.</p></div></div></div>`;
-            return `
-          <div class="auth-shell">
-            <div class="card pad">
-              <div class="auth-icon"><i class="fa-solid fa-id-card"></i></div>
-              <h2 style="margin:0 0 4px;color:var(--blue-900)">One More Step</h2>
-              <p style="color:var(--slate-500);font-size:13.5px;margin:0 0 20px">We need a few more details and a job selection to finish setting up your applicant profile, ${esc(currentUser.displayName || currentUser.email)}.</p>
-              <form id="completeProfileForm">
-                <div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" value="${esc(currentUser.displayName || '')}" required></div>
-                <div class="field"><label>Phone Number <span class="req">*</span></label>
-                  <div class="phone-wrapper">
-                    <select name="phoneCode">
-                      ${NATIONALITIES.filter(n => n.dial !== "+0").map(n => `<option value="${n.dial}">${n.flag.toUpperCase()} ${n.dial}</option>`).join("")}
-                    </select>
-                    <input type="tel" name="phone" placeholder="712 345 678" required>
-                  </div>
-                </div>
-                <div class="field"><label>City <span class="req">*</span></label><input type="text" name="city" required></div>
-                <div class="field"><label>Job of Interest <span class="req">*</span></label>
-                  <select name="jobId" required>
-                    <option value="">Select a Job</option>
-                    ${allJobs.map(j => `<option value="${j.id}">${esc(j.title)} — ${esc(j.country)}</option>`).join("")}
-                  </select>
-                </div>
-                <button class="btn btn-primary btn-block" type="submit">Complete Profile &amp; Submit Application</button>
-              </form>
-            </div>
-          </div>`;
-        }
+        
 
-        function wireCompleteProfile() {
-            const f = document.getElementById('completeProfileForm');
-            if (!f) return;
-            f.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                try {
-                    const fd = new FormData(e.target);
-                    const jobId = fd.get('jobId');
-                    const job = allJobs.find(j => j.id === jobId);
-                    if (!job) { toast("Please select a job.", "err"); return; }
-                    const phoneCode = fd.get('phoneCode');
-                    const phone = fd.get('phone').trim();
-                    const appData = {
-                        uid: currentUser.uid, fullName: fd.get('fullName').trim(), email: currentUser.email,
-                        phone: `${phoneCode} ${phone}`, phoneCode, phoneNumber: phone,
-                        country: job.country, city: fd.get('city').trim(),
-                        jobId, jobTitle: job.title, coverLetter: '', cvUrl: '', passportUrl: '',
-                        status: "Application Received",
-                        documentsVerified: { cv: false, passport: false },
-                        timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Profile completed." }],
-                        internalNotes: [], archived: false
-                    };
-                    await createApp(appData);
-                    currentUserData = { ...appData, type: 'applicant' };
-                    await Promise.all([loadJobs(), loadFees(), loadChats()]);
-                    subscribeToRealtime(); subscribeChats();
-                    toast("Profile completed! Welcome aboard.", "ok");
-                    navigate("applicant-dashboard");
-                } catch (error) {
-                    console.error("Complete profile error:", error);
-                    toast(error.message || "Could not save profile. Check your Firestore security rules — they must allow writes.", "err");
-                }
-            });
-        }
 
         function viewApplicantDashboard() {
-            if (!currentUser || !currentUserData || currentUserData.type !== 'applicant') {
+            if (!currentUser) {
                 return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in to view your dashboard.</p><a class="btn btn-primary" data-nav="login">Log In</a></div></div></div>`;
+            }
+            if (!currentUserData || currentUserData.type !== 'applicant') {
+                const unread = getUnreadCount();
+                return `
+              <div class="dash-shell">
+                <div class="dash-side">
+                  <div class="side-title">My Portal</div>
+                  <a class="side-link active"><i class="fa-solid fa-gauge"></i> Application Overview</a>
+                  <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse Jobs</a>
+                  <a class="side-link" data-nav="faq"><i class="fa-solid fa-circle-question"></i> FAQ</a>
+                  <div class="side-title" style="margin-top:20px">Account</div>
+                  <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+                </div>
+                <div class="dash-main">
+                  <div class="dash-topbar">
+                    <h2>Welcome, ${esc(currentUser.displayName || currentUser.email || 'Applicant')}</h2>
+                  </div>
+                  <div class="card pad" style="text-align:center;padding:50px 30px">
+                    <i class="fa-solid fa-file-circle-plus" style="font-size:48px;color:var(--maroon-400);margin-bottom:16px"></i>
+                    <h3 style="margin:0 0 8px;color:var(--blue-900)">No Application Yet</h3>
+                    <p style="color:var(--slate-500);max-width:400px;margin:0 auto 20px">You haven't submitted an application. Browse available sponsored job opportunities in Europe and start your journey.</p>
+                    <a class="btn btn-primary" data-nav="jobs"><i class="fa-solid fa-magnifying-glass"></i> Browse Jobs</a>
+                  </div>
+                </div>
+              </div>`;
             }
             const app = currentUserData;
             const unread = getUnreadCount();
