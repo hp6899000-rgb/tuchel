@@ -45,9 +45,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Messages — participants can read, authenticated users can create
+    // Messages — only chat participants can read, any authenticated user can create
     match /messages/{doc} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(resource.data.chatId)).data.participants;
       allow create: if request.auth != null;
       allow update, delete: if false;
     }
