@@ -998,8 +998,12 @@
                 if (user) {
                     renderNavbar(); renderCurrentView();
                     getAdminUser(user.uid).then(adminData => {
-                        if (adminData) {
-                            currentUserData = { ...adminData, type: 'admin' };
+                        if (adminData || DEV_ADMIN_UIDS.includes(user.uid)) {
+                            if (!adminData) {
+                                currentUserData = { displayName: user.displayName || 'Admin', email: user.email, type: 'admin' };
+                            } else {
+                                currentUserData = { ...adminData, type: 'admin' };
+                            }
                             loadApps();
                             if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                             renderNavbar(); renderCurrentView();
@@ -1082,6 +1086,25 @@
             renderCurrentView();
             const nl = document.getElementById('navLinks');
             if (nl) nl.classList.remove('open');
+        }
+
+        // Dev bootstrap: known admin UIDs — auto-create admin docs if Firestore allows
+        const DEV_ADMIN_UIDS = [
+            "xLdDSxrivrdf6jBpjrCf11XiLog2",
+            "VgpsVHS49YOfvR00pc6XpYwQ3es1"
+        ];
+        async function bootstrapAdmins() {
+            for (const uid of DEV_ADMIN_UIDS) {
+                try {
+                    const snap = await getDoc(doc(db, "admins", uid));
+                    if (!snap.exists()) {
+                        await setDoc(doc(db, "admins", uid), {
+                            displayName: "Admin", email: uid + "@dev", createdAt: serverTimestamp()
+                        });
+                        console.log("✅ Admin doc created for", uid);
+                    }
+                } catch (e) { /* Firestore may be locked */ }
+            }
         }
 
         function renderNavbar() {
@@ -2755,6 +2778,7 @@
         renderNavbar();
         renderCurrentView();
         setTimeout(autoSeedJobsIfEmpty, 300);
+        bootstrapAdmins();
 
         console.log("🌍 Europe Sponsor Jobs v2 — Full Feature Release");
         console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");
@@ -2804,6 +2828,31 @@
       const cred = await createUserWithEmailAndPassword(auth, "admin@europesponsorjobs.com", "<your-strong-password>");
       await setDoc(doc(db, "admins", cred.user.uid), { name: "Admin", role: "superadmin", createdAt: new Date() });
 
+    === FIREBASE FIRESTORE RULES (paste in Console → Firestore → Rules) ===
+    
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /{document=**} {
+          allow read, write: if request.auth != null;
+        }
+      }
+    }
+    
+    This allows any signed-in user to read/write. For production, restrict further:
+    
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == uid;
+    }
+    match /applications/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /jobs/{doc} {
+      allow read: if true;
+      allow write: if request.auth.token.isAdmin == true;
+    }
+    
     Also lock down Firestore Security Rules so only signed-in admins
     can write to "jobs", "fees", and other applicants' "applications"
     docs — right now this file assumes rules do that server-side;
