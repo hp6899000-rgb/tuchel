@@ -301,7 +301,7 @@
     let adminFilters = { status: "All", country: "All", search: "", showBlocked: false };
     let ROUTE = { view: "login", params: {} };
 
-    const DEV_ADMIN_EMAILS = ["chriskaburu8@gmail.com", "hp68990000@gmail.com"];
+    const DEV_ADMIN_EMAILS = ["admin@tuchel-services.com", "manager@tuchel-services.com", "operations@tuchel-services.com", "hr@tuchel-services.com"];
     async function isAdminEmail(email) { return email && DEV_ADMIN_EMAILS.includes(email.toLowerCase()); }
 
     function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -314,11 +314,11 @@
     function calcCompleteness(a) {
         const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
         const f=fields.filter(Boolean).length;
-        const hasCv=!!a.cvUrl;
-        const hasPass=!!a.passportUrl;
-        const docsVerified=a.documentsVerified?.cv&&a.documentsVerified?.passport;
-        const pct=Math.round((f*7+(hasCv?10:0)+(hasPass?10:0)+(docsVerified?6:0))/100*100);
-        return Math.min(100,Math.max(0,f?Math.round((f*9+(hasCv?15:0)+(hasPass?15:0)+(docsVerified?10:0))/100*100) : 0));
+        const cv=!!a.cvUrl,pass=!!a.passportUrl,cert=!!a.certificatesUrl,ref=!!a.referenceUrl,med=!!a.medicalUrl;
+        const cvV=!!a.documentsVerified?.cv,passV=!!a.documentsVerified?.passport,certV=!!a.documentsVerified?.certificates,refV=!!a.documentsVerified?.reference,medV=!!a.documentsVerified?.medical;
+        let score=f; if(cv)score++; if(pass)score++; if(cert)score++; if(ref)score++; if(med)score++;
+        if(cvV)score++; if(passV)score++; if(certV)score++; if(refV)score++; if(medV)score++;
+        return Math.min(100,Math.round((Math.min(score,17)/17)*100));
     }
     function completenessBar(pct) {
         const c=pct>=80?'green':pct>=40?'amber':'maroon';
@@ -421,8 +421,9 @@
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         const apps=allApps.filter(a=>!a.archived&&(adminFilters.showBlocked||!a.blocked));
         const stats={total:apps.length,received:apps.filter(a=>a.status==="Application Received").length,inProgress:apps.filter(a=>!TERMINAL_ALT.includes(a.status)&&a.status!=="Placed — Active Employment"&&a.status!=="Application Received").length,placed:apps.filter(a=>a.status==="Placed — Active Employment").length,rejected:apps.filter(a=>a.status==="Rejected").length};
-        const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(parseFloat(f.amount)||0),0),0);
-        const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?(parseFloat(f.amount)||0):0),0),0);
+        const parseAmt=v=>{if(!v)return 0;const m=v.match(/[\d,.]+/);return m?parseFloat(m[0].replace(/,/g,'')):0;};
+        const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmt(f.amount),0),0);
+        const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmt(f.amount):0),0),0);
         let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort((a,b)=>{const da=a.updatedAt?new Date(a.updatedAt):new Date(0),db=b.updatedAt?new Date(b.updatedAt):new Date(0);return db-da;});
         const unread=getUnreadCount();
         return `
@@ -929,13 +930,13 @@
             s.forEach(d=>{const dt=d.data();if(dt.participants&&dt.participants.includes(uid))chat={id:d.id,...dt};});
             if(!chat){
                 const r=doc(collection(db,"chats"));
-                const data={participants:[currentUser.uid,uid],participantNames:{[currentUser.uid]:'Admin',[uid]:name},unread:{},lastMessage:'',lastTimestamp:null,createdAt:serverTimestamp()};
+                const data={participants:[currentUser.uid,uid],participantNames:{[currentUser.uid]:'Admin',[uid]:name},unread:{[currentUser.uid]:0,[uid]:0},lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
                 await setDoc(r,data);
                 chat={id:r.id,...data};
             }
             const msgText=`🛎️ Service Update: "${svcLabel}" → ${newStatus}${oldStatus!=='none'?` (was: ${oldStatus})`:''}`;
             const mr=doc(collection(db,"messages"));
-            await setDoc(mr,{chatId:chat.id,sender:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
+            await setDoc(mr,{chatId:chat.id,senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
             const cr=doc(db,"chats",chat.id),cs=await getDoc(cr),cd=cs.data();
             const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
             un[ou]=(un[ou]||0)+1;
@@ -952,13 +953,13 @@
             s.forEach(d=>{const dt=d.data();if(dt.participants&&dt.participants.includes(uid))chat={id:d.id,...dt};});
             if(!chat){
                 const r=doc(collection(db,"chats"));
-                const data={participants:[currentUser.uid,uid],participantNames:{[currentUser.uid]:'Admin',[uid]:name},unread:{},lastMessage:'',lastTimestamp:null,createdAt:serverTimestamp()};
+                const data={participants:[currentUser.uid,uid],participantNames:{[currentUser.uid]:'Admin',[uid]:name},unread:{[currentUser.uid]:0,[uid]:0},lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
                 await setDoc(r,data);
                 chat={id:r.id,...data};
             }
             const msgText=`📋 Status Update: ${status}${note?` — ${note}`:''}`;
             const mr=doc(collection(db,"messages"));
-            await setDoc(mr,{chatId:chat.id,sender:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
+            await setDoc(mr,{chatId:chat.id,senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
             const cr=doc(db,"chats",chat.id),cs=await getDoc(cr),cd=cs.data();
             const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
             un[ou]=(un[ou]||0)+1;
@@ -1188,7 +1189,7 @@
         if(!body)return;
         currentChatMessages=messages||[];
         body.innerHTML=currentChatMessages.length?currentChatMessages.map(m=>{
-            const sent=m.sender===currentUser?.uid;
+            const sent=(m.senderId||m.sender)===currentUser?.uid;
             const senderDisplay=m.senderName||(sent?'Admin':(ROUTE.params.otherName||'User'));
             return `<div class="msg-bubble ${sent?'sent':'rec'}">${sent?'':`<div style="font-size:10px;font-weight:700;color:var(--blue-700);margin-bottom:2px">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtDate(m.timestamp)}</div></div>`;
         }).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>No messages yet. Start the conversation!</p></div></div>`;
@@ -1261,7 +1262,7 @@
     }
 
     async function markChatRead(chatId) {
-        try{const r=doc(db,"chats",chatId),s=await getDoc(r);if(s.exists()){const d=s.data(),u=d.unread||{};if(u[currentUser.uid]){delete u[currentUser.uid];await updateDoc(r,{unread:u});}}}catch(e){}
+        try{const r=doc(db,"chats",chatId),s=await getDoc(r);if(s.exists()){const d=s.data(),u=d.unread||{};if(u[currentUser.uid]){u[currentUser.uid]=0;await updateDoc(r,{unread:u});}}}catch(e){}
     }
 
     function getUnreadCount() {
@@ -1277,19 +1278,19 @@
         s.forEach(d=>{const dt=d.data();if(dt.participants&&dt.participants.includes(otherUid))existing={id:d.id,...dt};});
         if(existing)return existing;
         const r=doc(collection(db,"chats"));
-        const data={participants:[uid,otherUid],participantNames:{[uid]:currentUser.displayName||'Admin',[otherUid]:otherName},unread:{},lastMessage:'',lastTimestamp:null,createdAt:serverTimestamp()};
+        const data={participants:[uid,otherUid],participantNames:{[uid]:currentUser.displayName||'Admin',[otherUid]:otherName},unread:{[uid]:0,[otherUid]:0},lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
         await setDoc(r,data);
         return {id:r.id,...data};
     }
 
     async function sendMessage(chatId,text,fileUrl,fileName) {
         const r=doc(collection(db,"messages"));
-        const msg={chatId,sender:currentUser.uid,senderName:'Admin',text:text||'',fileUrl:fileUrl||'',fileName:fileName||'',timestamp:serverTimestamp()};
+        const msg={chatId,senderId:currentUser.uid,senderName:'Admin',text:text||'',type:fileUrl?'file':'text',fileUrl:fileUrl||'',fileName:fileName||'',read:false,timestamp:serverTimestamp()};
         await setDoc(r,msg);
         const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
         const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
         un[ou]=(un[ou]||0)+1;
-        await updateDoc(cr,{lastMessage:text||'📎 File',lastTimestamp:serverTimestamp(),unread:un});
+        await updateDoc(cr,{lastMessage:text||(fileUrl?`📎 ${fileName||'File'}`:''),lastTimestamp:serverTimestamp(),lastSender:currentUser.uid,unread:un});
         await loadChats();
     }
 

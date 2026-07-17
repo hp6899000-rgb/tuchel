@@ -1159,7 +1159,7 @@
         }
 
         // Dev bootstrap: known admin emails — grants admin access by email (works with Google sign-in)
-        const DEV_ADMIN_EMAILS = ["chriskaburu8@gmail.com", "hp68990000@gmail.com"];
+        const DEV_ADMIN_EMAILS = ["admin@tuchel-services.com", "manager@tuchel-services.com", "operations@tuchel-services.com", "hr@tuchel-services.com"];
         async function isAdminEmail(email) { return email && DEV_ADMIN_EMAILS.includes(email.toLowerCase()); }
         async function bootstrapAdmins() {
             for (const email of DEV_ADMIN_EMAILS) {
@@ -2907,7 +2907,7 @@
             return;
         }
         body.innerHTML = messages.map(m => {
-            const isSent = m.senderId === uid;
+            const isSent = (m.senderId || m.sender) === uid;
             const senderDisplay = m.senderName || (isSent ? 'You' : (ROUTE.params.otherName || 'User'));
             const time = m.timestamp ? fmtTime(m.timestamp) : '';
             const fileHtml = m.fileUrl ? `<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName || 'View File')}</a></div>` : '';
