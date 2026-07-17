@@ -186,7 +186,7 @@
         .country-foot { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--slate-100); }
         .country-foot .count { font-size: 12.5px; color: var(--slate-500); font-weight: 600; }
         .job-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .job-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 22px; transition: var(--transition); }
+        .job-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 22px; transition: var(--transition); contain: content; }
         .job-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-md); transform: translateY(-2px); }
         .job-cat-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--slate-100); color: var(--blue-800); display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 14px; }
         .job-title { font-family: var(--font-head); font-weight: 700; font-size: 16px; color: var(--blue-900); margin: 0 0 6px; }
@@ -758,6 +758,13 @@
         }
 
         let usingFallbackJobs = false;
+        let countryJobCounts = {};
+        function computeCountryCounts() {
+            const c = {};
+            COUNTRIES.forEach(cn => c[cn] = 0);
+            allJobs.forEach(j => { if (c[j.country] !== undefined) c[j.country]++; });
+            countryJobCounts = c;
+        }
         async function loadJobs() {
             allJobs = [];
             try {
@@ -772,6 +779,7 @@
             } else {
                 usingFallbackJobs = false;
             }
+            computeCountryCounts();
             return allJobs;
         }
         async function addJob(jobData) {
@@ -783,9 +791,13 @@
         async function deleteJob(jobId) { await deleteDoc(doc(db, "jobs", jobId)); await loadJobs(); }
 
         async function loadApps() {
-            const snapshot = await getDocs(collection(db, "applications"));
             allApps = [];
-            snapshot.forEach(d => allApps.push({ id: d.id, ...d.data() }));
+            try {
+                const snapshot = await getDocs(collection(db, "applications"));
+                snapshot.forEach(d => allApps.push({ id: d.id, ...d.data() }));
+            } catch (e) {
+                if (!usingFallbackJobs) console.warn("Firestore apps read unavailable:", e.message);
+            }
             return allApps;
         }
         async function getApp(appId) {
@@ -816,9 +828,11 @@
         }
 
         async function loadFees() {
-            const snapshot = await getDocs(collection(db, "fees"));
             allFees = [];
-            snapshot.forEach(d => allFees.push({ id: d.id, ...d.data() }));
+            try {
+                const snapshot = await getDocs(collection(db, "fees"));
+                snapshot.forEach(d => allFees.push({ id: d.id, ...d.data() }));
+            } catch (e) { /* fees may be restricted */ }
             return allFees;
         }
         async function addFee(feeData) {
@@ -971,14 +985,14 @@
                 const adminData = await getAdminUser(user.uid);
                 if (adminData) {
                     currentUserData = { ...adminData, type: 'admin' };
-                    await loadJobs(); await loadApps(); await loadFees(); await loadChats();
+                    await Promise.all([loadJobs(), loadApps(), loadFees(), loadChats()]);
                     subscribeToRealtime();
                     subscribeChats();
                 } else {
                     const appData = await getApp(user.uid);
                     if (appData) {
                         currentUserData = { ...appData, type: 'applicant' };
-                        await loadJobs(); await loadFees(); await loadChats();
+                        await Promise.all([loadJobs(), loadFees(), loadChats()]);
                         subscribeToRealtime();
                         subscribeChats();
                     } else if (ROUTE.view === 'complete-profile') {
@@ -1013,11 +1027,13 @@
                     allJobs = [];
                     snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
                     usingFallbackJobs = allJobs.length === 0;
+                    computeCountryCounts();
                     if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
                 }, (err) => {
                     if (usingFallbackJobs === undefined || usingFallbackJobs) {
                         allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
                         usingFallbackJobs = true;
+                        computeCountryCounts();
                         if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
                     }
                 });
@@ -1184,11 +1200,11 @@
                 <p class="lead">Europe Sponsor Jobs connects skilled and manual workers with verified European employers offering genuine visa sponsorship — from construction and hospitality to healthcare and engineering. Ethical, transparent, end-to-end support.</p>
                 <div class="hero-actions">
                   <a class="btn btn-maroon" data-nav="apply"><i class="fa-solid fa-paper-plane"></i> Start Your Application</a>
-                  <a class="btn btn-outline-light" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse ${jobs.length || '...'} Roles</a>
+                  <a class="btn btn-outline-light" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse ${Math.max(jobs.length, JOBS_SEED.length)} Roles</a>
                 </div>
                 <div class="hero-stats">
                   <div class="hero-stat"><b>${COUNTRIES.length}</b><span>Destination Countries</span></div>
-                  <div class="hero-stat"><b>${jobs.length || '<span class="fa-spinner fa-spin" style="font-size:18px;display:inline-block"><i class="fa-solid fa-spinner"></i></span>'}</b><span>Active Job Listings</span></div>
+                  <div class="hero-stat"><b>${Math.max(jobs.length, JOBS_SEED.length)}</b><span>Active Job Listings</span></div>
                   <div class="hero-stat"><b>0%</b><span>Placement Fee to Workers</span></div>
                 </div>
               </div>
@@ -1198,7 +1214,7 @@
                   ${[["Application Received","Our team receives and logs your submission"],["Document Verification","CV, passport & credentials are checked"],["Visa Processing","Sponsorship paperwork & embassy submission"],["Deployment","Travel arranged & you start your new role"]].map(([label,sub],i) => `
                   <div class="step-item">
                     <div class="step-line"></div>
-                    <div class="step-dot ${i < 2 ? 'active' : 'pending'}">${i < 2 ? '<i class="fa-solid fa-check"></i>' : i+1}</div>
+                    <div class="step-dot ${i < 2 ? 'active' : 'pending'}">${i < 2 ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-regular fa-clock"></i>'}</div>
                     <div class="step-content">
                       <div class="step-label">${label}</div>
                       <div class="step-sub">${sub}</div>
@@ -1276,7 +1292,7 @@
 
         function countryCard(country) {
             const meta = COUNTRY_META[country];
-            const jobCount = allJobs.filter(j => j.country === country).length;
+            const jobCount = countryJobCounts[country] || 0;
             const points = {
                 "Germany": ["EU Blue Card visa sponsorship pathway", "Strong social security system", "Excellent economy", "Free education for children"],
                 "United Kingdom": ["Skilled Worker visa sponsorship", "NHS healthcare access", "Strong worker rights", "Path to settlement"],
@@ -1334,15 +1350,16 @@
 
         function jobCard(j) {
             const meta = COUNTRY_META[j.country];
+            const desc = j.desc.length > 120 ? j.desc.slice(0, 117) + '...' : j.desc;
             return `
             <div class="job-card">
               <div class="job-cat-icon"><i class="${CATEGORY_ICON[j.category]}"></i></div>
               <h4 class="job-title">${esc(j.title)}</h4>
               <div class="job-meta">
-                <span class="badge badge-blue"><img src="${flagUrl(meta.flag)}" style="width:16px;height:12px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px;"> ${esc(j.country)}</span>
+                <span class="badge badge-blue"><img src="${flagUrl(meta.flag)}" alt="" style="width:16px;height:12px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px"> ${esc(j.country)}</span>
                 <span class="badge badge-slate">${esc(j.category)}</span>
               </div>
-              <p class="job-desc">${esc(j.desc)}</p>
+              <p class="job-desc">${esc(desc)}</p>
               <div class="job-foot">
                 <span class="job-salary">${esc(j.salary)}</span>
                 <a class="btn btn-primary btn-sm" data-nav="apply" data-jobid="${j.id}">Apply <i class="fa-solid fa-arrow-right"></i></a>
@@ -2229,15 +2246,15 @@
             if (!confirm(`Add ${JOBS_SEED.length} sample jobs to the database? Existing jobs will remain - duplicates may occur.`)) return;
             const btn = document.getElementById('seedJobsBtn');
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Seeding...';
-            let added = 0, failed = 0;
-            for (let i = 0; i < JOBS_SEED.length; i++) {
-                try {
-                    await addJob(JOBS_SEED[i]);
-                    added++;
-                } catch (e) { failed++; }
+            const batchSize = 20;
+            let added = 0;
+            for (let i = 0; i < JOBS_SEED.length; i += batchSize) {
+                const chunk = JOBS_SEED.slice(i, i + batchSize);
+                const results = await Promise.allSettled(chunk.map(j => addJob(j)));
+                added += results.filter(r => r.status === 'fulfilled').length;
             }
             await loadJobs();
-            toast(`✅ ${added} jobs seeded${failed ? `, ${failed} failed` : ''}!`, failed ? 'err' : 'ok');
+            toast(`✅ ${added} jobs seeded${added < JOBS_SEED.length ? `, ${JOBS_SEED.length - added} failed` : ''}!`, added < JOBS_SEED.length ? 'err' : 'ok');
             btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-seedling"></i> Seed Sample Jobs';
             renderCurrentView();
         }
@@ -2272,13 +2289,9 @@
             }
             if (allJobs.length > 0) return;
             console.log("🌱 Jobs empty in Firestore — auto-seeding from JOBS_SEED...");
-            let added = 0, failed = 0;
-            for (let i = 0; i < JOBS_SEED.length; i++) {
-                try {
-                    await addJob(JOBS_SEED[i]);
-                    added++;
-                } catch (e) { failed++; }
-            }
+            const results = await Promise.allSettled(JOBS_SEED.map(j => addJob(j)));
+            const added = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.length - added;
             await loadJobs();
             if (added > 0) {
                 console.log(`✅ Auto-seeded ${added} jobs${failed ? ` (${failed} failed)` : ''}`);
@@ -2622,15 +2635,12 @@
         // =============================================================
         // BOOT
         // =============================================================
-        await loadJobs();
-        await loadFees();
-        await loadApps();
-        await loadChats();
+        await Promise.all([loadJobs(), loadFees(), loadApps(), loadChats()]);
         subscribeToRealtime();
         subscribeChats();
         renderNavbar();
         renderCurrentView();
-        setTimeout(autoSeedJobsIfEmpty, 500);
+        setTimeout(autoSeedJobsIfEmpty, 300);
 
         console.log("🌍 Europe Sponsor Jobs v2 — Full Feature Release");
         console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");
