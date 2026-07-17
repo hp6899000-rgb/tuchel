@@ -311,6 +311,7 @@
     function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
     function statusBadge(s) { const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
     function appId(a) { return a.appId || a.id || a.uid || ''; }
+    async function addAuditLog(action,details,targetId=''){try{await addDoc(collection(db,"auditLog"),{action,details,targetId,adminEmail:currentUserData?.email||currentUser?.email||'unknown',timestamp:serverTimestamp()});}catch(e){}}
     function calcCompleteness(a) {
         const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
         const f=fields.filter(Boolean).length;
@@ -376,6 +377,7 @@
             case "fees": html=viewFees(); break;
             case "messages": html=viewMessages(); break;
             case "messages-chat": html=viewMessagesChat(); break;
+            case "audit": html=viewAuditLog(); break;
             default: html=viewLogin();
         }
         document.getElementById('app').innerHTML=html;
@@ -434,6 +436,7 @@
                 <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
                 <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
                 <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread?` <span class="msg-count">${unread}</span>`:''}</a>
+                <a class="side-link" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
                 <div class="side-title" style="margin-top:20px">Account</div>
                 <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
@@ -635,7 +638,8 @@
                                     <span class="badge ${stCls}">${esc(s.status)}</span>
                                 </div>
                                 ${s.amount?`<div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--blue-800)">${esc(s.amount)} ${s.paid?'<span class="badge badge-green">Paid</span>':'<span class="badge badge-amber">Unpaid</span>'}</div>`:''}
-                                <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+                                <div style="margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--slate-500);font-weight:600">${s.progress||0}%</span><input type="range" min="0" max="100" value="${s.progress||0}" class="svc-progress" data-svcidx="${i}" style="flex:1;max-width:160px;height:4px"></div>
+                                <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
                                     <select class="svc-status-select" data-svcidx="${i}" style="width:auto;min-width:100px;padding:5px 8px;font-size:11px">
                                         <option value="pending" ${s.status==='pending'?'selected':''}>Pending</option>
                                         <option value="in-progress" ${s.status==='in-progress'?'selected':''}>In Progress</option>
@@ -739,11 +743,13 @@
             if(app.blocked){
                 if(!confirm(`UNBLOCK ${name} (${email})? They will regain platform access.`))return;
                 await updateDoc(doc(db,"applications",id),{blocked:false,blockedAt:null,blockedBy:null,updatedAt:serverTimestamp()});
+                try{addAuditLog(`Unblocked account`,`${name} (${email})`,id);}catch(e){}
                 toast(`✅ ${name} has been unblocked.`,"ok");
             }else{
                 if(!confirm(`BLOCK ${name} (${email})? They will no longer be able to access the platform.`))return;
                 if(!confirm(`⚠️ ARE YOU SURE? This will mark ${email} as blocked. Type "BLOCK" to confirm.`))return;
                 await updateDoc(doc(db,"applications",id),{blocked:true,blockedAt:new Date().toISOString(),blockedBy:currentUserData?.email||'Admin',updatedAt:serverTimestamp()});
+                try{addAuditLog(`Blocked account`,`${name} (${email})`,id);}catch(e){}
                 toast(`🔇 ${name} has been blocked.`,"ok");
             }
             root.innerHTML='';await loadApps();
@@ -779,6 +785,8 @@
                 }
             }
             await updateDoc(ref,updates);
+            const changedStatus=selectedStatus&&selectedStatus.getAttribute('data-setstatus')!==app.status;
+            try{addAuditLog(changedStatus?`Status → ${selectedStatus.getAttribute('data-setstatus')}`:'Documents verified',`${app.fullName} (${appId(app)})`,id);}catch(e){}
             toast("Application updated.","ok");root.innerHTML='';await loadApps();
         });
 
@@ -810,6 +818,7 @@
             fees[idx].paid=!fees[idx].paid;
             fees[idx].paidDate=fees[idx].paid?new Date().toISOString():null;
             await updateDoc(ref,{fees,updatedAt:serverTimestamp()});
+            try{addAuditLog(`Fee ${fees[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${fees[idx].label} ${fees[idx].amount}`,id);}catch(e){}
             toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'}.`,"ok");
             root.innerHTML='';openAppModal(appId);
         }));
@@ -826,6 +835,7 @@
             const data=s.data(),fees=[...(data.fees||[])];
             fees.push({id:'f_'+Date.now(),label:l,amount:a,paid:false,paidDate:null,addedAt:new Date().toISOString()});
             await updateDoc(ref,{fees,updatedAt:serverTimestamp()});
+            try{addAuditLog(`Fee added: ${l} ${a}`,`${app.fullName}`,id);}catch(e){}
             toast("Fee added to application.","ok");
             root.innerHTML='';openAppModal(appId);
         });
@@ -851,7 +861,7 @@
             const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
             dialog.done(async(result)=>{
                 try{
-                    const info=await result.files[0].promise();
+                    const info=await result.files[0].promise(); if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
                     const url=info.cdnUrl+(info.isImage?' -/preview/800x800/':'');
                     const id=appId(app);
                     await updateDoc(doc(db,"applications",id),{[field]:url,updatedAt:serverTimestamp()});
@@ -862,6 +872,14 @@
             dialog.fail(()=>toast('Upload cancelled.',"err"));
         });
 
+        // Service progress slider
+        document.querySelectorAll('.svc-progress').forEach(sl=>sl.addEventListener('input',async function(){
+            const idx=parseInt(this.getAttribute('data-svcidx')); const val=parseInt(this.value);
+            const id=appId(app); const ref=doc(db,"applications",id); const s=await getDoc(ref); if(!s.exists())return;
+            const data=s.data(),services=[...(data.clientServices||[])]; if(!services[idx])return;
+            services[idx].progress=val; services[idx].updatedAt=new Date().toISOString();
+            await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
+        }));
         // Service status change
         document.querySelectorAll('.svc-status-select').forEach(sel=>sel.addEventListener('change',async function(){
             const idx=parseInt(this.getAttribute('data-svcidx'));
@@ -877,6 +895,7 @@
             services[idx].updatedAt=new Date().toISOString();
             await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
             try{sendServiceStatusNotification(app.uid,app.fullName,services[idx].label,oldStatus,newStatus);}catch(e){}
+            try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${app.fullName}`,id);}catch(e){}
             toast(`Service "${services[idx].label}" → ${newStatus}.`,"ok");
             root.innerHTML='';openAppModal(appId);
         }));
@@ -894,6 +913,7 @@
             services[idx].paidDate=services[idx].paid?new Date().toISOString():null;
             services[idx].updatedAt=new Date().toISOString();
             await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
+            try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${services[idx].label}`,id);}catch(e){}
             toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}".`,"ok");
             root.innerHTML='';openAppModal(appId);
         }));
@@ -916,6 +936,7 @@
             services.push(svc);
             await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
             try{sendServiceStatusNotification(app.uid,app.fullName,label,'none','pending');}catch(e){}
+            try{addAuditLog(`Service added: "${label}"`,`${app.fullName} — ${amount}`,id);}catch(e){}
             toast(`Service "${label}" added.`,"ok");
             root.innerHTML='';openAppModal(appId);
         });
@@ -1020,6 +1041,30 @@
         }));
     }
 
+    async function viewAuditLog() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        let entries=[];
+        try{const snap=await getDocs(query(collection(db,"auditLog"),orderBy("timestamp","desc"),limit(200)));snap.forEach(d=>entries.push({id:d.id,...d.data()}));}catch(e){}
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <a class="side-link active" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar"><h2>Audit Log</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button></div></div>
+                <div class="card pad">
+                    ${entries.length?`<table style="width:100%;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Time</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Admin</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Action</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Details</th></tr></thead><tbody>${entries.map(e=>`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);white-space:nowrap">${fmtDate(e.timestamp)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);font-weight:600">${esc(e.adminEmail||'—')}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100)">${esc(e.action)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);color:var(--slate-500)">${esc(e.details||'')}</td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><p>No audit entries yet.</p></div>'}
+                </div>
+            </div>
+        </div>`;
+    }
     function viewFees() {
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         return `
@@ -1124,6 +1169,7 @@
                 dialog.done((file)=>{
                     file.progress((u)=>console.log("Upload progress:",u));
                     file.done((finfo)=>{
+                        if(finfo.size&&finfo.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
                         const url=finfo.cdnUrl+(finfo.isImage?' -/preview/800x800/':'');
                         sendMessage(chatId,'',url,finfo.name||'File');
                     });
