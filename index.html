@@ -766,13 +766,10 @@
             countryJobCounts = c;
         }
         async function loadJobs() {
-            const hadJobs = allJobs.length > 0;
-            if (!hadJobs) {
+            if (allJobs.length === 0) {
                 allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
                 usingFallbackJobs = true;
                 computeCountryCounts();
-                renderNavbar();
-                renderCurrentView();
             }
             getDocs(collection(db, "jobs")).then(snapshot => {
                 const live = [];
@@ -781,12 +778,10 @@
                     allJobs = live;
                     usingFallbackJobs = false;
                     computeCountryCounts();
-                    renderNavbar();
-                    renderCurrentView();
-                    if (!hadJobs) toast("Live jobs loaded from database.", "ok");
+                    if (["jobs", "home", "apply", "applicant-dashboard"].includes(ROUTE.view)) renderCurrentView();
                 }
             }).catch(e => {
-                if (!hadJobs) console.warn("Using fallback jobs:", e.message);
+                if (usingFallbackJobs) console.warn("Using fallback jobs:", e.message);
             });
             return allJobs;
         }
@@ -996,13 +991,12 @@
         onAuthStateChanged(auth, async (user) => {
             try {
                 currentUser = user;
+                await Promise.all([loadJobs(), loadFees()]);
                 if (user) {
                     const adminData = await getAdminUser(user.uid);
                     if (adminData) {
                         currentUserData = { ...adminData, type: 'admin' };
-                        await Promise.all([loadJobs(), loadApps(), loadFees(), loadChats()]);
-                        subscribeToRealtime();
-                        subscribeChats();
+                        await loadApps();
                         if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                     } else {
                     let appData = await getApp(user.uid);
@@ -1014,8 +1008,7 @@
                     }
                     if (appData) {
                         currentUserData = { ...appData, type: 'applicant' };
-                        await Promise.all([loadJobs(), loadFees(), loadChats()]);
-                        subscribeToRealtime();
+                        await loadChats();
                         subscribeChats();
                         if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
                     } else {
@@ -1118,9 +1111,6 @@
             </div>`;
             nav.innerHTML = html;
             nav.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.getAttribute('data-nav'))));
-            nav.querySelectorAll('[data-action="logout"]').forEach(el => el.addEventListener('click', async () => {
-                await signOut(auth); currentUserData = null; toast("You have been logged out.", "ok"); navigate("home");
-            }));
             const mt = document.getElementById('mobileToggle');
             if (mt) mt.addEventListener('click', () => document.getElementById('navLinks').classList.toggle('open'));
         }
@@ -1172,9 +1162,7 @@
                     navigate(view, jobid ? { jobid } : {});
                 });
             });
-            document.querySelectorAll('[data-action="logout"]').forEach(el => el.addEventListener('click', async () => {
-                await signOut(auth); currentUserData = null; toast("You have been logged out.", "ok"); navigate("home");
-            }));
+            document.querySelectorAll('[data-action="logout"]').forEach(el => el.addEventListener('click', () => signOut(auth)));
         }
 
         function renderFooter() {
@@ -1362,7 +1350,7 @@
                 ${["All", ...CATEGORIES].map(c => `<button class="chip ${jobFilter.category === c ? 'active' : ''}" data-cat="${esc(c)}">${c}</button>`).join("")}
               </div>
               <div class="job-grid">
-                ${allJobs.length === 0 ? `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading job listings &hellip;</p><span style="font-size:12px;color:var(--slate-400)">If this persists, please check your connection or contact support.</span></div>` : jobs.length ? jobs.map(jobCard).join("") : `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-inbox"></i><p>No roles match these filters right now.</p><span style="font-size:12px;color:var(--slate-400)">Try changing your selection above.</span></div>`}
+                ${allJobs.length === 0 ? `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading job listings &hellip;</p></div>` : jobs.length ? jobs.map(jobCard).join("") : `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-inbox"></i><p>No roles match these filters right now.</p><span style="font-size:12px;color:var(--slate-400)">Try changing your selection above.</span></div>`}
               </div>
             </div>
           </section>`;
