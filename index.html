@@ -766,20 +766,28 @@
             countryJobCounts = c;
         }
         async function loadJobs() {
-            allJobs = [];
-            try {
-                const snapshot = await getDocs(collection(db, "jobs"));
-                snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
-            } catch (e) {
-                console.warn("Firestore jobs read failed, using embedded fallback:", e.message);
-            }
-            if (allJobs.length === 0) {
+            const hadJobs = allJobs.length > 0;
+            if (!hadJobs) {
                 allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
                 usingFallbackJobs = true;
-            } else {
-                usingFallbackJobs = false;
+                computeCountryCounts();
+                renderNavbar();
+                renderCurrentView();
             }
-            computeCountryCounts();
+            getDocs(collection(db, "jobs")).then(snapshot => {
+                const live = [];
+                snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
+                if (live.length > 0) {
+                    allJobs = live;
+                    usingFallbackJobs = false;
+                    computeCountryCounts();
+                    renderNavbar();
+                    renderCurrentView();
+                    if (!hadJobs) toast("Live jobs loaded from database.", "ok");
+                }
+            }).catch(e => {
+                if (!hadJobs) console.warn("Using fallback jobs:", e.message);
+            });
             return allJobs;
         }
         async function addJob(jobData) {
@@ -1145,6 +1153,7 @@
             if (ROUTE.view === "apply") wireApplyForm();
             if (ROUTE.view === "status") wireStatusForm();
             if (ROUTE.view === "login") wireLogin();
+            if (ROUTE.view === "applicant-dashboard") wireApplicantDashboard();
             if (ROUTE.view === "admin-dashboard") wireAdminDashboard();
             if (ROUTE.view === "admin-jobs") wireAdminJobs();
             if (ROUTE.view === "admin-fees") wireAdminFees();
@@ -1833,7 +1842,6 @@
                 return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in to view your dashboard.</p><a class="btn btn-primary" data-nav="login">Log In</a></div></div></div>`;
             }
             if (!currentUserData || currentUserData.type !== 'applicant') {
-                const unread = getUnreadCount();
                 return `
               <div class="dash-shell">
                 <div class="dash-side">
@@ -1859,6 +1867,11 @@
             }
             const app = currentUserData;
             const unread = getUnreadCount();
+            const cvOk = app.cvUrl && app.documentsVerified?.cv;
+            const passOk = app.passportUrl && app.documentsVerified?.passport;
+            const fields = ['fullName','dob','nationality','phone','email','address','city','education','jobId','passportNumber'];
+            const filled = fields.filter(f => app[f]).length;
+            const pct = Math.round((filled / fields.length) * 100);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -1873,10 +1886,37 @@
             <div class="dash-main">
               <div class="dash-topbar">
                 <div>
-                  <h2>Hello, ${esc(app.fullName?.split(' ')[0] || '')}</h2>
-                  <div style="font-size:13px;color:var(--slate-500)">Application ${app.id || app.uid} · Last updated ${fmtDate(app.updatedAt)}</div>
+                  <h2>Hello, ${esc(app.fullName?.split(' ')[0] || 'Applicant')}</h2>
+                  <div style="font-size:13px;color:var(--slate-500)">ID: ${app.id || app.uid} · Updated ${fmtDate(app.updatedAt)}</div>
                 </div>
                 ${statusBadge(app.status)}
+              </div>
+              <div class="stat-grid" style="margin-bottom:20px;grid-template-columns:repeat(4,1fr)">
+                <div class="stat-card" style="cursor:pointer" data-action="chat-admin">
+                  <div class="n" style="font-size:20px"><i class="fa-solid fa-comment-dots" style="color:var(--blue-500);margin-right:8px"></i></div>
+                  <div class="l">Chat with Admin</div>
+                </div>
+                <div class="stat-card" style="cursor:pointer" data-action="upload-cv">
+                  <div class="n" style="font-size:20px"><i class="fa-solid fa-file-lines" style="color:${app.cvUrl ? 'var(--emerald-600)' : 'var(--amber-600)'};margin-right:8px"></i></div>
+                  <div class="l">${app.cvUrl ? 'Uploaded' : 'Upload'} CV</div>
+                </div>
+                <div class="stat-card" style="cursor:pointer" data-action="upload-passport">
+                  <div class="n" style="font-size:20px"><i class="fa-solid fa-passport" style="color:${app.passportUrl ? 'var(--emerald-600)' : 'var(--amber-600)'};margin-right:8px"></i></div>
+                  <div class="l">${app.passportUrl ? 'Uploaded' : 'Upload'} Passport</div>
+                </div>
+                <div class="stat-card" style="cursor:pointer" data-nav="jobs">
+                  <div class="n" style="font-size:20px"><i class="fa-solid fa-briefcase" style="color:var(--slate-500);margin-right:8px"></i></div>
+                  <div class="l">Browse Jobs</div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span style="font-weight:600;font-size:13.5px;color:var(--blue-900)">Application Progress</span>
+                  <span style="font-size:12px;color:var(--slate-500)">${filled}/${fields.length}</span>
+                </div>
+                <div style="height:8px;background:var(--slate-100);border-radius:99px;overflow:hidden">
+                  <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--emerald-500)' : pct > 50 ? 'var(--maroon-500)' : 'var(--amber-500)'};border-radius:99px;transition:width .5s"></div>
+                </div>
               </div>
               <div class="grid" style="grid-template-columns:1.4fr .9fr">
                 <div class="card pad">
@@ -1907,24 +1947,48 @@
                   </div>
                   <div class="card pad">
                     <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Documents</h4>
-                    <div class="doc-row"><div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div>${app.documentsVerified?.cv ? '<span class="badge badge-green">Verified</span>' : '<span class="badge badge-amber">Pending</span>'}</div>
-                    <div class="doc-row"><div class="di"><i class="fa-solid fa-passport"></i> Passport Copy</div>${app.passportUrl ? (app.documentsVerified?.passport ? '<span class="badge badge-green">Verified</span>' : '<span class="badge badge-amber">Pending</span>') : '<span class="badge badge-slate">Not Uploaded</span>'}</div>
-                    ${app.cvUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-link"></i> CV Link</div><a href="${app.cvUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div>` : ''}
-                    ${app.passportUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-link"></i> Passport Link</div><a href="${app.passportUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div>` : ''}
+                    <div class="doc-row"><div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div><div style="display:flex;gap:8px;align-items:center">${cvOk ? '<span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Verified</span>' : (app.cvUrl ? '<span class="badge badge-amber">Pending Verification</span>' : '<span class="badge badge-slate">Not Uploaded</span>')}<button class="btn btn-outline btn-sm" data-action="upload-cv">${app.cvUrl ? 'Replace' : 'Upload'}</button></div></div>
+                    <div class="doc-row"><div class="di"><i class="fa-solid fa-passport"></i> Passport Copy</div><div style="display:flex;gap:8px;align-items:center">${passOk ? '<span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Verified</span>' : (app.passportUrl ? '<span class="badge badge-amber">Pending Verification</span>' : '<span class="badge badge-slate">Not Uploaded</span>')}<button class="btn btn-outline btn-sm" data-action="upload-passport">${app.passportUrl ? 'Replace' : 'Upload'}</button></div></div>
                   </div>
                 </div>
               </div>
-              <div class="card pad" style="margin-top:22px">
-                <h4 style="margin:0 0 6px;color:var(--blue-900)">Need help? Chat with Admin</h4>
-                <p style="font-size:13.5px;color:var(--slate-500);margin:0 0 14px">Contact our support team referencing your Application ID <b>${app.id || app.uid}</b>.</p>
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
-                  <span class="badge badge-slate"><i class="fa-solid fa-envelope"></i> support@europesponsorjobs.com</span>
-                  <span class="badge badge-slate"><i class="fa-solid fa-phone"></i> +254 103 387012</span>
-                  <a class="btn btn-primary btn-sm" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Open Messages</a>
-                </div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:22px">
+                <a class="btn btn-primary" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Open Messages</a>
+                <a class="btn btn-outline" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse More Jobs</a>
               </div>
             </div>
           </div>`;
+        }
+
+        function wireApplicantDashboard() {
+            document.querySelectorAll('[data-action="upload-cv"]').forEach(b => b.addEventListener('click', () => uploadDoc('cvUrl', 'CV')));
+            document.querySelectorAll('[data-action="upload-passport"]').forEach(b => b.addEventListener('click', () => uploadDoc('passportUrl', 'Passport')));
+            document.querySelectorAll('[data-action="chat-admin"]').forEach(b => b.addEventListener('click', startChatWithAdmin));
+        }
+
+        function uploadDoc(field, label) {
+            const dialog = uploadcare.openDialog(null, {
+                publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
+                accept: field === 'cvUrl' ? 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'image/jpeg,image/png'
+            });
+            dialog.done(async (result) => {
+                try {
+                    const info = await result.files[0].promise();
+                    const url = info.cdnUrl;
+                    const app = currentUserData;
+                    if (!app || app.type !== 'applicant') return;
+                    const uid = app.uid || currentUser?.uid;
+                    if (!uid) return;
+                    await setDoc(doc(db, "applications", uid), { [field]: url, updatedAt: serverTimestamp() }, { merge: true });
+                    app[field] = url;
+                    toast(`${label} uploaded successfully!`, 'ok');
+                    renderCurrentView();
+                } catch (e) {
+                    console.error("Upload error:", e);
+                    toast(e.message || "Upload failed.", "err");
+                }
+            });
+            dialog.fail(() => toast('Upload cancelled or failed.', 'err'));
         }
 
         let adminFilters = { status: "All", country: "All", search: "" };
@@ -1948,6 +2012,7 @@
             ).sort((a, b) => { const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0); const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0); return db - da; });
 
             const unread = getUnreadCount();
+            const recent = filtered.slice(0, 3);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -1962,18 +2027,30 @@
             <div class="dash-main">
               <div class="dash-topbar">
                 <h2>Applications Dashboard</h2>
-                <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search name, email, ID, job..." value="${esc(adminFilters.search)}"></div>
+                <div style="display:flex;gap:10px;align-items:center">
+                  ${usingFallbackJobs ? '<span class="badge badge-amber"><i class="fa-solid fa-triangle-exclamation"></i> Fallback Mode</span>' : '<span class="badge badge-green"><i class="fa-solid fa-database"></i> Live</span>'}
+                  <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search name, email, ID, job..." value="${esc(adminFilters.search)}"></div>
+                </div>
               </div>
-              <div class="stat-grid">
-                <div class="stat-card"><div class="n">${stats.total}</div><div class="l">Total</div></div>
-                <div class="stat-card"><div class="n">${stats.received}</div><div class="l">New</div></div>
-                <div class="stat-card"><div class="n">${stats.inProgress}</div><div class="l">In Progress</div></div>
-                <div class="stat-card"><div class="n">${stats.placed}</div><div class="l">Placed</div></div>
-                <div class="stat-card"><div class="n">${stats.rejected}</div><div class="l">Rejected</div></div>
+              <div class="stat-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+                <div class="stat-card"><div class="n">${stats.total}</div><div class="l"><i class="fa-solid fa-users"></i> Total</div></div>
+                <div class="stat-card" style="border-left:3px solid var(--blue-500)"><div class="n">${stats.received}</div><div class="l"><i class="fa-solid fa-inbox"></i> New</div></div>
+                <div class="stat-card" style="border-left:3px solid var(--amber-500)"><div class="n">${stats.inProgress}</div><div class="l"><i class="fa-solid fa-spinner"></i> In Progress</div></div>
+                <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n">${stats.placed}</div><div class="l"><i class="fa-solid fa-check-circle"></i> Placed</div></div>
+                <div class="stat-card" style="border-left:3px solid var(--rose-500)"><div class="n">${stats.rejected}</div><div class="l"><i class="fa-solid fa-times-circle"></i> Rejected</div></div>
               </div>
+              <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+                <button class="btn btn-outline btn-sm" data-action="seed-jobs" title="Add sample jobs to database"><i class="fa-solid fa-seedling"></i> Seed Jobs</button>
+                <button class="btn btn-outline btn-sm" data-action="clear-jobs" title="Remove all jobs from database"><i class="fa-solid fa-trash-can"></i> Clear Jobs</button>
+                <button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
+              </div>
+              ${recent.length ? `<div class="card pad" style="margin-bottom:18px;padding:14px 18px">
+                <h4 style="margin:0 0 12px;font-size:13px;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em">Recent Applications</h4>
+                ${recent.map(a => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--slate-100)"><div><b style="color:var(--blue-900)">${esc(a.fullName)}</b><span style="font-size:12px;color:var(--slate-500);margin-left:10px">${esc(a.jobTitle)}</span></div><div style="display:flex;gap:10px;align-items:center"><span style="font-size:11px;color:var(--slate-400)">${fmtDate(a.updatedAt)}</span>${statusBadge(a.status)}</div></div>`).join("")}
+              </div>` : ''}
               <div class="filter-bar">${["All", ...COUNTRIES].map(c => `<button class="chip ${adminFilters.country === c ? 'active' : ''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
               <div class="filter-bar">${["All", ...ALL_STATUSES].map(s => `<button class="chip ${adminFilters.status === s ? 'active' : ''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
-              <div class="card">
+              <div class="card" style="overflow-x:auto">
                 <table>
                   <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Updated</th><th></th></tr></thead>
                   <tbody>
@@ -2002,6 +2079,20 @@
             document.querySelectorAll('[data-afcountry]').forEach(b => b.addEventListener('click', () => { adminFilters.country = b.getAttribute('data-afcountry'); renderCurrentView(); }));
             document.querySelectorAll('[data-afstatus]').forEach(b => b.addEventListener('click', () => { adminFilters.status = b.getAttribute('data-afstatus'); renderCurrentView(); }));
             document.querySelectorAll('[data-openapp]').forEach(b => b.addEventListener('click', () => openAdminAppModal(b.getAttribute('data-openapp'))));
+            document.querySelectorAll('[data-action="seed-jobs"]').forEach(b => b.addEventListener('click', async () => {
+                if (usingFallbackJobs) { toast("Firestore is not available — cannot seed jobs.", "err"); return; }
+                await seedAllJobs(); await loadJobs(); renderCurrentView();
+            }));
+            document.querySelectorAll('[data-action="clear-jobs"]').forEach(b => b.addEventListener('click', async () => {
+                if (usingFallbackJobs) { toast("Firestore is not available — cannot clear jobs.", "err"); return; }
+                if (!confirm("Clear ALL jobs from the database?")) return;
+                await clearAllJobs(); await loadJobs(); renderCurrentView();
+            }));
+            document.querySelectorAll('[data-action="refresh"]').forEach(b => b.addEventListener('click', async () => {
+                await Promise.all([loadJobs(), loadApps(), loadFees()]);
+                renderCurrentView();
+                toast("Data refreshed.", "ok");
+            }));
             function renderList() {
                 renderCurrentView();
                 setTimeout(() => { const el = document.getElementById('adminSearch'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 0);
@@ -2380,6 +2471,7 @@
                   <i class="fa-solid fa-comment-slash"></i>
                   <p style="font-size:14px;color:var(--slate-500);margin-top:10px">No conversations yet.</p>
                   <p style="font-size:12px;color:var(--slate-400);margin-top:4px">When an admin contacts you, it will appear here.</p>
+                  ${currentUserData?.type === 'applicant' ? `<button class="btn btn-primary btn-sm" style="margin-top:16px" data-action="contact-support"><i class="fa-solid fa-headset"></i> Contact Support</button>` : ''}
                 </div>`}
             </div>
             <div class="msg-chat-panel show">
@@ -2392,7 +2484,22 @@
           </div>`;
         }
 
+        async function startChatWithAdmin() {
+            try {
+                const adminsSnap = await getDocs(collection(db, "admins"));
+                let adminUid = null, adminName = "Support Team";
+                adminsSnap.forEach(d => { adminUid = d.id; if (d.data().displayName) adminName = d.data().displayName; });
+                if (!adminUid) { toast("No support team available right now.", "err"); return; }
+                const chat = await getOrCreateChat(adminUid, adminName);
+                if (chat) navigate("messages-chat", { chatId: chat.id, otherName: adminName });
+            } catch (e) {
+                console.error("Start chat error:", e);
+                toast("Could not start chat. Check your connection.", "err");
+            }
+        }
+
         function wireMessages() {
+            document.querySelectorAll('[data-action="contact-support"]').forEach(el => el.addEventListener('click', startChatWithAdmin));
             document.querySelectorAll('[data-chatid]').forEach(el => {
                 el.addEventListener('click', () => {
                     const chatId = el.getAttribute('data-chatid');
