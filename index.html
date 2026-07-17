@@ -808,7 +808,7 @@
             return null;
         }
         async function createApp(appData) {
-            const appId = genAppId();
+            const appId = appData.uid || genAppId();
             const ref = doc(db, "applications", appId);
             const newApp = {
                 ...appData, id: appId,
