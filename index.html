@@ -810,15 +810,17 @@
         async function createApp(appData) {
             const appId = appData.uid || genAppId();
             const ref = doc(db, "applications", appId);
+            const existing = await getDoc(ref);
             const newApp = {
                 ...appData, id: appId,
                 timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted." }],
                 internalNotes: [], archived: false,
-                createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-                status: "Application Received",
-                documentsVerified: { cv: false, passport: false }
+                createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                status: appData.status || "Application Received",
+                documentsVerified: appData.documentsVerified || { cv: false, passport: false }
             };
-            await setDoc(ref, newApp);
+            await setDoc(ref, newApp, { merge: true });
             await loadApps();
             return newApp;
         }
@@ -995,19 +997,25 @@
                         subscribeChats();
                         if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                     } else {
-                        const appData = await getApp(user.uid);
-                        if (appData) {
-                            currentUserData = { ...appData, type: 'applicant' };
-                            await Promise.all([loadJobs(), loadFees(), loadChats()]);
-                            subscribeToRealtime();
-                            subscribeChats();
-                            if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
-                        } else if (ROUTE.view === 'complete-profile') {
-                        } else {
-                            currentUserData = { type: 'needs-profile' };
-                            navigate("complete-profile");
-                            return;
-                        }
+                    let appData = await getApp(user.uid);
+                    if (!appData) {
+                        try {
+                            const fallback = await getDocs(query(collection(db, "applications"), where("uid", "==", user.uid), limit(1)));
+                            fallback.forEach(d => appData = { id: d.id, ...d.data() });
+                        } catch (e) { /* fallback may be restricted */ }
+                    }
+                    if (appData) {
+                        currentUserData = { ...appData, type: 'applicant' };
+                        await Promise.all([loadJobs(), loadFees(), loadChats()]);
+                        subscribeToRealtime();
+                        subscribeChats();
+                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
+                    } else if (ROUTE.view === 'complete-profile') {
+                    } else {
+                        currentUserData = { type: 'needs-profile' };
+                        navigate("complete-profile");
+                        return;
+                    }
                     }
                 } else {
                     currentUserData = null;
@@ -1858,27 +1866,33 @@
             if (!f) return;
             f.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const fd = new FormData(e.target);
-                const jobId = fd.get('jobId');
-                const job = allJobs.find(j => j.id === jobId);
-                if (!job) { toast("Please select a job.", "err"); return; }
-                const phoneCode = fd.get('phoneCode');
-                const phone = fd.get('phone').trim();
-                const appData = {
-                    uid: currentUser.uid, fullName: fd.get('fullName').trim(), email: currentUser.email,
-                    phone: `${phoneCode} ${phone}`, phoneCode, phoneNumber: phone,
-                    country: job.country, city: fd.get('city').trim(),
-                    jobId, jobTitle: job.title, coverLetter: '', cvUrl: '', passportUrl: '',
-                    status: "Application Received",
-                    documentsVerified: { cv: false, passport: false },
-                    timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Profile completed via Google sign-in." }],
-                    internalNotes: [], archived: false
-                };
-                await createApp(appData);
-                currentUserData = { ...appData, type: 'applicant' };
-                await loadJobs(); await loadFees(); await loadChats(); subscribeToRealtime(); subscribeChats();
-                toast("Profile completed! You can now upload your CV from your portal.", "ok");
-                navigate("applicant-dashboard");
+                try {
+                    const fd = new FormData(e.target);
+                    const jobId = fd.get('jobId');
+                    const job = allJobs.find(j => j.id === jobId);
+                    if (!job) { toast("Please select a job.", "err"); return; }
+                    const phoneCode = fd.get('phoneCode');
+                    const phone = fd.get('phone').trim();
+                    const appData = {
+                        uid: currentUser.uid, fullName: fd.get('fullName').trim(), email: currentUser.email,
+                        phone: `${phoneCode} ${phone}`, phoneCode, phoneNumber: phone,
+                        country: job.country, city: fd.get('city').trim(),
+                        jobId, jobTitle: job.title, coverLetter: '', cvUrl: '', passportUrl: '',
+                        status: "Application Received",
+                        documentsVerified: { cv: false, passport: false },
+                        timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Profile completed." }],
+                        internalNotes: [], archived: false
+                    };
+                    await createApp(appData);
+                    currentUserData = { ...appData, type: 'applicant' };
+                    await Promise.all([loadJobs(), loadFees(), loadChats()]);
+                    subscribeToRealtime(); subscribeChats();
+                    toast("Profile completed! Welcome aboard.", "ok");
+                    navigate("applicant-dashboard");
+                } catch (error) {
+                    console.error("Complete profile error:", error);
+                    toast(error.message || "Could not save profile. Check your Firestore security rules — they must allow writes.", "err");
+                }
             });
         }
 
