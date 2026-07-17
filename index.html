@@ -1031,6 +1031,7 @@
                     if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
                     renderNavbar(); renderCurrentView();
                 }
+            } catch (e) { console.error("Auth handler error:", e); }
         });
 
         function subscribeToRealtime() {
