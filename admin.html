@@ -209,6 +209,25 @@
             .progress-stages .stage { min-width: 60px; font-size: 9px; padding: 6px 2px; }
             .fee-row { flex-wrap: wrap; gap: 6px; }
             .fee-row .amt { min-width: 60px; font-size: 13px; }
+            .app-table { width: 100%; }
+            .app-card-row { display: none; }
+            .completeness-bar { height: 5px; background: var(--slate-100); border-radius: 99px; overflow: hidden; min-width: 60px; }
+            .completeness-bar .fill { height: 100%; border-radius: 99px; transition: width .5s; }
+            .completeness-bar .fill.green { background: var(--emerald-500); }
+            .completeness-bar .fill.amber { background: var(--amber-500); }
+            .completeness-bar .fill.maroon { background: var(--maroon-500); }
+        }
+        @media (max-width: 600px) {
+            .app-table { display: none; }
+            .app-card-row { display: block; }
+            .app-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+            .app-card .ac-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+            .app-card .ac-name { font-weight: 700; color: var(--blue-900); font-size: 14px; }
+            .app-card .ac-id { font-size: 11px; color: var(--slate-500); }
+            .app-card .ac-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; color: var(--slate-600); margin-bottom: 10px; }
+            .app-card .ac-meta span { display: flex; align-items: center; gap: 4px; }
+            .app-card .ac-meta i { color: var(--slate-400); width: 14px; text-align: center; font-size: 11px; }
+            .app-card .ac-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--slate-100); padding-top: 10px; }
         }
     </style>
 </head>
@@ -279,6 +298,60 @@
     function toast(msg,type) { const w=document.getElementById('toast-wrap'),el=document.createElement('div'); el.className='toast'+(type?' '+type:''); el.innerHTML=`<i class="fa-solid ${type==='err'?'fa-circle-exclamation':type==='ok'?'fa-circle-check':'fa-bell'}"></i><span>${esc(msg)}</span>`; w.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3600); }
     function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
     function statusBadge(s) { const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
+    function appId(a) { return a.appId || a.id || a.uid || ''; }
+    function calcCompleteness(a) {
+        const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
+        const f=fields.filter(Boolean).length;
+        const hasCv=!!a.cvUrl;
+        const hasPass=!!a.passportUrl;
+        const docsVerified=a.documentsVerified?.cv&&a.documentsVerified?.passport;
+        const pct=Math.round((f*7+(hasCv?10:0)+(hasPass?10:0)+(docsVerified?6:0))/100*100);
+        return Math.min(100,Math.max(0,f?Math.round((f*9+(hasCv?15:0)+(hasPass?15:0)+(docsVerified?10:0))/100*100) : 0));
+    }
+    function completenessBar(pct) {
+        const c=pct>=80?'green':pct>=40?'amber':'maroon';
+        return `<div class="completeness-bar"><div class="fill ${c}" style="width:${pct}%"></div></div><span style="font-size:10px;color:var(--slate-500)">${pct}%</span>`;
+    }
+    function getStageRequirements(a, stageIdx) {
+        const reqs=[
+            {label:'Personal info complete (name, email, phone, nationality)', met:!!(a.fullName&&a.email&&a.phone&&a.nationality)},
+            {label:'CV uploaded', met:!!a.cvUrl},
+            {label:'Passport uploaded', met:!!a.passportUrl},
+            {label:'Job selected', met:!!(a.jobTitle&&a.country)},
+            {label:'Education & experience provided', met:!!(a.education||a.workExperience)}
+        ];
+        if(stageIdx>=1){
+            reqs.push({label:'CV verified by admin', met:!!a.documentsVerified?.cv});
+            reqs.push({label:'Passport verified by admin', met:!!a.documentsVerified?.passport});
+        }
+        if(stageIdx>=2) reqs.push({label:'Screening interview completed', met:!!(a.timeline||[]).some(t=>t.status==='Screening Interview')});
+        if(stageIdx>=3) reqs.push({label:'Employer matched', met:!!(a.timeline||[]).some(t=>t.status==='Employer Matching')});
+        if(stageIdx>=4){
+            reqs.push({label:'Job offer extended', met:!!(a.timeline||[]).some(t=>t.status==='Job Offer Extended')});
+            reqs.push({label:'Contract documents uploaded', met:!!a.contractUrl});
+        }
+        if(stageIdx>=5) reqs.push({label:'Contract signed', met:!!(a.timeline||[]).some(t=>t.status==='Contract Signing')});
+        if(stageIdx>=6){
+            reqs.push({label:'Medical report uploaded', met:!!a.medicalUrl});
+            reqs.push({label:'Reference letters uploaded', met:!!a.referenceUrl});
+            reqs.push({label:'Certificates uploaded', met:!!a.certificatesUrl});
+        }
+        if(stageIdx>=7){
+            reqs.push({label:'Medical report cleared', met:!!a.documentsVerified?.medical});
+            reqs.push({label:'Police clearance submitted', met:!!a.policeClearanceUrl});
+        }
+        if(stageIdx>=8) reqs.push({label:'Travel & deployment arranged', met:!!(a.timeline||[]).some(t=>t.status==='Travel & Deployment')});
+        return reqs;
+    }
+    function checkAutoAdvance(a) {
+        const cur=STATUS_STEPS.indexOf(a.status);
+        if(cur<0||cur>=STATUS_STEPS.length-1)return null;
+        const reqs=getStageRequirements(a,cur);
+        const allMet=reqs.every(r=>r.met);
+        if(!allMet)return null;
+        const next=STATUS_STEPS[cur+1];
+        return next;
+    }
 
     // Admin email grant — dev override
     function navigate(v,p={}) { ROUTE={view:v,params:p}; window.scrollTo({top:0,behavior:'instant'}); render(); }
@@ -371,10 +444,53 @@
                 <div class="filter-bar">${["All","Germany","UK","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
                 <div class="filter-bar">${["All",...ALL_STATUSES].map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
                 <div class="card" style="overflow-x:auto">
-                    <table>
-                        <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Updated</th><th></th></tr></thead>
-                        <tbody>${filtered.length?filtered.map(a=>`<tr><td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${a.id||a.uid}</span></td><td>${esc(a.jobTitle)}<br><span style="font-size:12px;color:var(--slate-500)">${esc(a.country)}</span></td><td>${statusBadge(a.status)}</td><td style="font-size:12px;color:var(--slate-500)">${fmtDate(a.updatedAt)}</td><td><button class="btn btn-outline btn-sm" data-openapp="${a.id||a.uid}">Review</button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div></td></tr>`}</tbody>
+                    <table class="app-table">
+                        <thead><tr><th>Applicant</th><th>Phone</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th></tr></thead>
+                        <tbody>${filtered.length?filtered.map(a=>{
+                            const cmp=calcCompleteness(a);
+                            const fees=a.fees||[];
+                            const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            return `<tr>
+                                <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:11px;color:var(--slate-500)">${appId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}</td>
+                                <td style="font-size:12px;color:var(--slate-600)">${esc(a.phone||'—')}</td>
+                                <td>${esc(a.jobTitle)}<br><span style="font-size:12px;color:var(--slate-500)">${esc(a.country)}</span></td>
+                                <td>${statusBadge(a.status)}</td>
+                                <td style="white-space:nowrap">${completenessBar(cmp)}</td>
+                                <td style="font-size:11px;white-space:nowrap"><span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span> / <span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></td>
+                                <td style="font-size:11px;color:var(--slate-500);white-space:nowrap">${fmtDate(a.updatedAt)}</td>
+                                <td><button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
+                            </tr>`;
+                        }).join(""):`<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div></td></tr>`}</tbody>
                     </table>
+                    <!-- Mobile card layout -->
+                    <div class="app-card-row">${filtered.length?filtered.map(a=>{
+                        const cmp=calcCompleteness(a);
+                        const fees=a.fees||[];
+                        const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        return `<div class="app-card">
+                            <div class="ac-head">
+                                <div>
+                                    <div class="ac-name">${esc(a.fullName)}</div>
+                                    <div class="ac-id">${appId(a)}</div>
+                                </div>
+                                ${statusBadge(a.status)}
+                            </div>
+                            <div class="ac-meta">
+                                <span><i class="fa-solid fa-envelope"></i> ${esc(a.email||'—')}</span>
+                                <span><i class="fa-solid fa-phone"></i> ${esc(a.phone||'—')}</span>
+                                <span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)}</span>
+                                <span><i class="fa-solid fa-location-dot"></i> ${esc(a.country)}</span>
+                                <span><i class="fa-solid fa-file"></i> ${completenessBar(cmp)}</span>
+                                <span><i class="fa-solid fa-coins"></i> <span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span>/<span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></span>
+                                <span><i class="fa-regular fa-clock"></i> ${fmtDate(a.updatedAt)}</span>
+                            </div>
+                            <div class="ac-foot">
+                                <button class="btn btn-primary btn-sm" data-openapp="${appId(a)}"><i class="fa-solid fa-chevron-right"></i> Review</button>
+                            </div>
+                        </div>`;
+                    }).join(""):`<div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div>`}</div>
                 </div>
             </div>
         </div>`;
@@ -410,7 +526,7 @@
         root.innerHTML=`
         <div class="modal-overlay" id="modalOverlay">
             <div class="modal" style="max-width:900px">
-                <div class="modal-head"><h3>${esc(app.fullName)} — ${app.id||app.uid}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-head"><h3>${esc(app.fullName)} — ${appId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
                 <div class="modal-body">
                     ${progressHTML()}
                     <div class="modal-tab">
@@ -494,6 +610,30 @@
                         <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Update Status</h4>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${ALL_STATUSES.map(s=>`<button class="chip ${app.status===s?'active':''}" data-setstatus="${esc(s)}">${s}</button>`).join("")}</div>
                         <div class="field"><label>Status Note</label><textarea id="statusNote" rows="2" placeholder="Optional note for this status change..."></textarea></div>
+                        ${(()=>{
+                            const autoNext=checkAutoAdvance(app);
+                            if(autoNext){
+                                return `<div style="background:var(--emerald-50);border:1px solid #bfe6cc;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                                    <span style="font-size:13px;font-weight:600;color:#065F46"><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> All requirements met for current stage.</span>
+                                    <button class="btn btn-success btn-sm" id="autoAdvanceBtn">Advance to "${esc(autoNext)}" <i class="fa-solid fa-arrow-right"></i></button>
+                                </div>`;
+                            }
+                            return '';
+                        })()}
+                        <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Stage Requirements</h4>
+                        <div style="background:var(--slate-50);border-radius:8px;padding:12px 16px;margin-bottom:16px">
+                            ${(()=>{
+                                const cur=STATUS_STEPS.indexOf(app.status);
+                                const idx=Math.max(0,cur);
+                                const reqs=getStageRequirements(app,idx);
+                                const met=reqs.filter(r=>r.met).length;
+                                return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                                    <span style="font-size:12px;font-weight:700;color:var(--slate-600)">Requirements for "${esc(STATUS_STEPS[idx]||app.status)}"</span>
+                                    <span style="font-size:12px;color:var(--slate-500)">${met}/${reqs.length}</span>
+                                </div>
+                                ${reqs.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px;color:${r.met?'var(--emerald-600)':'var(--slate-500)'}"><i class="fa-solid ${r.met?'fa-circle-check':'fa-circle-regular'}" style="font-size:11px"></i> ${esc(r.label)}</div>`).join("")}`;
+                            })()}
+                        </div>
                         <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Application Timeline</h4>
                         ${renderTimeline(app)}
                     </div>
@@ -519,7 +659,7 @@
         // Archive
         document.getElementById('archiveBtn').addEventListener('click',async()=>{
             if(!confirm("Archive this application?"))return;
-            await updateDoc(doc(db,"applications",app.id||app.uid),{archived:true,updatedAt:serverTimestamp()});
+            await updateDoc(doc(db,"applications",appId(app)),{archived:true,updatedAt:serverTimestamp()});
             toast("Archived.","ok");root.innerHTML='';await loadApps();
         });
 
@@ -534,7 +674,7 @@
 
         // Save: status + doc verification
         document.getElementById('saveModalBtn').addEventListener('click',async()=>{
-            const id=app.id||app.uid;
+            const id=appId(app);
             const ref=doc(db,"applications",id);
             const dv={};
             document.querySelectorAll('.doc-verify-cb').forEach(cb=>{dv[cb.getAttribute('data-dockey')]=cb.checked;});
@@ -562,10 +702,20 @@
             this.classList.add('active');
         }));
 
+        // Auto-advance
+        document.getElementById('autoAdvanceBtn')?.addEventListener('click',async()=>{
+            const next=checkAutoAdvance(app);
+            if(!next){toast("Requirements not met for auto-advance.","err");return;}
+            document.querySelectorAll('[data-setstatus]').forEach(x=>x.classList.remove('active'));
+            document.querySelector(`[data-setstatus="${esc(next)}"]`)?.classList.add('active');
+            document.getElementById('statusNote').value=`Auto-advanced: all requirements met for "${app.status}".`;
+            document.getElementById('saveModalBtn').click();
+        });
+
         // Fee toggle (mark paid/unpaid)
         document.querySelectorAll('[data-togglefee]').forEach(b=>b.addEventListener('click',async function(){
             const idx=parseInt(this.getAttribute('data-togglefee'));
-            const id=app.id||app.uid;
+            const id=appId(app);
             const ref=doc(db,"applications",id);
             const s=await getDoc(ref);
             if(!s.exists())return;
@@ -583,7 +733,7 @@
             const l=document.getElementById('newFeeLabel').value.trim();
             const a=document.getElementById('newFeeAmount').value.trim();
             if(!l||!a){toast("Enter both label and amount.","err");return;}
-            const id=app.id||app.uid;
+            const id=appId(app);
             const ref=doc(db,"applications",id);
             const s=await getDoc(ref);
             if(!s.exists()){toast("Application doc not found.","err");return;}
@@ -598,7 +748,7 @@
         document.getElementById('addNoteBtn').addEventListener('click',async()=>{
             const t=document.getElementById('newNoteText').value.trim();
             if(!t){toast("Enter a note.","err");return;}
-            const id=app.id||app.uid;
+            const id=appId(app);
             const ref=doc(db,"applications",id);
             const s=await getDoc(ref);
             if(!s.exists()){toast("Application doc not found.","err");return;}
@@ -617,7 +767,7 @@
                 try{
                     const info=await result.files[0].promise();
                     const url=info.cdnUrl+(info.isImage?' -/preview/800x800/':'');
-                    const id=app.id||app.uid;
+                    const id=appId(app);
                     await updateDoc(doc(db,"applications",id),{[field]:url,updatedAt:serverTimestamp()});
                     toast("Document uploaded to application.","ok");
                     root.innerHTML='';openAppModal(appId);
@@ -845,7 +995,7 @@
                         <div><b>Passport:</b> ${esc(app.passportNumber||'—')}</div>
                     </div>
                     ${app.cvUrl?`<div style="margin-top:14px"><a href="${app.cvUrl}" target="_blank" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-lines"></i> View CV</a></div>`:''}
-                    <div style="margin-top:14px"><button class="btn btn-primary btn-sm" data-openapp="${app.id||app.uid}"><i class="fa-solid fa-arrow-right"></i> Open Full Application</button></div>
+                    <div style="margin-top:14px"><button class="btn btn-primary btn-sm" data-openapp="${appId(app)}"><i class="fa-solid fa-arrow-right"></i> Open Full Application</button></div>
                 </div>
                 <div class="modal-foot"><button class="btn btn-outline btn-sm" id="modalCloseBtn2">Close</button></div>
             </div>

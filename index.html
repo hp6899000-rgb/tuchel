@@ -727,6 +727,26 @@
 
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
         function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function displayId(a) { return a.appId || a.id || a.uid || ''; }
+        function calcCompleteness(a) {
+            const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
+            const f=fields.filter(Boolean).length;
+            const cv=!!(a.cvUrl);
+            const pass=!!(a.passportUrl);
+            const cert=!!(a.certificatesUrl);
+            const ref=!!(a.referenceUrl);
+            const med=!!(a.medicalUrl);
+            const cvV=!!(a.documentsVerified?.cv);
+            const passV=!!(a.documentsVerified?.passport);
+            const certV=!!(a.documentsVerified?.certificates);
+            const refV=!!(a.documentsVerified?.reference);
+            const medV=!!(a.documentsVerified?.medical);
+            const total=17;
+            let score=f;
+            if(cv)score++; if(pass)score++; if(cert)score++; if(ref)score++; if(med)score++;
+            if(cvV)score++; if(passV)score++; if(certV)score++; if(refV)score++; if(medV)score++;
+            return Math.min(100,Math.round((score/total)*100));
+        }
         function fmtDate(ts) {
             if (!ts) return "—";
             if (ts.toDate) ts = ts.toDate();
@@ -831,11 +851,12 @@
             return null;
         }
         async function createApp(appData) {
-            const appId = appData.uid || genAppId();
-            const ref = doc(db, "applications", appId);
+            const docId = appData.uid || genAppId();
+            const appNum = genAppId();
+            const ref = doc(db, "applications", docId);
             const existing = await getDoc(ref);
             const newApp = {
-                ...appData, id: appId,
+                ...appData, id: docId, appId: appNum,
                 timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted." }],
                 internalNotes: [], archived: false,
                 createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
@@ -1540,6 +1561,35 @@
                         <input type="hidden" id="passUploaded" name="passportUrl" />
                       </div>
                     </div>
+                    <div class="field-row-3">
+                      <div class="field">
+                        <label>Certificates / Credentials</label>
+                        <div class="upload-box" id="certBox">
+                          <i class="fa-solid fa-cloud-arrow-up"></i>
+                          <div class="u-title">Click to upload Certificates</div>
+                          <div class="u-sub" id="certSub">Upload via Uploadcare</div>
+                        </div>
+                        <input type="hidden" id="certUploaded" name="certificatesUrl" />
+                      </div>
+                      <div class="field">
+                        <label>Reference Letter</label>
+                        <div class="upload-box" id="refBox">
+                          <i class="fa-solid fa-cloud-arrow-up"></i>
+                          <div class="u-title">Click to upload Reference</div>
+                          <div class="u-sub" id="refSub">Upload via Uploadcare</div>
+                        </div>
+                        <input type="hidden" id="refUploaded" name="referenceUrl" />
+                      </div>
+                      <div class="field">
+                        <label>Medical Report (if available)</label>
+                        <div class="upload-box" id="medBox">
+                          <i class="fa-solid fa-cloud-arrow-up"></i>
+                          <div class="u-title">Click to upload Medical Report</div>
+                          <div class="u-sub" id="medSub">Upload via Uploadcare</div>
+                        </div>
+                        <input type="hidden" id="medUploaded" name="medicalUrl" />
+                      </div>
+                    </div>
                     <div class="field-row">
                       <div class="field"><label>Passport Number <span class="req">*</span></label><input type="text" name="passportNumber" placeholder="e.g. AB1234567" required></div>
                       <div class="field" id="passwordField"><label>${currentUser?'Confirm':'Create'} Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
@@ -1625,6 +1675,29 @@
                 dialog.fail(() => toast('Upload cancelled or failed.', 'err'));
             });
 
+            const certBox = document.getElementById('certBox');
+            const refBox = document.getElementById('refBox');
+            const medBox = document.getElementById('medBox');
+
+            function makeUploadBox(box, hiddenId, subId, accept) {
+                if (!box) return;
+                box.addEventListener('click', () => {
+                    const dialog = uploadcare.openDialog(null, { publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false, accept });
+                    dialog.done((result) => {
+                        result.files[0].promise().then((info) => {
+                            document.getElementById(hiddenId).value = info.cdnUrl;
+                            box.classList.add('filled');
+                            document.getElementById(subId).textContent = info.name || 'Uploaded';
+                            toast('Document uploaded successfully!', 'ok');
+                        });
+                    });
+                    dialog.fail(() => toast('Upload cancelled or failed.', 'err'));
+                });
+            }
+            makeUploadBox(certBox, 'certUploaded', 'certSub', 'application/pdf,image/jpeg,image/png');
+            makeUploadBox(refBox, 'refUploaded', 'refSub', 'application/pdf,image/jpeg,image/png');
+            makeUploadBox(medBox, 'medUploaded', 'medSub', 'application/pdf,image/jpeg,image/png');
+
             passBox.addEventListener('click', () => {
                 const dialog = uploadcare.openDialog(null, {
                     publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
@@ -1662,6 +1735,9 @@
                 const terms = fd.get('terms');
                 const cvUrl = fd.get('cvUrl');
                 const passportUrl = fd.get('passportUrl');
+                const certificatesUrl = fd.get('certificatesUrl');
+                const referenceUrl = fd.get('referenceUrl');
+                const medicalUrl = fd.get('medicalUrl');
 
                 if (!fullName || !dob || !nationality || !phone || !email || !address || !residence || !city || !education || !workExperience || !jobId || !passportNumber) {
                     toast("Please complete all required fields.", "err"); return;
@@ -1692,19 +1768,24 @@
                         jobTitle: job ? job.title : '', coverLetter: cover, cvUrl, passportUrl,
                         passportNumber, country: job ? job.country : '',
                         status: "Application Received",
-                        documentsVerified: { cv: true, passport: true },
+                        documentsVerified: { cv: true, passport: true, certificates: false, reference: false, medical: false },
+                        certificatesUrl: certificatesUrl || '',
+                        referenceUrl: referenceUrl || '',
+                        medicalUrl: medicalUrl || '',
                         timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted via the Europe Sponsor Jobs website." }],
                         internalNotes: [], fees: [], archived: false
                     };
-                    let appId;
+                    const uniqueAppId = genAppId();
+                    appData.appId = uniqueAppId;
                     if (isNewAccount) {
                         appData.id = user.uid;
+                        appData.uid = user.uid;
                         await setDoc(doc(db, "applications", user.uid), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
                         appId = user.uid;
                     } else {
-                        appId = genAppId();
-                        appData.id = appId;
-                        await setDoc(doc(db, "applications", appId), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                        appData.id = uniqueAppId;
+                        await setDoc(doc(db, "applications", uniqueAppId), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                        appId = uniqueAppId;
                     }
                     simulateEmail(email, "Application Received – Europe Sponsor Jobs",
                         `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${appId}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job ? job.title : ''}\nCountry: ${job ? job.country : ''}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
@@ -1730,7 +1811,7 @@
                 <div style="width:64px;height:64px;border-radius:50%;background:var(--emerald-50);color:var(--emerald-600);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px"><i class="fa-solid fa-check"></i></div>
                 <h2 style="margin:0 0 8px;color:var(--blue-900)">Application Submitted!</h2>
                 <p style="color:var(--slate-500);margin:0 0 22px">Thank you, ${esc(found.fullName)}. Save your Application ID below — you'll need it to log in to your portal.</p>
-                <div style="background:var(--slate-100);border-radius:10px;padding:16px;font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--blue-900);letter-spacing:.03em;margin-bottom:22px">${found.id || found.uid}</div>
+                <div style="background:var(--slate-100);border-radius:10px;padding:16px;font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--blue-900);letter-spacing:.03em;margin-bottom:22px">${displayId(found)}</div>
                 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
                   <a class="btn btn-primary" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> Go to My Portal</a>
                   <a class="btn btn-outline" data-nav="status"><i class="fa-solid fa-magnifying-glass"></i> Check Status Page</a>
@@ -1766,7 +1847,7 @@
             <div class="card pad">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
                 <div>
-                  <div style="font-size:12px;color:var(--slate-500);font-weight:700;letter-spacing:.03em">${app.id || app.uid}</div>
+                  <div style="font-size:12px;color:var(--slate-500);font-weight:700;letter-spacing:.03em">${displayId(app)}</div>
                   <h3 style="margin:4px 0 4px;color:var(--blue-900)">${esc(app.fullName)}</h3>
                   <div style="font-size:13.5px;color:var(--slate-500)">${esc(app.jobTitle)} · ${esc(app.country)}</div>
                 </div>
@@ -2008,7 +2089,7 @@
               <div class="dash-topbar">
                 <div>
                   <h2>Hello, ${esc(app.fullName?.split(' ')[0] || 'Applicant')}</h2>
-                  <div style="font-size:13px;color:var(--slate-500)">ID: ${app.id || app.uid} · Updated ${fmtDate(app.updatedAt)}</div>
+                  <div style="font-size:13px;color:var(--slate-500)">ID: ${displayId(app)} · Updated ${fmtDate(app.updatedAt)}</div>
                 </div>
                 ${statusBadge(app.status)}
               </div>
@@ -2216,20 +2297,25 @@
               <div class="filter-bar">${["All", ...ALL_STATUSES].map(s => `<button class="chip ${adminFilters.status === s ? 'active' : ''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
               <div class="card" style="overflow-x:auto">
                 <table>
-                  <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Updated</th><th></th></tr></thead>
+                  <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Completeness</th><th>Updated</th><th></th></tr></thead>
                   <tbody>
-                    ${filtered.length ? filtered.map(a => `
-                      <tr>
-                        <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${a.id || a.uid}</span></td>
+                    ${filtered.length ? filtered.map(a => {
+                      const cmp=calcCompleteness(a);
+                      const cls=cmp>=80?'var(--emerald-500)':cmp>=40?'var(--amber-500)':'var(--maroon-500)';
+                      return `<tr>
+                        <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${displayId(a)}</span></td>
                         <td>${esc(a.jobTitle)}<br><span style="font-size:12px;color:var(--slate-500)">${esc(a.country)}</span></td>
                         <td>${statusBadge(a.status)}</td>
-                        <td>
-                          ${a.documentsVerified?.cv ? '<i class="fa-solid fa-circle-check" style="color:var(--emerald-600)" title="CV verified"></i>' : '<i class="fa-solid fa-circle-half-stroke" style="color:var(--amber-600)" title="CV pending"></i>'}
-                          ${a.passportUrl ? (a.documentsVerified?.passport ? ' <i class="fa-solid fa-circle-check" style="color:var(--emerald-600)" title="Passport verified"></i>' : ' <i class="fa-solid fa-circle-half-stroke" style="color:var(--amber-600)" title="Passport pending"></i>') : ' <i class="fa-solid fa-circle-minus" style="color:var(--slate-300)" title="No passport"></i>'}
+                        <td style="white-space:nowrap;font-size:11px">
+                          <div style="height:5px;background:var(--slate-100);border-radius:99px;overflow:hidden;min-width:50px">
+                            <div style="height:100%;width:${cmp}%;background:${cls};border-radius:99px"></div>
+                          </div>
+                          ${cmp}%
                         </td>
                         <td style="font-size:12px;color:var(--slate-500)">${fmtDate(a.updatedAt)}</td>
-                        <td><button class="btn btn-outline btn-sm" data-openapp="${a.id || a.uid}">Review <i class="fa-solid fa-chevron-right"></i></button></td>
-                      </tr>`).join("") : `<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match these filters.</p></div></td></tr>`}
+                        <td><button class="btn btn-outline btn-sm" data-openapp="${displayId(a)}">Review <i class="fa-solid fa-chevron-right"></i></button></td>
+                      </tr>`;
+                    }).join("") : `<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match these filters.</p></div></td></tr>`}
                   </tbody>
                 </table>
               </div>
@@ -2273,10 +2359,14 @@
           <div class="modal-overlay" id="modalOverlay">
             <div class="modal">
               <div class="modal-head">
-                <h3><i class="fa-solid fa-folder-open" style="color:var(--blue-700)"></i> ${esc(app.fullName)} — ${app.id || app.uid}</h3>
+                <h3><i class="fa-solid fa-folder-open" style="color:var(--blue-700)"></i> ${esc(app.fullName)} — ${displayId(app)}</h3>
                 <button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
               </div>
               <div class="modal-body">
+                <div style="margin-bottom:16px">
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:700;color:var(--slate-600)">Application Completeness</span><span style="color:var(--slate-500)">${calcCompleteness(app)}%</span></div>
+                  <div style="height:6px;background:var(--slate-100);border-radius:99px;overflow:hidden"><div style="height:100%;width:${calcCompleteness(app)}%;background:${calcCompleteness(app)>=80?'var(--emerald-500)':calcCompleteness(app)>=40?'var(--amber-500)':'var(--maroon-500)'};border-radius:99px;transition:width .5s"></div></div>
+                </div>
                 <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:20px">
                   <div>
                     <div style="font-size:12px;color:var(--slate-500)">Full Name</div>
@@ -2312,24 +2402,33 @@
                 ${app.workExperience ? `<div style="margin-bottom:14px"><div style="font-size:12px;color:var(--slate-500);margin-bottom:6px">Work Experience</div><div style="font-size:13.5px;background:var(--slate-100);padding:12px 14px;border-radius:8px;color:var(--slate-700);white-space:pre-wrap">${esc(app.workExperience)}</div></div>` : ""}
                 ${app.coverLetter ? `<div style="margin-bottom:14px"><div style="font-size:12px;color:var(--slate-500);margin-bottom:6px">Cover Letter</div><div style="font-size:13.5px;background:var(--slate-100);padding:12px 14px;border-radius:8px;color:var(--slate-700)">${esc(app.coverLetter)}</div></div>` : ""}
                 <div style="margin-bottom:14px">
-                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px">Documents</div>
-                  <div class="doc-row">
-                    <div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                      <label style="font-size:12px;display:flex;gap:5px;align-items:center;font-weight:600;color:var(--slate-600)"><input type="checkbox" id="verifyCv" ${app.documentsVerified?.cv ? 'checked' : ''}> Verified</label>
-                      ${app.cvUrl ? `<a href="${app.cvUrl}" target="_blank" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>` : '<span class="badge badge-slate">No file</span>'}
-                    </div>
-                  </div>
-                  <div class="doc-row">
-                    <div class="di"><i class="fa-solid fa-passport"></i> Passport Copy</div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                      ${app.passportUrl ? `<label style="font-size:12px;display:flex;gap:5px;align-items:center;font-weight:600;color:var(--slate-600)"><input type="checkbox" id="verifyPass" ${app.documentsVerified?.passport ? 'checked' : ''}> Verified</label>` : ''}
-                      ${app.passportUrl ? `<a href="${app.passportUrl}" target="_blank" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>` : '<span class="badge badge-slate">Not uploaded</span>'}
-                    </div>
-                  </div>
+                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700">Documents</div>
+                  ${[
+                    {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
+                    {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
+                    {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
+                    {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
+                    {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
+                  ].map(d=>{
+                    const verified=app.documentsVerified?.[d.key];
+                    const hasUrl=!!d.url;
+                    return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${hasUrl?`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`:'<span class="badge badge-slate">Not uploaded</span>'}<label style="font-size:12px;display:flex;align-items:center;gap:4px;font-weight:600;color:var(--slate-600)"><input type="checkbox" class="doc-verify" data-dockey="${d.key}" ${verified?'checked':''} ${!hasUrl?'disabled':''}> Verified</label></div></div>`;
+                  }).join("")}
                 </div>
+                ${(()=>{
+                  const curIdx=STATUS_STEPS.indexOf(app.status);
+                  if(curIdx>=0&&curIdx<STATUS_STEPS.length-1&&!TERMINAL_ALT.includes(app.status)){
+                    const reqs=[['fullName','email','phone','nationality','dob','passportNumber','education','jobTitle','country'],['cvUrl','passportUrl']].flat();
+                    const allFields=reqs.every(f=>app[f]);
+                    const allVerified=app.documentsVerified?.cv&&app.documentsVerified?.passport;
+                    if(allFields&&allVerified){
+                      return `<div style="background:var(--emerald-50);border:1px solid #bfe6cc;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><span style="font-size:13px;font-weight:600;color:#065F46"><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> All requirements met</span><button class="btn btn-success btn-sm" id="indexAutoAdvance">Advance to "${esc(STATUS_STEPS[curIdx+1])}"</button></div>`;
+                    }
+                  }
+                  return '';
+                })()}
                 <div style="margin-bottom:14px">
-                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px">Update Status</div>
+                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700">Update Status</div>
                   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
                     <select id="statusSelect" style="max-width:280px">${ALL_STATUSES.map(s => `<option value="${esc(s)}" ${s === app.status ? 'selected' : ''}>${s}</option>`).join("")}</select>
                     <input type="text" id="statusNote" placeholder="Optional note..." style="flex:1;min-width:180px">
@@ -2337,7 +2436,7 @@
                   </div>
                 </div>
                 <div>
-                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px">Internal Notes</div>
+                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700">Internal Notes</div>
                   <div id="internalNotesList" style="margin-bottom:10px">${(app.internalNotes || []).length ? app.internalNotes.map(n => `<div class="tl-note" style="margin-bottom:8px"><b>${esc(n.author)}</b> · ${fmtDate(n.date)}<br>${esc(n.note)}</div>`).join("") : `<div class="hint">No internal notes yet.</div>`}</div>
                   <div style="display:flex;gap:10px"><input type="text" id="newNote" placeholder="Add an internal note..."><button class="btn btn-outline btn-sm" id="addNoteBtn">Add</button></div>
                 </div>
@@ -2353,16 +2452,26 @@
             document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
             document.getElementById('modalCloseBtn2').addEventListener('click', closeModal);
             document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') closeModal(); });
-            const appIdKey = app.id || app.uid;
+            const appIdKey = displayId(app);
 
-            document.getElementById('verifyCv').addEventListener('change', async (e) => {
-                await updateApp(appIdKey, { documentsVerified: { ...app.documentsVerified, cv: e.target.checked } });
-                toast("Document verification updated.", "ok"); await loadApps(); closeModal(); renderCurrentView();
+            document.querySelectorAll('.doc-verify').forEach(cb => {
+                cb.addEventListener('change', async (e) => {
+                    const key = e.target.getAttribute('data-dockey');
+                    const updates = { documentsVerified: { ...app.documentsVerified, [key]: e.target.checked } };
+                    await updateApp(appIdKey, updates);
+                    toast(`Document verification: ${key} ${e.target.checked ? 'verified' : 'unverified'}.`, "ok");
+                    await loadApps(); closeModal(); renderCurrentView();
+                });
             });
-            const vp = document.getElementById('verifyPass');
-            if (vp) vp.addEventListener('change', async (e) => {
-                await updateApp(appIdKey, { documentsVerified: { ...app.documentsVerified, passport: e.target.checked } });
-                toast("Document verification updated.", "ok"); await loadApps(); closeModal(); renderCurrentView();
+            document.getElementById('indexAutoAdvance')?.addEventListener('click', async () => {
+                const curIdx = STATUS_STEPS.indexOf(app.status);
+                const next = STATUS_STEPS[curIdx + 1];
+                if (!next) { toast("Already at final stage.", "err"); return; }
+                const timeline = [...(app.timeline || []), { status: next, date: new Date().toISOString(), note: `Auto-advanced: all requirements met for "${app.status}".` }];
+                await updateApp(appIdKey, { status: next, timeline });
+                simulateEmail(app.email, `Application Status Update – ${next}`,
+                    `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${next}.\n\nAll requirements for the previous stage were verified.\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
+                toast(`Auto-advanced to "${next}".`, "ok"); await loadApps(); closeModal(); renderCurrentView();
             });
             document.getElementById('applyStatusBtn').addEventListener('click', async () => {
                 const newStatus = document.getElementById('statusSelect').value;
@@ -2371,7 +2480,7 @@
                 const timeline = [...(fresh?.timeline || []), { status: newStatus, date: new Date().toISOString(), note: note || undefined }];
                 await updateApp(appIdKey, { status: newStatus, timeline });
                 simulateEmail(app.email, `Application Status Update – ${newStatus}`,
-                    `Dear ${app.fullName},\n\nYour application (${app.id || app.uid}) status has been updated to: ${newStatus}.\n\n${note ? 'Note: ' + note : ''}\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
+                    `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${newStatus}.\n\n${note ? 'Note: ' + note : ''}\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                 toast(`Status updated to "${newStatus}".`, "ok"); await loadApps(); closeModal(); renderCurrentView();
             });
             document.getElementById('addNoteBtn').addEventListener('click', async () => {
