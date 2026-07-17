@@ -988,6 +988,7 @@
                     await Promise.all([loadJobs(), loadApps(), loadFees(), loadChats()]);
                     subscribeToRealtime();
                     subscribeChats();
+                    if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                 } else {
                     const appData = await getApp(user.uid);
                     if (appData) {
@@ -995,6 +996,7 @@
                         await Promise.all([loadJobs(), loadFees(), loadChats()]);
                         subscribeToRealtime();
                         subscribeChats();
+                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
                     } else if (ROUTE.view === 'complete-profile') {
                     } else {
                         currentUserData = { type: 'needs-profile' };
