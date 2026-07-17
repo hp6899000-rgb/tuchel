@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console — Europe Sponsor Jobs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js"
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --blue-950: #06132b; --blue-900: #0A1F44; --blue-800: #0E2C5C; --blue-700: #133C79; --blue-600: #1B4F99; --blue-500: #2E68B8;
+            --maroon-700: #6E0F1F; --maroon-600: #8A1226; --maroon-500: #A8172F; --maroon-400: #C42D45; --maroon-50: #FBEAEC;
+            --emerald-600: #0F9D58; --emerald-500: #1ab46a; --emerald-50: #E8F7EE;
+            --rose-600: #e11d48; --rose-50: #fce7eb;
+            --amber-600: #D97706; --amber-50: #FEF3E2;
+            --slate-900: #0F172A; --slate-800: #1E293B; --slate-700: #334155; --slate-600: #475569; --slate-500: #64748B; --slate-400: #94A3B8; --slate-300: #CBD5E1; --slate-200: #E2E8F0; --slate-100: #F1F5F9; --slate-50: #F8FAFC;
+            --bg: #F6F8FB; --white: #FFFFFF;
+            --radius: 12px; --radius-lg: 18px;
+            --shadow-sm: 0 1px 3px rgba(10,31,68,.06),0 1px 2px rgba(10,31,68,.04);
+            --shadow-md: 0 6px 20px rgba(10,31,68,.08);
+            --shadow-lg: 0 20px 50px rgba(10,31,68,.14);
+            --shadow-xl: 0 30px 70px rgba(10,31,68,.20);
+            --font-head: 'Sora',sans-serif; --font-body: 'Inter',sans-serif;
+            --transition: .25s cubic-bezier(.4,0,.2,1);
+            --msg-sent: #DCF8C6; --msg-rec: #fff;
+        }
+        * { box-sizing: border-box; margin: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-body); background: var(--bg); color: var(--slate-900); -webkit-font-smoothing: antialiased; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+        h1,h2,h3,h4 { font-family: var(--font-head); letter-spacing: -0.01em; }
+        a { color: inherit; text-decoration: none; }
+        button { font-family: inherit; cursor: pointer; border: none; background: none; }
+        input,select,textarea { font-family: inherit; font-size: 14px; padding: 10px 14px; border: 1.5px solid var(--slate-200); border-radius: 8px; width: 100%; background: #fff; color: var(--slate-900); outline: none; transition: var(--transition); }
+        input:focus,select:focus,textarea:focus { border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(46,104,184,.12); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; border-radius: 8px; font-size: 13.5px; font-weight: 700; border: 1.5px solid transparent; transition: var(--transition); white-space: nowrap; }
+        .btn-primary { background: var(--blue-800); color: #fff; border-color: var(--blue-800); }
+        .btn-primary:hover { background: var(--blue-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-maroon { background: var(--maroon-600); color: #fff; border-color: var(--maroon-600); }
+        .btn-maroon:hover { background: var(--maroon-500); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-outline { background: transparent; border-color: var(--slate-300); color: var(--slate-700); }
+        .btn-outline:hover { border-color: var(--blue-600); background: var(--slate-50); color: var(--blue-800); }
+        .btn-sm { padding: 8px 16px; font-size: 12.5px; }
+        .btn-block { width: 100%; }
+        .card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+        .card.pad { padding: 22px 26px; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
+        .field { margin-bottom: 18px; }
+        .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--slate-700); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .03em; }
+        .field .req { color: var(--maroon-500); }
+        .hint { font-size: 12px; color: var(--slate-500); margin-top: 5px; }
+        .divider-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--slate-400); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        .divider-or::before,.divider-or::after { content: ""; flex: 1; height: 1px; background: var(--slate-200); }
+        .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 100px; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
+        .badge-blue { background: var(--blue-800); color: #fff; }
+        .badge-maroon { background: var(--maroon-600); color: #fff; }
+        .badge-green { background: var(--emerald-50); color: var(--emerald-600); }
+        .badge-amber { background: var(--amber-50); color: var(--amber-600); }
+        .badge-rose { background: var(--rose-50); color: var(--rose-600); }
+        .badge-slate { background: var(--slate-100); color: var(--slate-700); }
+        .chip { padding: 7px 18px; border-radius: 100px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 12.5px; font-weight: 600; color: var(--slate-700); transition: var(--transition); }
+        .chip:hover { border-color: var(--blue-500); color: var(--blue-800); }
+        .chip.active { background: var(--blue-800); border-color: var(--blue-800); color: #fff; }
+        .grid { display: grid; gap: 20px; }
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--slate-400); }
+        .empty-state i { font-size: 48px; margin-bottom: 14px; color: var(--slate-300); }
+        .empty-state p { font-size: 14px; margin-bottom: 12px; }
+        .msg-count { background: var(--maroon-500); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: 700; margin-left: 4px; }
+        .toast-wrap { position: fixed; top: 84px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { background: var(--slate-900); color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); animation: slideIn .3s ease; pointer-events: auto; max-width: 400px; }
+        .toast.ok { background: #065F46; }
+        .toast.err { background: #991B1B; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        th { text-align: left; padding: 12px 14px; background: var(--slate-50); color: var(--slate-600); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid var(--slate-200); white-space: nowrap; }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
+        tr:hover td { background: var(--slate-50); }
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .search-input { display: flex; align-items: center; background: #fff; border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 0 12px; }
+        .search-input i { color: var(--slate-400); font-size: 14px; }
+        .search-input input { border: none; padding: 9px 8px; min-width: 200px; }
+        .search-input input:focus { box-shadow: none; }
+
+        .dash-shell { display: grid; grid-template-columns: 230px 1fr; gap: 0; min-height: calc(100vh - 72px); }
+        .dash-side { background: var(--blue-950); color: #fff; padding: 24px 16px; }
+        .dash-side .side-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: #7C93B3; padding: 8px 12px 12px; font-weight: 700; }
+        .side-link { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: #B9C8DC; transition: var(--transition); cursor: pointer; }
+        .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+        .side-link.active { background: rgba(255,255,255,.12); color: #fff; font-weight: 700; }
+        .dash-main { padding: 28px 32px; background: var(--bg); }
+        .dash-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px; }
+        .dash-topbar h2 { margin: 0; font-size: 22px; color: var(--blue-900); }
+        .stat-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px 18px; transition: var(--transition); }
+        .stat-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-sm); }
+        .stat-card .n { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--blue-900); line-height: 1.2; }
+        .stat-card .l { font-size: 11.5px; color: var(--slate-500); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(10,31,68,.55); backdrop-filter: blur(4px); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 1000; overflow: auto; }
+        .modal { background: #fff; border-radius: var(--radius-lg); max-width: 780px; width: 100%; box-shadow: var(--shadow-xl); margin: auto; }
+        .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 26px; border-bottom: 1px solid var(--slate-200); }
+        .modal-head h3 { margin: 0; font-size: 17px; color: var(--blue-900); }
+        .modal-close { background: var(--slate-100); border: none; width: 34px; height: 34px; border-radius: 8px; color: var(--slate-600); font-size: 16px; transition: var(--transition); cursor: pointer; }
+        .modal-close:hover { background: var(--slate-200); }
+        .modal-body { padding: 24px 26px; max-height: 70vh; overflow: auto; }
+        .modal-foot { padding: 16px 26px; border-top: 1px solid var(--slate-200); display: flex; justify-content: flex-end; gap: 10px; }
+
+        .msg-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 72px); }
+        .msg-list-panel { background: #fff; border-right: 1px solid var(--slate-200); overflow: auto; }
+        .msg-list-header { padding: 18px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; color: var(--blue-900); font-family: var(--font-head); }
+        .msg-list-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--slate-100); cursor: pointer; transition: var(--transition); }
+        .msg-list-item:hover { background: var(--slate-50); }
+        .msg-list-item.active { background: var(--slate-100); border-left: 3px solid var(--maroon-500); }
+        .msg-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,var(--blue-800),var(--maroon-600)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+        .msg-list-content { flex: 1; min-width: 0; }
+        .msg-list-name { font-weight: 600; font-size: 13.5px; color: var(--slate-900); }
+        .msg-list-preview { font-size: 12px; color: var(--slate-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-list-time { font-size: 11px; color: var(--slate-400); white-space: nowrap; }
+        .msg-list-meta { display: flex; align-items: center; gap: 8px; }
+        .msg-unread { background: var(--maroon-500); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: 700; min-width: 18px; text-align: center; }
+        .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); }
+        .msg-chat-header { padding: 14px 20px; border-bottom: 1px solid var(--slate-200); background: #fff; display: flex; align-items: center; gap: 12px; font-weight: 600; }
+        .msg-chat-body { flex: 1; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .msg-bubble { max-width: 75%; padding: 10px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; word-wrap: break-word; }
+        .msg-bubble.sent { align-self: flex-end; background: var(--msg-sent); border-bottom-right-radius: 4px; }
+        .msg-bubble.rec { align-self: flex-start; background: var(--msg-rec); border: 1px solid var(--slate-200); border-bottom-left-radius: 4px; }
+        .msg-bubble .msg-time { font-size: 10px; color: var(--slate-400); margin-top: 4px; text-align: right; }
+        .msg-chat-input { padding: 12px 20px; border-top: 1px solid var(--slate-200); background: #fff; display: flex; gap: 10px; align-items: flex-end; }
+        .msg-chat-input textarea { flex: 1; resize: none; min-height: 20px; max-height: 120px; padding: 10px 14px; border-radius: 20px; }
+        .msg-chat-input .btn { border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .msg-empty { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--slate-400); text-align: center; padding: 40px; }
+        .msg-empty i { font-size: 48px; margin-bottom: 16px; color: var(--slate-300); }
+
+        .tl-item { position: relative; padding-left: 28px; padding-bottom: 20px; }
+        .tl-item:last-child { padding-bottom: 0; }
+        .tl-dot { position: absolute; left: 0; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--slate-200); display: flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; }
+        .tl-item.done .tl-dot { background: var(--emerald-500); }
+        .tl-item.current .tl-dot { background: var(--blue-600); width: 20px; height: 20px; left: -1px; box-shadow: 0 0 0 4px rgba(46,104,184,.15); }
+        .tl-item.rejected .tl-dot { background: var(--rose-500); }
+        .tl-title { font-size: 13.5px; font-weight: 600; color: var(--slate-800); }
+        .tl-date { font-size: 11px; color: var(--slate-400); }
+        .tl-note { font-size: 12.5px; color: var(--slate-500); margin-top: 4px; }
+        .doc-row { display: flex; align-items: center; justify-content: space-between; background: var(--slate-50); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+        .doc-row .di { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--blue-800); }
+        .fee-row { display: flex; align-items: center; gap: 12px; background: var(--slate-50); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; flex-wrap: wrap; }
+        .fee-row .amt { font-weight: 700; font-size: 15px; color: var(--blue-900); min-width: 90px; }
+        .fee-row .lbl { flex: 1; font-size: 13px; color: var(--slate-700); }
+        .fee-row .status { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .note-item { background: var(--slate-50); border-left: 3px solid var(--blue-500); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 8px; }
+        .note-item .meta { font-size: 11px; color: var(--slate-400); margin-bottom: 4px; }
+        .note-item .text { font-size: 13px; color: var(--slate-700); }
+        .progress-stages { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; }
+        .stage { flex: 1; min-width: 90px; text-align: center; padding: 10px 6px; font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); border-right: 2px solid #fff; position: relative; }
+        .stage:last-child { border-right: none; }
+        .stage.done { background: var(--emerald-50); color: var(--emerald-600); }
+        .stage.active { background: var(--blue-800); color: #fff; }
+        .stage.rejected { background: var(--rose-50); color: var(--rose-600); }
+        .stage .stage-icon { display: block; font-size: 16px; margin-bottom: 4px; }
+        .modal-tab { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 2px solid var(--slate-200); }
+        .modal-tab button { padding: 10px 18px; font-size: 12.5px; font-weight: 600; color: var(--slate-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: var(--transition); }
+        .modal-tab button.active { color: var(--blue-800); border-bottom-color: var(--blue-800); }
+        .modal-tab button:hover { color: var(--blue-600); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .admin-topbar { background: var(--blue-950); color: #fff; padding: 14px 0; position: sticky; top: 0; z-index: 100; }
+        .admin-topbar .wrap { display: flex; justify-content: space-between; align-items: center; }
+        .admin-topbar .brand { font-family: var(--font-head); font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        .admin-topbar a { color: #B9C8DC; transition: var(--transition); font-size: 13px; }
+        .admin-topbar a:hover { color: #fff; }
+
+        .auth-shell { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 120px); padding: 40px 20px; }
+        .auth-shell .card { max-width: 420px; width: 100%; }
+        .auth-icon { width: 56px; height: 56px; border-radius: 14px; background: var(--maroon-50); color: var(--maroon-600); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
+
+        .phone-wrapper { display: flex; gap: 8px; }
+        .phone-wrapper select { width: 140px; flex-shrink: 0; }
+
+        @media (max-width: 900px) {
+            .dash-shell { grid-template-columns: 1fr; }
+            .dash-side { display: flex; overflow: auto; gap: 4px; padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--slate-200); }
+            .dash-side .side-title { display: none; }
+            .msg-shell { grid-template-columns: 1fr; }
+            .msg-list-panel { display: none; }
+            .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 100; background: #fff; }
+            .msg-chat-panel { display: none; }
+            .msg-chat-panel.show { display: flex; }
+            .stat-grid { grid-template-columns: repeat(2,1fr) !important; }
+            .dash-main { padding: 16px 12px; }
+            .chip { padding: 6px 14px; font-size: 11.5px; }
+            .modal { margin: 8px; border-radius: 10px; }
+            .modal-body { padding: 14px; }
+            .modal-body .grid { grid-template-columns: 1fr !important; }
+            .search-input input { min-width: 120px; }
+            .wrap { padding: 0 14px; }
+            table { font-size: 12px; }
+            .modal-tab { overflow-x: auto; flex-wrap: nowrap; }
+            .modal-tab button { padding: 8px 12px; font-size: 11px; white-space: nowrap; }
+            .progress-stages .stage { min-width: 60px; font-size: 9px; padding: 6px 2px; }
+            .fee-row { flex-wrap: wrap; gap: 6px; }
+            .fee-row .amt { min-width: 60px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-topbar" id="topbar">
+    <div class="wrap">
+        <a class="brand" href="admin.html"><i class="fa-solid fa-shield-halved"></i> Admin Console</a>
+        <div id="topbarRight" style="display:flex;gap:14px;align-items:center;font-size:13px">
+            <span id="topbarUser"></span>
+            <a href="index.html" target="_blank"><i class="fa-solid fa-globe"></i> Main Site</a>
+        </div>
+    </div>
+</div>
+
+<div id="app"></div>
+<div class="toast-wrap" id="toast-wrap"></div>
+<div id="modal-root"></div>
+
+<script type="module">
+    import { initializeApp } from "firebase/app";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit } from "firebase/firestore";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCAKCZJTAq_NeLmo5toNjYVHFqZFSQxNzE",
+        authDomain: "tuchel-98f49.firebaseapp.com",
+        projectId: "tuchel-98f49",
+        storageBucket: "tuchel-98f49.firebasestorage.app",
+        messagingSenderId: "150337843790",
+        appId: "1:150337843790:web:ae748271b1ffae423f491f",
+        measurementId: "G-NZMF0WDKVK"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const googleProvider = new GoogleAuthProvider();
+    const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
+
+    let currentUser = null;
+    let currentUserData = null;
+    let allApps = [];
+    let allJobs = [];
+    let allFees = [];
+    let allChats = [];
+    let currentChatMessages = [];
+    let chatMessagesUnsub = null;
+    let chatWindowOpen = null;
+    let allMessagesSub = null;
+
+    const STATUS_STEPS = [
+        "Application Received", "Document Verification", "Screening Interview",
+        "Employer Matching", "Job Offer Extended", "Contract Signing",
+        "Visa Sponsorship Processing", "Medical & Police Clearance",
+        "Travel & Deployment", "Placed — Active Employment"
+    ];
+    const TERMINAL_ALT = ["On Hold", "Rejected", "Withdrawn by Applicant"];
+    const ALL_STATUSES = [...STATUS_STEPS, ...TERMINAL_ALT];
+    let adminFilters = { status: "All", country: "All", search: "" };
+    let ROUTE = { view: "login", params: {} };
+
+    const DEV_ADMIN_EMAILS = ["chriskaburu8@gmail.com", "hp68990000@gmail.com"];
+    async function isAdminEmail(email) { return email && DEV_ADMIN_EMAILS.includes(email.toLowerCase()); }
+
+    function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function fmtDate(ts) { if (!ts) return "—"; if (ts.toDate) ts=ts.toDate(); return new Date(ts).toLocaleDateString(void 0,{year:'numeric',month:'short',day:'numeric'})+" · "+new Date(ts).toLocaleTimeString(void 0,{hour:'2-digit',minute:'2-digit'}); }
+    function fmtDateShort(ts) { if (!ts) return ""; if (ts.toDate) ts=ts.toDate(); const d=new Date(ts),n=new Date(),diff=(n-d)/(864e5); if(diff<1) return d.toLocaleTimeString(void 0,{hour:'2-digit',minute:'2-digit'}); if(diff<7) return d.toLocaleDateString(void 0,{weekday:'short'}); return d.toLocaleDateString(void 0,{month:'short',day:'numeric'}); }
+    function toast(msg,type) { const w=document.getElementById('toast-wrap'),el=document.createElement('div'); el.className='toast'+(type?' '+type:''); el.innerHTML=`<i class="fa-solid ${type==='err'?'fa-circle-exclamation':type==='ok'?'fa-circle-check':'fa-bell'}"></i><span>${esc(msg)}</span>`; w.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3600); }
+    function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
+    function statusBadge(s) { const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
+
+    // Admin email grant — dev override
+    function navigate(v,p={}) { ROUTE={view:v,params:p}; window.scrollTo({top:0,behavior:'instant'}); render(); }
+    function render() {
+        let html="";
+        switch(ROUTE.view) {
+            case "login": html=viewLogin(); break;
+            case "dashboard": html=viewDashboard(); break;
+            case "jobs": html=viewJobs(); break;
+            case "fees": html=viewFees(); break;
+            case "messages": html=viewMessages(); break;
+            case "messages-chat": html=viewMessagesChat(); break;
+            default: html=viewLogin();
+        }
+        document.getElementById('app').innerHTML=html;
+        document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>navigate(el.getAttribute('data-nav'))));
+        document.querySelectorAll('[data-action="logout"]').forEach(el=>el.addEventListener('click',()=>signOut(auth)));
+        if(ROUTE.view==='login') wireLogin();
+        if(ROUTE.view==='dashboard') wireDashboard();
+        if(ROUTE.view==='jobs') wireJobs();
+        if(ROUTE.view==='fees') wireFees();
+        if(ROUTE.view==='messages') wireMessages();
+        if(ROUTE.view==='messages-chat') wireMessagesChat();
+    }
+
+    function viewLogin() {
+        return `
+        <div class="auth-shell">
+            <div class="card pad">
+                <div class="auth-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h2 style="margin:0 0 4px;color:var(--blue-900)">Admin Sign In</h2>
+                <p style="color:var(--slate-500);font-size:13.5px;margin:0 0 20px">Platform management console — authorized administrators only.</p>
+                <form id="loginForm">
+                    <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" placeholder="admin@example.com" required></div>
+                    <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" placeholder="Your password" required></div>
+                    <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+                </form>
+                <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--slate-400)"><a href="index.html" target="_blank" style="text-decoration:underline">Back to main site</a></p>
+            </div>
+        </div>`;
+    }
+
+    function wireLogin() {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd=new FormData(e.target);
+            try {
+                await signInWithEmailAndPassword(auth, fd.get('email').trim(), fd.get('password'));
+                toast("Signed in!", "ok");
+            } catch(err) { toast(err.message||"Sign in failed.", "err"); }
+        });
+    }
+
+    function viewDashboard() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const apps=allApps.filter(a=>!a.archived);
+        const stats={total:apps.length,received:apps.filter(a=>a.status==="Application Received").length,inProgress:apps.filter(a=>!TERMINAL_ALT.includes(a.status)&&a.status!=="Placed — Active Employment"&&a.status!=="Application Received").length,placed:apps.filter(a=>a.status==="Placed — Active Employment").length,rejected:apps.filter(a=>a.status==="Rejected").length};
+        const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(parseFloat(f.amount)||0),0),0);
+        const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?(parseFloat(f.amount)||0):0),0),0);
+        let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort((a,b)=>{const da=a.updatedAt?new Date(a.updatedAt):new Date(0),db=b.updatedAt?new Date(b.updatedAt):new Date(0);return db-da;});
+        const unread=getUnreadCount();
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link active" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread?` <span class="msg-count">${unread}</span>`:''}</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar">
+                    <h2>Applications Dashboard</h2>
+                    <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search..." value="${esc(adminFilters.search)}"></div>
+                </div>
+                <div class="stat-grid" style="grid-template-columns:repeat(5,1fr)">
+                    <div class="stat-card"><div class="n">${stats.total}</div><div class="l">Total Applications</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--blue-500)"><div class="n">${stats.received}</div><div class="l">New</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--amber-600)"><div class="n">${stats.inProgress}</div><div class="l">In Progress</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n">${stats.placed}</div><div class="l">Placed</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--rose-500)"><div class="n">${stats.rejected}</div><div class="l">Rejected</div></div>
+                </div>
+                <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+                    <div class="stat-card"><div class="n" style="font-size:18px;color:var(--blue-800)">€${esc(totalFees.toFixed(0))}</div><div class="l">Total Invoiced</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:18px;color:var(--emerald-600)">€${esc(totalPaid.toFixed(0))}</div><div class="l">Total Collected</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:18px;color:var(--maroon-600)">€${esc((totalFees-totalPaid).toFixed(0))}</div><div class="l">Outstanding</div></div>
+                </div>
+                <div class="filter-bar">${["All","Germany","UK","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
+                <div class="filter-bar">${["All",...ALL_STATUSES].map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
+                <div class="card" style="overflow-x:auto">
+                    <table>
+                        <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+                        <tbody>${filtered.length?filtered.map(a=>`<tr><td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${a.id||a.uid}</span></td><td>${esc(a.jobTitle)}<br><span style="font-size:12px;color:var(--slate-500)">${esc(a.country)}</span></td><td>${statusBadge(a.status)}</td><td style="font-size:12px;color:var(--slate-500)">${fmtDate(a.updatedAt)}</td><td><button class="btn btn-outline btn-sm" data-openapp="${a.id||a.uid}">Review</button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div></td></tr>`}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function wireDashboard() {
+        document.getElementById('adminSearch')?.addEventListener('input',function(){adminFilters.search=this.value;render()});
+        document.querySelectorAll('[data-afcountry]').forEach(b=>b.addEventListener('click',()=>{adminFilters.country=b.getAttribute('data-afcountry');render()}));
+        document.querySelectorAll('[data-afstatus]').forEach(b=>b.addEventListener('click',()=>{adminFilters.status=b.getAttribute('data-afstatus');render()}));
+        document.querySelectorAll('[data-openapp]').forEach(b=>b.addEventListener('click',()=>openAppModal(b.getAttribute('data-openapp'))));
+    }
+
+    async function openAppModal(appId) {
+        let app=allApps.find(a=>a.id===appId||a.uid===appId);
+        if(!app){try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())app={id:d.id,...d.data()};}catch(e){}}
+        if(!app){toast("Application not found.","err");return;}
+        const root=document.getElementById('modal-root');
+        const appFees=app.fees||[];
+        const appNotes=app.internalNotes||[];
+        const totalDue=appFees.filter(f=>!f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+        const totalPaid=appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+        const curStageIdx=STATUS_STEPS.indexOf(app.status);
+
+        function progressHTML(){
+            return `<div class="progress-stages">${STATUS_STEPS.map((s,i)=>{
+                if(curStageIdx<0) return '';
+                const cls=i<curStageIdx?'done':i===curStageIdx?'active':'';
+                const ico=i<curStageIdx?'fa-check-circle':i===curStageIdx?'fa-circle':'fa-circle-regular';
+                return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
+            }).join("")}</div>`;
+        }
+
+        root.innerHTML=`
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" style="max-width:900px">
+                <div class="modal-head"><h3>${esc(app.fullName)} — ${app.id||app.uid}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-body">
+                    ${progressHTML()}
+                    <div class="modal-tab">
+                        <button class="active" data-mtab="details"><i class="fa-solid fa-user"></i> Details</button>
+                        <button data-mtab="docs"><i class="fa-solid fa-file"></i> Documents</button>
+                        <button data-mtab="fees"><i class="fa-solid fa-coins"></i> Fees (${appFees.length})</button>
+                        <button data-mtab="notes"><i class="fa-solid fa-note-sticky"></i> Notes (${appNotes.length})</button>
+                        <button data-mtab="timeline"><i class="fa-solid fa-timeline"></i> Timeline</button>
+                    </div>
+
+                    <!-- TAB: Details -->
+                    <div class="tab-panel active" data-tab="details">
+                        <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
+                            <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Email</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.email)}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Nationality</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.nationality||'—')}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Date of Birth</div><div style="font-size:13.5px;font-weight:600">${esc(app.dob||'—')}</div></div>
+                            <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Phone</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.phone||'—')}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Residence</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.residence||app.city||'—')}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Education</div><div style="font-size:13.5px;font-weight:600">${esc(app.education||'—')}</div></div>
+                            <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Position</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.jobTitle)}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Country</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.country)}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Passport No.</div><div style="font-size:13.5px;font-weight:600">${esc(app.passportNumber||'—')}</div></div>
+                        </div>
+                        ${app.coverLetter?`<div style="background:var(--slate-50);border-radius:8px;padding:12px 16px;margin-bottom:10px"><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Cover Letter / Notes</div><div style="font-size:13px;color:var(--slate-700)">${esc(app.coverLetter)}</div></div>`:''}
+                        ${app.workExperience?`<div style="background:var(--slate-50);border-radius:8px;padding:12px 16px"><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Work Experience</div><div style="font-size:13px;color:var(--slate-700)">${esc(app.workExperience)}</div></div>`:''}
+                    </div>
+
+                    <!-- TAB: Documents -->
+                    <div class="tab-panel" data-tab="docs">
+                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Uploaded Documents</h4>
+                        ${[
+                            {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
+                            {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
+                            {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
+                            {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
+                            {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
+                        ].map(d=>{
+                            const verified=app.documentsVerified?.[d.key];
+                            return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${d.url?`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`:'<span class="badge badge-slate">Not uploaded</span>'}<label style="font-size:12px;display:flex;align-items:center;gap:4px"><input type="checkbox" class="doc-verify-cb" data-dockey="${d.key}" ${verified?'checked':''}> Verified</label></div></div>`;
+                        }).join("")}
+                        <h4 style="margin:16px 0 12px;color:var(--blue-900);font-size:14px">Upload Document for Applicant</h4>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <select id="adminDocType" style="width:auto;flex:1;min-width:140px">
+                                <option value="certificatesUrl">Certificate</option>
+                                <option value="referenceUrl">Reference Letter</option>
+                                <option value="medicalUrl">Medical Report</option>
+                                <option value="contractUrl">Contract Document</option>
+                                <option value="otherUrl">Other</option>
+                            </select>
+                            <button class="btn btn-primary btn-sm" id="adminUploadDocBtn"><i class="fa-solid fa-upload"></i> Upload</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Fees -->
+                    <div class="tab-panel" data-tab="fees">
+                        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${esc(appFees.length)}</div><div style="font-size:11px;color:var(--slate-500)">Fee Items</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${esc(totalPaid.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Total Paid</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--maroon-600)">${esc(totalDue.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Outstanding</div></div>
+                        </div>
+                        <div id="appFeesList">${appFees.length?appFees.map((f,i)=>`<div class="fee-row"><span class="lbl">${esc(f.label)}</span><span class="amt">${esc(f.amount)}</span><span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}<button class="btn btn-outline btn-sm" data-togglefee="${i}">${f.paid?'Unmark':'Mark Paid'}</button></div>`).join(""):'<div class="empty-state" style="padding:20px"><p>No fees added for this application yet.</p></div>'}</div>
+                        <h4 style="margin:16px 0 10px;color:var(--blue-900);font-size:14px">Add Fee to Application</h4>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <input type="text" id="newFeeLabel" placeholder="Fee label (e.g. Visa fee)" style="flex:2;min-width:140px">
+                            <input type="text" id="newFeeAmount" placeholder="Amount (e.g. EUR 500)" style="flex:1;min-width:100px">
+                            <button class="btn btn-primary btn-sm" id="addAppFeeBtn"><i class="fa-solid fa-plus"></i> Add</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Notes -->
+                    <div class="tab-panel" data-tab="notes">
+                        <div id="appNotesList">${appNotes.length?appNotes.map(n=>`<div class="note-item"><div class="meta">${esc(n.author||'Admin')} · ${fmtDate(n.createdAt)}</div><div class="text">${esc(n.text)}</div></div>`).join(""):'<div class="empty-state" style="padding:20px"><p>No internal notes yet.</p></div>'}</div>
+                        <div style="display:flex;gap:8px;margin-top:12px">
+                            <textarea id="newNoteText" rows="2" placeholder="Add an internal note about this application..." style="flex:1"></textarea>
+                            <button class="btn btn-primary btn-sm" id="addNoteBtn" style="align-self:flex-end"><i class="fa-solid fa-plus"></i> Add Note</button>
+                        </div>
+                    </div>
+
+                    <!-- TAB: Timeline -->
+                    <div class="tab-panel" data-tab="timeline">
+                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Update Status</h4>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${ALL_STATUSES.map(s=>`<button class="chip ${app.status===s?'active':''}" data-setstatus="${esc(s)}">${s}</button>`).join("")}</div>
+                        <div class="field"><label>Status Note</label><textarea id="statusNote" rows="2" placeholder="Optional note for this status change..."></textarea></div>
+                        <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Application Timeline</h4>
+                        ${renderTimeline(app)}
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button class="btn btn-outline btn-sm" id="archiveBtn"><i class="fa-solid fa-box-archive"></i> Archive</button>
+                    <button class="btn btn-primary btn-sm" id="startChatBtn" data-startchat="${app.uid}" data-chatname="${app.fullName}"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+                    <button class="btn btn-maroon btn-sm" id="saveModalBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                </div>
+            </div>
+        </div>`;
+        document.getElementById('modalCloseBtn').addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
+
+        // Tab switching
+        document.querySelectorAll('[data-mtab]').forEach(b=>b.addEventListener('click',function(){
+            document.querySelectorAll('[data-mtab]').forEach(x=>x.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+            document.querySelector(`.tab-panel[data-tab="${this.getAttribute('data-mtab')}"]`).classList.add('active');
+        }));
+
+        // Archive
+        document.getElementById('archiveBtn').addEventListener('click',async()=>{
+            if(!confirm("Archive this application?"))return;
+            await updateDoc(doc(db,"applications",app.id||app.uid),{archived:true,updatedAt:serverTimestamp()});
+            toast("Archived.","ok");root.innerHTML='';await loadApps();
+        });
+
+        // Chat
+        document.getElementById('startChatBtn').addEventListener('click',async()=>{
+            const uid=document.getElementById('startChatBtn').getAttribute('data-startchat');
+            const name=document.getElementById('startChatBtn').getAttribute('data-chatname')||uid;
+            const chat=await getOrCreateChat(uid,name);
+            if(chat)navigate("messages-chat",{chatId:chat.id,otherName:name});
+            root.innerHTML='';
+        });
+
+        // Save: status + doc verification
+        document.getElementById('saveModalBtn').addEventListener('click',async()=>{
+            const id=app.id||app.uid;
+            const ref=doc(db,"applications",id);
+            const dv={};
+            document.querySelectorAll('.doc-verify-cb').forEach(cb=>{dv[cb.getAttribute('data-dockey')]=cb.checked;});
+            const updates={documentsVerified:dv,updatedAt:serverTimestamp()};
+            const selectedStatus=document.querySelector('[data-setstatus].active');
+            if(selectedStatus){
+                const newStatus=selectedStatus.getAttribute('data-setstatus');
+                if(newStatus!==app.status){
+                    updates.status=newStatus;
+                    const note=document.getElementById('statusNote').value.trim();
+                    const tlEntry={status:newStatus,date:new Date().toISOString(),note:note||`Status updated to "${newStatus}".`};
+                    if(app.timeline) updates.timeline=arrayUnion(tlEntry);
+                    else updates.timeline=[tlEntry];
+                    // Auto-send notification to applicant's chat
+                    try{sendAppStatusNotification(app.uid,app.fullName,newStatus,note);}catch(e){}
+                }
+            }
+            await updateDoc(ref,updates);
+            toast("Application updated.","ok");root.innerHTML='';await loadApps();
+        });
+
+        // Status chip toggle
+        document.querySelectorAll('[data-setstatus]').forEach(b=>b.addEventListener('click',function(){
+            document.querySelectorAll('[data-setstatus]').forEach(x=>x.classList.remove('active'));
+            this.classList.add('active');
+        }));
+
+        // Fee toggle (mark paid/unpaid)
+        document.querySelectorAll('[data-togglefee]').forEach(b=>b.addEventListener('click',async function(){
+            const idx=parseInt(this.getAttribute('data-togglefee'));
+            const id=app.id||app.uid;
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists())return;
+            const data=s.data(),fees=[...(data.fees||[])];
+            if(!fees[idx])return;
+            fees[idx].paid=!fees[idx].paid;
+            fees[idx].paidDate=fees[idx].paid?new Date().toISOString():null;
+            await updateDoc(ref,{fees,updatedAt:serverTimestamp()});
+            toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'}.`,"ok");
+            root.innerHTML='';openAppModal(appId);
+        }));
+
+        // Add fee to application
+        document.getElementById('addAppFeeBtn').addEventListener('click',async()=>{
+            const l=document.getElementById('newFeeLabel').value.trim();
+            const a=document.getElementById('newFeeAmount').value.trim();
+            if(!l||!a){toast("Enter both label and amount.","err");return;}
+            const id=app.id||app.uid;
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists()){toast("Application doc not found.","err");return;}
+            const data=s.data(),fees=[...(data.fees||[])];
+            fees.push({id:'f_'+Date.now(),label:l,amount:a,paid:false,paidDate:null,addedAt:new Date().toISOString()});
+            await updateDoc(ref,{fees,updatedAt:serverTimestamp()});
+            toast("Fee added to application.","ok");
+            root.innerHTML='';openAppModal(appId);
+        });
+
+        // Add note
+        document.getElementById('addNoteBtn').addEventListener('click',async()=>{
+            const t=document.getElementById('newNoteText').value.trim();
+            if(!t){toast("Enter a note.","err");return;}
+            const id=app.id||app.uid;
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists()){toast("Application doc not found.","err");return;}
+            const data=s.data(),notes=[...(data.internalNotes||[])];
+            notes.push({id:'n_'+Date.now(),text:t,author:currentUserData?.email||'Admin',createdAt:new Date().toISOString()});
+            await updateDoc(ref,{internalNotes:notes,updatedAt:serverTimestamp()});
+            toast("Note added.","ok");
+            root.innerHTML='';openAppModal(appId);
+        });
+
+        // Admin upload document for applicant
+        document.getElementById('adminUploadDocBtn').addEventListener('click',()=>{
+            const field=document.getElementById('adminDocType').value;
+            const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
+            dialog.done(async(result)=>{
+                try{
+                    const info=await result.files[0].promise();
+                    const url=info.cdnUrl+(info.isImage?' -/preview/800x800/':'');
+                    const id=app.id||app.uid;
+                    await updateDoc(doc(db,"applications",id),{[field]:url,updatedAt:serverTimestamp()});
+                    toast("Document uploaded to application.","ok");
+                    root.innerHTML='';openAppModal(appId);
+                }catch(e){toast(e.message||"Upload failed.","err");}
+            });
+            dialog.fail(()=>toast('Upload cancelled.',"err"));
+        });
+    }
+
+    async function sendAppStatusNotification(uid,name,status,note){
+        try{
+            if(!currentUser)return;
+            const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
+            const s=await getDocs(q);
+            let chat=null;
+            s.forEach(d=>{const dt=d.data();if(dt.participants&&dt.participants.includes(uid))chat={id:d.id,...dt};});
+            if(!chat){
+                const r=doc(collection(db,"chats"));
+                const data={participants:[currentUser.uid,uid],participantNames:{[currentUser.uid]:'Admin',[uid]:name},unread:{},lastMessage:'',lastTimestamp:null,createdAt:serverTimestamp()};
+                await setDoc(r,data);
+                chat={id:r.id,...data};
+            }
+            const msgText=`📋 Status Update: ${status}${note?` — ${note}`:''}`;
+            const mr=doc(collection(db,"messages"));
+            await setDoc(mr,{chatId:chat.id,sender:currentUser.uid,text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
+            const cr=doc(db,"chats",chat.id),cs=await getDoc(cr),cd=cs.data();
+            const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
+            un[ou]=(un[ou]||0)+1;
+            await updateDoc(cr,{lastMessage:msgText,lastTimestamp:serverTimestamp(),unread:un});
+        }catch(e){console.warn("Status notification send failed:",e);}
+    }
+
+    function renderTimeline(app) {
+        const items=(app.timeline||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+        return `<div>${items.map(t=>{const last=t.status===app.status;return `<div class="tl-item ${last?'current':''}"><div class="tl-dot"></div><div class="tl-title">${esc(t.status)}</div><div class="tl-date">${fmtDate(t.date)}</div>${t.note?`<div class="tl-note">${esc(t.note)}</div>`:''}</div>`;}).join("")}</div>`;
+    }
+
+    function viewJobs() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link active" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar"><h2>Manage Jobs</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button></div></div>
+                <div class="card pad" style="margin-bottom:20px">
+                    <h4 style="margin:0 0 16px;color:var(--blue-900)">Add New Job</h4>
+                    <form id="addJobForm" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div class="field" style="margin:0"><label>Title <span class="req">*</span></label><input type="text" name="title" required></div>
+                        <div class="field" style="margin:0"><label>Country <span class="req">*</span></label><select name="country" required><option value="">Select</option>${["Germany","UK","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+                        <div class="field" style="margin:0"><label>Category <span class="req">*</span></label><select name="category" required><option value="">Select</option>${["Construction & Manual Labor","Hospitality & Domestic Services","Healthcare","Skilled Trades","Logistics & Drivers","Engineering & Technical","IT & Professional Services","Agriculture & Farm Work","Education & Teaching","Finance & Accounting"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+                        <div class="field" style="margin:0"><label>Salary</label><input type="text" name="salary" placeholder="e.g. EUR 2,500/month"></div>
+                        <div class="field" style="margin:0;grid-column:1/-1"><label>Description</label><textarea name="desc" rows="2"></textarea></div>
+                        <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Job</button>
+                    </form>
+                </div>
+                <div class="card" style="overflow-x:auto">
+                    <table>
+                        <thead><tr><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th></tr></thead>
+                        <tbody>${allJobs.length?allJobs.map(j=>`<tr><td><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td>${esc(j.country)}</td><td>${esc(j.category)}</td><td>${esc(j.salary||'—')}</td><td><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function wireJobs() {
+        document.getElementById('addJobForm').addEventListener('submit',async(e)=>{
+            e.preventDefault();const fd=new FormData(e.target);
+            try{await addJob(Object.fromEntries(fd));toast("Job added.","ok");e.target.reset();}catch(err){toast(err.message,"err")}
+        });
+        document.querySelectorAll('[data-action="refresh"]').forEach(b=>b.addEventListener('click',async()=>{await loadJobs();render();toast("Refreshed.","ok")}));
+        document.querySelectorAll('[data-deljob]').forEach(b=>b.addEventListener('click',async()=>{
+            if(!confirm("Remove this job?"))return;
+            try{await deleteJob(b.getAttribute('data-deljob'));toast("Removed.","ok");}catch(e){toast(e.message,"err")}
+        }));
+    }
+
+    function viewFees() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link active" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar"><h2>Fee Structure</h2></div>
+                <div class="card pad" style="margin-bottom:20px">
+                    <h4 style="margin:0 0 16px;color:var(--blue-900)">Add Fee Item</h4>
+                    <form id="addFeeForm" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div class="field" style="margin:0"><label>Label <span class="req">*</span></label><input type="text" name="label" required></div>
+                        <div class="field" style="margin:0"><label>Amount <span class="req">*</span></label><input type="text" name="amount" placeholder="e.g. EUR 500" required></div>
+                        <div class="field" style="margin:0"><label>Description</label><textarea name="desc" rows="2"></textarea></div>
+                        <div class="field" style="margin:0"><label>Paid By</label><select name="paidBy"><option>Employer</option><option>Applicant</option></select></div>
+                        <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Fee</button>
+                    </form>
+                </div>
+                <div class="card" style="overflow-x:auto">
+                    <table><thead><tr><th>Label</th><th>Amount</th><th>Paid By</th><th></th></tr></thead>
+                    <tbody>${allFees.length?allFees.map(f=>`<tr><td><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td>${esc(f.amount)}</td><td>${esc(f.paidBy)}</td><td><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function wireFees() {
+        document.getElementById('addFeeForm').addEventListener('submit',async(e)=>{
+            e.preventDefault();const fd=new FormData(e.target);
+            try{await addFee(Object.fromEntries(fd));toast("Fee added.","ok");e.target.reset();}catch(err){toast(err.message,"err")}
+        });
+        document.querySelectorAll('[data-delfee]').forEach(b=>b.addEventListener('click',async()=>{
+            if(!confirm("Remove this fee?"))return;
+            try{await deleteFee(b.getAttribute('data-delfee'));toast("Removed.","ok");}catch(e){toast(e.message,"err")}
+        }));
+    }
+
+    // ============= MESSAGING =============
+    function viewMessages() {
+        if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const chats=allChats;
+        return `
+        <div class="msg-shell">
+            <div class="msg-list-panel show">
+                <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages <span style="font-size:12px;color:var(--slate-500);font-weight:400;margin-left:8px">${chats.length} conversation${chats.length!==1?'s':''}</span></div>
+                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0;return `<div class="msg-list-item ${ROUTE.params.chatId===c.id?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'No messages yet')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div></div>`;}).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-slash"></i><p>No conversations yet.</p></div></div>`}
+            </div>
+            <div class="msg-chat-panel show"><div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>Select a conversation</p></div></div></div>
+        </div>`;
+    }
+
+    function wireMessages() {
+        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(){
+            const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
+            navigate("messages-chat",{chatId:id,otherName:name});
+        }));
+    }
+
+    function viewMessagesChat() {
+        if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const chatId=ROUTE.params.chatId,otherName=ROUTE.params.otherName||"Chat";
+        const chats=allChats;
+        return `
+        <div class="msg-shell">
+            <div class="msg-list-panel show" id="msgListPanel">
+                <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages</div>
+                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div></div>`;}).join(""):''}
+            </div>
+            <div class="msg-chat-panel show">
+                <div class="msg-chat-header"><div class="msg-avatar">${esc(otherName.charAt(0).toUpperCase())}</div><div>${esc(otherName)}</div></div>
+                <div class="msg-chat-body" id="msgChatBody"></div>
+                <div class="msg-chat-input"><textarea id="chatInput" rows="1" placeholder="Type a message..."></textarea><button class="btn btn-primary" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-outline" id="msgFileBtn"><i class="fa-solid fa-paperclip"></i></button></div>
+            </div>
+        </div>`;
+    }
+
+    function wireMessagesChat() {
+        const chatId=ROUTE.params.chatId;
+        if(!chatId) return;
+        if(chatMessagesUnsub) chatMessagesUnsub();
+        chatMessagesUnsub=subscribeMessages(chatId);
+        markChatRead(chatId);
+        const input=document.getElementById('chatInput');
+        const sendBtn=document.getElementById('sendBtn');
+        const fileBtn=document.getElementById('msgFileBtn');
+        function send(){const t=input.value.trim();if(t){sendMessage(chatId,t);input.value='';input.style.height='auto';}}
+        sendBtn.addEventListener('click',send);
+        input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+        input.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'});
+        if(fileBtn){
+            fileBtn.addEventListener('click',()=>{
+                const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
+                dialog.done((file)=>{
+                    file.progress((u)=>console.log("Upload progress:",u));
+                    file.done((finfo)=>{
+                        const url=finfo.cdnUrl+(finfo.isImage?' -/preview/800x800/':'');
+                        sendMessage(chatId,'',url,finfo.name||'File');
+                    });
+                });
+            });
+        }
+        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(){
+            const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
+            navigate("messages-chat",{chatId:id,otherName:name});
+        }));
+    }
+
+    function renderMessagesChat(chatId,messages) {
+        const body=document.getElementById('msgChatBody');
+        if(!body)return;
+        currentChatMessages=messages||[];
+        body.innerHTML=currentChatMessages.length?currentChatMessages.map(m=>{
+            const sent=m.sender===currentUser?.uid;
+            return `<div class="msg-bubble ${sent?'sent':'rec'}"><div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtDate(m.timestamp)}</div></div>`;
+        }).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>No messages yet. Start the conversation!</p></div></div>`;
+        body.scrollTop=body.scrollHeight;
+    }
+
+    // ============= DATA & HELPERS =============
+    async function getAdminUser(uid) { try{const d=await getDoc(doc(db,"admins",uid));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
+    async function getApp(appId) { try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
+
+    async function bootstrapAdmins() {
+        for (const email of DEV_ADMIN_EMAILS) {
+            try {
+                const cred = await signInWithEmailAndPassword(auth, email, '');
+            } catch(e) {
+                // silent — user may not be signed in with this email yet
+            }
+            try {
+                const q = query(collection(db, "admins"), where("email", "==", email));
+                const snap = await getDocs(q);
+                if (snap.empty && currentUser && currentUser.email === email) {
+                    await setDoc(doc(db, "admins", currentUser.uid), {
+                        name: currentUser.displayName || email.split('@')[0],
+                        email,
+                        role: "superadmin",
+                        createdAt: serverTimestamp()
+                    });
+                    console.log("✅ Auto-created admin doc for", email);
+                }
+            } catch(e) { /* Firestore rules may deny */ }
+        }
+    }
+
+    async function loadApps() {
+        getDocs(collection(db,"applications")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allApps=l;if(ROUTE.view==="dashboard")render();}).catch(()=>{});
+    }
+
+    async function loadJobs() {
+        if(!allJobs.length){allJobs=[];computeCountryCounts();}
+        getDocs(collection(db,"jobs")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));if(l.length){allJobs=l;computeCountryCounts();if(["jobs","dashboard"].includes(ROUTE.view))render();}}).catch(()=>{});
+    }
+
+    async function loadFees() {
+        getDocs(collection(db,"fees")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allFees=l;if(ROUTE.view==="fees")render();}).catch(()=>{});
+    }
+
+    async function addJob(d){const r=doc(collection(db,"jobs"));await setDoc(r,{...d,createdAt:serverTimestamp()});await loadJobs();}
+    async function deleteJob(i){await deleteDoc(doc(db,"jobs",i));await loadJobs();}
+    async function addFee(d){const r=doc(collection(db,"fees"));await setDoc(r,{...d,createdAt:serverTimestamp()});await loadFees();}
+    async function deleteFee(i){await deleteDoc(doc(db,"fees",i));await loadFees();}
+
+    function computeCountryCounts(){}
+
+    async function loadChats() {
+        if(!currentUser)return;
+        const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
+        getDocs(q).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ou=dt.participants?.find(p=>p!==currentUser.uid),on=ou?(dt.participantNames?.[ou]||ou):"Unknown";allChats.push({id:d.id,...dt,otherUid:ou,otherName:on});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();}).catch(()=>{});
+    }
+
+    function subscribeChats() {
+        if(!currentUser)return;
+        const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
+        if(allMessagesSub)allMessagesSub();
+        allMessagesSub=onSnapshot(q,(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ou=dt.participants?.find(p=>p!==currentUser.uid),on=ou?(dt.participantNames?.[ou]||ou):"Unknown";allChats.push({id:d.id,...dt,otherUid:ou,otherName:on});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
+    }
+
+    function subscribeMessages(chatId) {
+        const q=query(collection(db,"messages"),where("chatId","==",chatId),orderBy("timestamp","asc"));
+        return onSnapshot(q,(s)=>{const msgs=[];s.forEach(d=>msgs.push({id:d.id,...d.data()}));renderMessagesChat(chatId,msgs);markChatRead(chatId);});
+    }
+
+    async function markChatRead(chatId) {
+        try{const r=doc(db,"chats",chatId),s=await getDoc(r);if(s.exists()){const d=s.data(),u=d.unread||{};if(u[currentUser.uid]){delete u[currentUser.uid];await updateDoc(r,{unread:u});}}}catch(e){}
+    }
+
+    function getUnreadCount() {
+        if(!currentUser||!allChats.length)return 0;
+        return allChats.reduce((s,c)=>s+((c.unread?.[currentUser.uid])||0),0);
+    }
+
+    async function getOrCreateChat(otherUid,otherName) {
+        if(!currentUser)return null;
+        const uid=currentUser.uid;
+        const s=await getDocs(query(collection(db,"chats"),where("participants","array-contains",uid)));
+        let existing=null;
+        s.forEach(d=>{const dt=d.data();if(dt.participants&&dt.participants.includes(otherUid))existing={id:d.id,...dt};});
+        if(existing)return existing;
+        const r=doc(collection(db,"chats"));
+        const data={participants:[uid,otherUid],participantNames:{[uid]:currentUser.displayName||'Admin',[otherUid]:otherName},unread:{},lastMessage:'',lastTimestamp:null,createdAt:serverTimestamp()};
+        await setDoc(r,data);
+        return {id:r.id,...data};
+    }
+
+    async function sendMessage(chatId,text,fileUrl,fileName) {
+        const r=doc(collection(db,"messages"));
+        const msg={chatId,sender:currentUser.uid,text,fileUrl:fileUrl||'',fileName:fileName||'',timestamp:serverTimestamp()};
+        await setDoc(r,msg);
+        const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
+        const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
+        un[ou]=(un[ou]||0)+1;
+        await updateDoc(cr,{lastMessage:text||'📎 File',lastTimestamp:serverTimestamp(),unread:un});
+        await loadChats();
+    }
+
+    // ============= AUTH =============
+    onAuthStateChanged(auth,async(user)=>{
+        try{
+            currentUser=user;
+            if(user){
+                const adminByEmail=await isAdminEmail(user.email);
+                if(adminByEmail){
+                    currentUserData={displayName:user.displayName||'Admin',email:user.email,type:'admin'};
+                    document.getElementById('topbarUser').textContent=user.email;
+                    await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
+                    subscribeChats();
+                    bootstrapAdmins();
+                    navigate("dashboard");
+                }else{
+                    const fsAdmin=await getAdminUser(user.uid);
+                    if(fsAdmin){
+                        currentUserData={...fsAdmin,type:'admin'};
+                        document.getElementById('topbarUser').textContent=user.email;
+                        await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
+                        subscribeChats();
+                        navigate("dashboard");
+                    }else{
+                        currentUser=null;currentUserData=null;
+                        await signOut(auth);
+                        toast("Not an admin. Access denied.","err");
+                        navigate("login");
+                    }
+                }
+            }else{
+                currentUserData=null;
+                document.getElementById('topbarUser').textContent='';
+                navigate("login");
+            }
+        }catch(e){console.error("Auth error:",e);}
+    });
+
+    // Boot
+    try{await Promise.all([loadJobs(),loadFees()]);}catch(e){}
+    subscribeChats();
+</script>
+</body>
+</html>

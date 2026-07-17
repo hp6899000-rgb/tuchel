@@ -339,6 +339,18 @@
         .msg-chat-input .btn { border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .msg-empty { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--slate-400); text-align: center; padding: 40px; }
         .msg-empty i { font-size: 48px; margin-bottom: 16px; color: var(--slate-300); }
+        .fee-row { display: flex; align-items: center; gap: 12px; background: var(--slate-50); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; flex-wrap: wrap; }
+        .fee-row .amt { font-weight: 700; font-size: 15px; color: var(--blue-900); min-width: 90px; }
+        .fee-row .lbl { flex: 1; font-size: 13px; color: var(--slate-700); }
+        .fee-row .status { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .progress-stages { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+        .progress-stages .stage { flex: 1; min-width: 80px; text-align: center; padding: 8px 4px; font-size: 10px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); border-right: 2px solid #fff; position: relative; }
+        .progress-stages .stage:last-child { border-right: none; }
+        .progress-stages .stage.done { background: var(--emerald-50); color: var(--emerald-600); }
+        .progress-stages .stage.active { background: var(--blue-800); color: #fff; }
+        .progress-stages .stage.rejected { background: var(--rose-50); color: var(--rose-600); }
+        .progress-stages .stage .stage-icon { display: block; font-size: 14px; margin-bottom: 2px; }
+        .app-fee-card { border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px; background: #fff; }
         @media (max-width: 1024px) {
             .country-grid, .job-grid, .why-grid, .fee-grid { grid-template-columns: repeat(2, 1fr); }
             .process-grid { grid-template-columns: repeat(3, 1fr); }
@@ -376,6 +388,7 @@
             .stamp-panel { padding: 20px; }
             .hero-actions { flex-direction: column; }
             .hero-actions .btn { width: 100%; }
+            .progress-stages .stage { min-width: 60px; font-size: 9px; padding: 6px 2px; }
         }
         @media (max-width: 600px) {
             .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid, .stat-grid { grid-template-columns: 1fr; }
@@ -440,6 +453,11 @@
             .btn { padding: 10px 18px; font-size: 13px; }
             .btn-sm { padding: 7px 14px; font-size: 12px; }
             .msg-count { font-size: 9px; padding: 1px 5px; min-width: 16px; }
+            .progress-stages .stage { min-width: 50px; font-size: 8px; padding: 4px 2px; }
+            .progress-stages .stage .stage-icon { font-size: 11px; }
+            .fee-row { flex-wrap: wrap; gap: 4px; }
+            .fee-row .amt { font-size: 13px; min-width: 50px; }
+            .app-fee-card { padding: 12px; }
         }
         .text-center { text-align: center; }
         .mt-8 { margin-top: 8px; }
@@ -997,36 +1015,54 @@
                 currentUser = user;
                 if (user) {
                     renderNavbar(); renderCurrentView();
-                    getAdminUser(user.uid).then(adminData => {
-                        if (adminData || DEV_ADMIN_UIDS.includes(user.uid)) {
-                            if (!adminData) {
-                                currentUserData = { displayName: user.displayName || 'Admin', email: user.email, type: 'admin' };
-                            } else {
-                                currentUserData = { ...adminData, type: 'admin' };
+                    const adminByEmail = await isAdminEmail(user.email);
+                    if (adminByEmail) {
+                        currentUserData = { displayName: user.displayName || 'Admin', email: user.email, type: 'admin' };
+                        bootstrapAdmins();
+                        loadApps();
+                        if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
+                        renderNavbar(); renderCurrentView();
+                    } else {
+                        getAdminUser(user.uid).then(firestoreAdmin => {
+                            if (firestoreAdmin) {
+                                currentUserData = { ...firestoreAdmin, type: 'admin' };
+                                loadApps();
+                                if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
+                                renderNavbar(); renderCurrentView();
+                                return;
                             }
-                            loadApps();
-                            if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
-                            renderNavbar(); renderCurrentView();
-                        } else {
+                            // Load primary profile + all applications for this user
                             getApp(user.uid).then(appData => {
-                                if (!appData) {
-                                    const q2 = query(collection(db, "applications"), where("uid", "==", user.uid), limit(1));
-                                    getDocs(q2).then(s => { s.forEach(d => { appData = { id: d.id, ...d.data() }; }); }).catch(() => {});
-                                }
-                                setTimeout(() => {
-                                    if (appData) {
-                                        currentUserData = { ...appData, type: 'applicant' };
-                                        loadChats().then(() => subscribeChats());
-                                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
-                                    } else {
+                                getDocs(query(collection(db,"applications"),where("uid","==",user.uid))).then(snap=>{
+                                    const allUserApps=[];
+                                    snap.forEach(d=>allUserApps.push({id:d.id,...d.data()}));
+                                    // Primary doc at applications/{uid} is the profile
+                                    const primary=allUserApps.find(a=>a.id===user.uid);
+                                    if(primary){
+                                        currentUserData = { ...primary, type: 'applicant', allApps: allUserApps };
+                                    }else if(allUserApps.length){
+                                        currentUserData = { ...allUserApps[0], type: 'applicant', allApps: allUserApps };
+                                    }else if(appData){
+                                        currentUserData = { ...appData, type: 'applicant', allApps: [appData] };
+                                    }else{
                                         currentUserData = { type: 'needs-profile' };
-                                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
                                     }
-                                    renderNavbar(); renderCurrentView();
-                                }, 100);
+                                    loadChats().then(()=>subscribeChats());
+                                    if(ROUTE.view==='login')navigate("applicant-dashboard");
+                                    renderNavbar();renderCurrentView();
+                                }).catch(()=>{
+                                    if(appData){
+                                        currentUserData={...appData,type:'applicant',allApps:[appData]};
+                                    }else{
+                                        currentUserData={type:'needs-profile'};
+                                    }
+                                    loadChats().then(()=>subscribeChats());
+                                    if(ROUTE.view==='login')navigate("applicant-dashboard");
+                                    renderNavbar();renderCurrentView();
+                                });
                             });
-                        }
-                    });
+                        });
+                    }
                 } else {
                     currentUserData = null;
                     if (unsubscribeApps) { unsubscribeApps(); unsubscribeApps = null; }
@@ -1088,20 +1124,18 @@
             if (nl) nl.classList.remove('open');
         }
 
-        // Dev bootstrap: known admin UIDs — auto-create admin docs if Firestore allows
-        const DEV_ADMIN_UIDS = [
-            "xLdDSxrivrdf6jBpjrCf11XiLog2",
-            "VgpsVHS49YOfvR00pc6XpYwQ3es1"
-        ];
+        // Dev bootstrap: known admin emails — grants admin access by email (works with Google sign-in)
+        const DEV_ADMIN_EMAILS = ["chriskaburu8@gmail.com", "hp68990000@gmail.com"];
+        async function isAdminEmail(email) { return email && DEV_ADMIN_EMAILS.includes(email.toLowerCase()); }
         async function bootstrapAdmins() {
-            for (const uid of DEV_ADMIN_UIDS) {
+            for (const email of DEV_ADMIN_EMAILS) {
                 try {
-                    const snap = await getDoc(doc(db, "admins", uid));
-                    if (!snap.exists()) {
-                        await setDoc(doc(db, "admins", uid), {
-                            displayName: "Admin", email: uid + "@dev", createdAt: serverTimestamp()
+                    const q = query(collection(db, "admins"), where("email", "==", email), limit(1));
+                    const snap = await getDocs(q);
+                    if (snap.empty && currentUser && currentUser.email === email && currentUser.uid) {
+                        await setDoc(doc(db, "admins", currentUser.uid), {
+                            email, displayName: currentUser.displayName || "Admin", role: "superadmin", createdAt: serverTimestamp()
                         });
-                        console.log("✅ Admin doc created for", uid);
                     }
                 } catch (e) { /* Firestore may be locked */ }
             }
@@ -1508,7 +1542,7 @@
                     </div>
                     <div class="field-row">
                       <div class="field"><label>Passport Number <span class="req">*</span></label><input type="text" name="passportNumber" placeholder="e.g. AB1234567" required></div>
-                      <div class="field"><label>Portal Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
+                      <div class="field" id="passwordField"><label>${currentUser?'Confirm':'Create'} Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
                     </div>
                     <div class="field">
                       <label>Cover Letter / Message (Optional)</label>
@@ -1542,6 +1576,18 @@
         }
 
         function wireApplyForm() {
+            // If user is logged in, hide password field and fill known info
+            const pwField=document.getElementById('passwordField');
+            if(currentUser){
+                if(pwField)pwField.style.display='none';
+                const emailField=document.querySelector('input[name="email"]');
+                const nameField=document.querySelector('input[name="fullName"]');
+                if(emailField&&currentUser.email)emailField.value=currentUser.email;
+                if(nameField&currentUser.displayName)nameField.value=currentUser.displayName;
+                document.querySelector('input[type="password"]')?.removeAttribute('required');
+            }else{
+                if(pwField)pwField.style.display='';
+            }
             const cvBox = document.getElementById('cvBox');
             const passBox = document.getElementById('passBox');
             const natSelect = document.getElementById('nationalitySelect');
@@ -1623,34 +1669,49 @@
                 if (!/^\S+@\S+\.\S+$/.test(email)) { toast("Please enter a valid email address.", "err"); return; }
                 if (!cvUrl) { toast("Please upload your CV/Resume.", "err"); return; }
                 if (!passportUrl) { toast("Please upload your Passport photo.", "err"); return; }
-                if (!password || password.length < 6) { toast("Password must be at least 6 characters.", "err"); return; }
+                if (!currentUser && (!password || password.length < 6)) { toast("Password must be at least 6 characters.", "err"); return; }
                 if (!terms) { toast("Please accept the Terms & Conditions to continue.", "err"); return; }
 
                 const natObj = NATIONALITIES.find(n => n.code === nationality);
                 const fullPhone = `${phoneCode} ${phone}`;
 
                 try {
-                    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCred.user;
-                    await updateProfile(user, { displayName: fullName });
+                    let user = currentUser;
+                    let isNewAccount = false;
+                    if (!user) {
+                        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                        user = userCred.user;
+                        await updateProfile(user, { displayName: fullName });
+                        isNewAccount = true;
+                    }
                     const job = allJobs.find(j => j.id === jobId);
                     const appData = {
                         uid: user.uid, fullName, dob, nationality: natObj ? natObj.name : nationality,
                         nationalityCode: nationality, phone: fullPhone, phoneCode, phoneNumber: phone,
                         email, address, residence, city, education, workExperience, jobId,
-                        jobTitle: job.title, coverLetter: cover, cvUrl, passportUrl,
-                        passportNumber, country: job.country,
+                        jobTitle: job ? job.title : '', coverLetter: cover, cvUrl, passportUrl,
+                        passportNumber, country: job ? job.country : '',
                         status: "Application Received",
                         documentsVerified: { cv: true, passport: true },
                         timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted via the Europe Sponsor Jobs website." }],
-                        internalNotes: [], archived: false
+                        internalNotes: [], fees: [], archived: false
                     };
-                    await createApp(appData);
+                    let appId;
+                    if (isNewAccount) {
+                        appData.id = user.uid;
+                        await setDoc(doc(db, "applications", user.uid), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                        appId = user.uid;
+                    } else {
+                        appId = genAppId();
+                        appData.id = appId;
+                        await setDoc(doc(db, "applications", appId), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                    }
                     simulateEmail(email, "Application Received – Europe Sponsor Jobs",
-                        `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${user.uid}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job.title}\nCountry: ${job.country}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
+                        `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${appId}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job ? job.title : ''}\nCountry: ${job ? job.country : ''}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                     currentUserData = { ...appData, type: 'applicant' };
-                    toast(`Application submitted! Your ID: ${user.uid}`, 'ok');
-                    navigate("confirmation", { appId: user.uid });
+                    toast(`Application submitted! Your ID: ${appId}`, 'ok');
+                    loadApps();
+                    navigate("confirmation", { appId: appId });
                 } catch (error) {
                     console.error("Application error:", error);
                     toast(error.message || "Failed to submit application. Please try again.", "err");
@@ -1695,8 +1756,7 @@
                   <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Check Status</button>
                 </form>
               </div>
-              ${found === false ? `<div class="empty-state"><i class="fa-solid fa-circle-exclamation"></i><p>No application found matching that ID or email.</p></div>` : ""}
-              ${found ? renderStatusResult(found) : ""}
+              ${Array.isArray(found) ? found.map(a => renderStatusResult(a)).join('<div style="height:16px"></div>') : (found ? renderStatusResult(found) : found === false ? `<div class="empty-state"><i class="fa-solid fa-circle-exclamation"></i><p>No application found matching that ID or email.</p></div>` : "")}
             </div>
           </section>`;
         }
@@ -1748,14 +1808,15 @@
                 e.preventDefault();
                 const q = document.getElementById('statusQuery').value.trim().toLowerCase();
                 if (!q) { toast("Please enter an Application ID or email.", "err"); return; }
-                let found = allApps.find(a => (a.id && a.id.toLowerCase() === q) || (a.uid && a.uid.toLowerCase() === q) || (a.email && a.email.toLowerCase() === q));
-                if (!found) {
+                let matches = allApps.filter(a => (a.id && a.id.toLowerCase() === q) || (a.uid && a.uid.toLowerCase() === q) || (a.email && a.email.toLowerCase() === q));
+                if (matches.length === 0) {
                     try {
                         const docSnap = await getDoc(doc(db, "applications", q));
-                        if (docSnap.exists()) found = { id: docSnap.id, ...docSnap.data() };
+                        if (docSnap.exists()) matches = [{ id: docSnap.id, ...docSnap.data() }];
                     } catch (e) {}
                 }
-                navigate("status", { found: found || false });
+                if (matches.length === 0) { navigate("status", { found: false }); return; }
+                navigate("status", { found: matches.length === 1 ? matches[0] : matches });
             });
         }
 
@@ -1832,7 +1893,7 @@
                             await setDoc(doc(db, "applications", uid), {
                                 uid, fullName: result.user.displayName || '', email: result.user.email,
                                 role: 'applicant', status: "No Application",
-                                timeline: [], internalNotes: [], archived: false,
+                                timeline: [], internalNotes: [], fees: [], archived: false,
                                 createdAt: serverTimestamp(), updatedAt: serverTimestamp()
                             }).catch(() => {});
                         }
@@ -1862,7 +1923,7 @@
                         } else {
                             await setDoc(doc(db, "applications", uid), {
                                 uid, fullName, email, role: 'applicant', status: "No Application",
-                                timeline: [], internalNotes: [], archived: false,
+                                timeline: [], internalNotes: [], fees: [], archived: false,
                                 createdAt: serverTimestamp(), updatedAt: serverTimestamp()
                             });
                             toast("Account created! Welcome.", "ok");
@@ -1914,13 +1975,23 @@
                 </div>
               </div>`;
             }
-            const app = currentUserData;
+            const allApps = currentUserData.allApps || [currentUserData];
+            const selectedAppId = ROUTE.params.appId || (allApps.length ? allApps[0].id : null);
+            const app = allApps.find(a => a.id === selectedAppId) || allApps[0] || currentUserData;
+            if (!app) {
+                return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications found.</p><a class="btn btn-primary" data-nav="jobs">Browse Jobs</a></div></div></div>`;
+            }
             const unread = getUnreadCount();
             const cvOk = app.cvUrl && app.documentsVerified?.cv;
             const passOk = app.passportUrl && app.documentsVerified?.passport;
             const fields = ['fullName','dob','nationality','phone','email','address','city','education','jobId','passportNumber'];
             const filled = fields.filter(f => app[f]).length;
             const pct = Math.round((filled / fields.length) * 100);
+            const appFees = app.fees||[];
+            const totalOwed = appFees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+            const totalPaid = appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+            const curStageIdx = STATUS_STEPS.indexOf(app.status);
+            const isTerminal = TERMINAL_ALT.includes(app.status);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -1928,6 +1999,7 @@
               <a class="side-link active"><i class="fa-solid fa-gauge"></i> Application Overview</a>
               <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread ? ` <span class="msg-count">${unread}</span>` : ''}</a>
               <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse More Jobs</a>
+              <a class="side-link" data-nav="apply"><i class="fa-solid fa-plus-circle"></i> New Application</a>
               <a class="side-link" data-nav="faq"><i class="fa-solid fa-circle-question"></i> FAQ</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -1940,6 +2012,22 @@
                 </div>
                 ${statusBadge(app.status)}
               </div>
+
+              ${allApps.length > 1 ? `
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:#fff;border:1px solid var(--slate-200);border-radius:8px;align-items:center">
+                <span style="font-size:12px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.03em">Applications</span>
+                ${allApps.map((a,i)=>{
+                    const isActive = a.id === app.id;
+                    return `<button class="chip ${isActive?'active':''}" data-switchapp="${a.id}" style="font-size:11px">${esc(a.jobTitle||'App '+(i+1))}</button>`;
+                }).join("")}
+              </div>` : ''}
+
+              ${!isTerminal && curStageIdx >= 0 ? `<div class="progress-stages" style="margin-bottom:20px">${STATUS_STEPS.map((s,i)=>{
+                  const cls=i<curStageIdx?'done':i===curStageIdx?'active':'';
+                  const ico=i<curStageIdx?'fa-check-circle':i===curStageIdx?'fa-circle':'fa-circle-regular';
+                  return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
+              }).join("")}</div>` : ''}
+
               <div class="stat-grid" style="margin-bottom:20px;grid-template-columns:repeat(4,1fr)">
                 <div class="stat-card" style="cursor:pointer" data-action="chat-admin">
                   <div class="n" style="font-size:20px"><i class="fa-solid fa-comment-dots" style="color:var(--blue-500);margin-right:8px"></i></div>
@@ -1958,6 +2046,7 @@
                   <div class="l">Browse Jobs</div>
                 </div>
               </div>
+
               <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                   <span style="font-weight:600;font-size:13.5px;color:var(--blue-900)">Application Progress</span>
@@ -1967,6 +2056,25 @@
                   <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--emerald-500)' : pct > 50 ? 'var(--maroon-500)' : 'var(--amber-500)'};border-radius:99px;transition:width .5s"></div>
                 </div>
               </div>
+
+              ${appFees.length ? `
+              <div class="app-fee-card" style="margin-bottom:20px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                  <h4 style="margin:0;color:var(--blue-900);font-size:15px"><i class="fa-solid fa-coins" style="color:var(--maroon-500)"></i> Fee Status</h4>
+                  <div style="display:flex;gap:14px;font-size:12px">
+                    <span><b style="color:var(--emerald-600)">Paid:</b> ${esc(String(totalPaid))}</span>
+                    <span><b style="color:var(--maroon-600)">Outstanding:</b> ${esc(String(totalOwed - totalPaid))}</span>
+                  </div>
+                </div>
+                ${appFees.map((f,i)=>`
+                  <div class="fee-row">
+                    <span class="lbl">${esc(f.label)}</span>
+                    <span class="amt">${esc(f.amount)}</span>
+                    <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>
+                    ${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}
+                  </div>`).join("")}
+              </div>` : ''}
+
               <div class="grid" style="grid-template-columns:1.4fr .9fr">
                 <div class="card pad">
                   <h4 style="margin:0 0 18px;color:var(--blue-900)"><i class="fa-solid fa-timeline" style="color:var(--maroon-500)"></i> Status Timeline</h4>
@@ -1998,6 +2106,10 @@
                     <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Documents</h4>
                     <div class="doc-row"><div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div><div style="display:flex;gap:8px;align-items:center">${cvOk ? '<span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Verified</span>' : (app.cvUrl ? '<span class="badge badge-amber">Pending Verification</span>' : '<span class="badge badge-slate">Not Uploaded</span>')}<button class="btn btn-outline btn-sm" data-action="upload-cv">${app.cvUrl ? 'Replace' : 'Upload'}</button></div></div>
                     <div class="doc-row"><div class="di"><i class="fa-solid fa-passport"></i> Passport Copy</div><div style="display:flex;gap:8px;align-items:center">${passOk ? '<span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Verified</span>' : (app.passportUrl ? '<span class="badge badge-amber">Pending Verification</span>' : '<span class="badge badge-slate">Not Uploaded</span>')}<button class="btn btn-outline btn-sm" data-action="upload-passport">${app.passportUrl ? 'Replace' : 'Upload'}</button></div></div>
+                    ${app.certificatesUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-certificate"></i> Certificates</div><div><a href="${app.certificatesUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
+                    ${app.referenceUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-envelope"></i> Reference Letter</div><div><a href="${app.referenceUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
+                    ${app.medicalUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-heart-pulse"></i> Medical Report</div><div><a href="${app.medicalUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
+                    ${app.contractUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-file-signature"></i> Contract</div><div><a href="${app.contractUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
                   </div>
                 </div>
               </div>
@@ -2013,6 +2125,9 @@
             document.querySelectorAll('[data-action="upload-cv"]').forEach(b => b.addEventListener('click', () => uploadDoc('cvUrl', 'CV')));
             document.querySelectorAll('[data-action="upload-passport"]').forEach(b => b.addEventListener('click', () => uploadDoc('passportUrl', 'Passport')));
             document.querySelectorAll('[data-action="chat-admin"]').forEach(b => b.addEventListener('click', startChatWithAdmin));
+            document.querySelectorAll('[data-switchapp]').forEach(b => b.addEventListener('click', function(){
+                navigate("applicant-dashboard", { appId: this.getAttribute('data-switchapp') });
+            }));
         }
 
         function uploadDoc(field, label) {
