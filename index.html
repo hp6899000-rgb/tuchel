@@ -110,6 +110,8 @@
         .error-text { font-size: 12px; color: var(--maroon-500); margin-top: 4px; font-weight: 600; }
         .divider-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--slate-400); font-size: 12px; font-weight: 700; text-transform: uppercase; }
         .divider-or::before, .divider-or::after { content: ""; flex: 1; height: 1px; background: var(--slate-200); }
+        .checkbox-label { display:flex;align-items:center;font-size:13px;color:var(--slate-600);cursor:pointer;gap:6px }
+        .checkbox-label input[type="checkbox"] { width:16px;height:16px;accent-color:var(--maroon-600);cursor:pointer }
         .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 4px 12px; border-radius: 100px; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
         .badge-blue { background: var(--blue-800); color: #fff; }
         .badge-maroon { background: var(--maroon-600); color: #fff; }
@@ -1772,7 +1774,8 @@
                 <form id="loginForm">
                   <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" placeholder="you@example.com" required></div>
                   <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
-                  ${loginMode === 'register' ? `<div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" placeholder="Your full name" required></div>` : ''}
+                  ${loginMode === 'register' ? `<div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" placeholder="Your full name" required></div>
+                  <div class="field" style="margin-top:6px"><label class="checkbox-label"><input type="checkbox" name="registerAsAdmin" style="width:auto;margin-right:8px"> Register as platform admin</label></div>` : ''}
                   <button class="btn btn-primary btn-block" type="submit">${loginMode === 'signin' ? '<i class="fa-solid fa-right-to-bracket"></i> Sign In' : '<i class="fa-solid fa-user-plus"></i> Create Account'}</button>
                 </form>
                 <p class="hint" style="text-align:center;margin-top:14px">
@@ -1787,7 +1790,20 @@
             const gBtn = document.getElementById('googleLoginBtn');
             if (gBtn) gBtn.addEventListener('click', async () => {
                 try {
-                    await signInWithPopup(auth, googleProvider);
+                    const result = await signInWithPopup(auth, googleProvider);
+                    const uid = result.user.uid;
+                    const isAdmin = await getAdminUser(uid);
+                    if (!isAdmin) {
+                        const existing = await getApp(uid);
+                        if (!existing) {
+                            await setDoc(doc(db, "applications", uid), {
+                                uid, fullName: result.user.displayName || '', email: result.user.email,
+                                role: 'applicant', status: "No Application",
+                                timeline: [], internalNotes: [], archived: false,
+                                createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+                            }).catch(() => {});
+                        }
+                    }
                     toast("Signed in with Google!", "ok");
                 } catch (error) {
                     toast(error.message || "Google sign-in failed.", "err");
@@ -1802,10 +1818,22 @@
                 if (loginMode === 'register') {
                     const fullName = fd.get('fullName').trim();
                     if (!fullName) { toast("Please enter your full name.", "err"); return; }
+                    const asAdmin = fd.get('registerAsAdmin') === 'on';
                     try {
                         const cred = await createUserWithEmailAndPassword(auth, email, password);
+                        const uid = cred.user.uid;
                         await updateProfile(cred.user, { displayName: fullName });
-                        toast("Account created! Welcome.", "ok");
+                        if (asAdmin) {
+                            await setDoc(doc(db, "admins", uid), { displayName: fullName, email, createdAt: serverTimestamp() });
+                            toast("Admin account created! Signing in...", "ok");
+                        } else {
+                            await setDoc(doc(db, "applications", uid), {
+                                uid, fullName, email, role: 'applicant', status: "No Application",
+                                timeline: [], internalNotes: [], archived: false,
+                                createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+                            });
+                            toast("Account created! Welcome.", "ok");
+                        }
                     } catch (error) {
                         toast(error.message || "Registration failed.", "err");
                     }
