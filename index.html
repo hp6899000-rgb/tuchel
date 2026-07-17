@@ -796,13 +796,12 @@
         async function deleteJob(jobId) { await deleteDoc(doc(db, "jobs", jobId)); await loadJobs(); }
 
         async function loadApps() {
-            allApps = [];
-            try {
-                const snapshot = await getDocs(collection(db, "applications"));
-                snapshot.forEach(d => allApps.push({ id: d.id, ...d.data() }));
-            } catch (e) {
-                if (!usingFallbackJobs) console.warn("Firestore apps read unavailable:", e.message);
-            }
+            getDocs(collection(db, "applications")).then(snapshot => {
+                const live = [];
+                snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
+                allApps = live;
+                if (ROUTE.view === "admin-dashboard") renderCurrentView();
+            }).catch(() => {});
             return allApps;
         }
         async function getApp(appId) {
@@ -837,11 +836,11 @@
         }
 
         async function loadFees() {
-            allFees = [];
-            try {
-                const snapshot = await getDocs(collection(db, "fees"));
-                snapshot.forEach(d => allFees.push({ id: d.id, ...d.data() }));
-            } catch (e) { /* fees may be restricted */ }
+            getDocs(collection(db, "fees")).then(snapshot => {
+                const live = [];
+                snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
+                allFees = live;
+            }).catch(() => {});
             return allFees;
         }
         async function addFee(feeData) {
@@ -921,19 +920,21 @@
         async function loadChats() {
             if (!currentUser) return;
             const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
-            const snap = await getDocs(q);
-            allChats = [];
-            snap.forEach(d => {
-                const data = d.data();
-                const otherUid = data.participants?.find(p => p !== currentUser.uid);
-                const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
-                allChats.push({ id: d.id, ...data, otherUid, otherName });
-            });
-            allChats.sort((a, b) => {
-                const ta = a.lastTimestamp ? new Date(a.lastTimestamp.seconds ? a.lastTimestamp.seconds * 1000 : a.lastTimestamp) : new Date(0);
-                const tb = b.lastTimestamp ? new Date(b.lastTimestamp.seconds ? b.lastTimestamp.seconds * 1000 : b.lastTimestamp) : new Date(0);
-                return tb - ta;
-            });
+            getDocs(q).then(snap => {
+                allChats = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    const otherUid = data.participants?.find(p => p !== currentUser.uid);
+                    const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
+                    allChats.push({ id: d.id, ...data, otherUid, otherName });
+                });
+                allChats.sort((a, b) => {
+                    const ta = a.lastTimestamp ? new Date(a.lastTimestamp.seconds ? a.lastTimestamp.seconds * 1000 : a.lastTimestamp) : new Date(0);
+                    const tb = b.lastTimestamp ? new Date(b.lastTimestamp.seconds ? b.lastTimestamp.seconds * 1000 : b.lastTimestamp) : new Date(0);
+                    return tb - ta;
+                });
+                if (ROUTE.view === "messages" || ROUTE.view === "messages-chat") renderCurrentView();
+            }).catch(() => {});
             return allChats;
         }
 
@@ -993,31 +994,34 @@
         onAuthStateChanged(auth, async (user) => {
             try {
                 currentUser = user;
-                await Promise.all([loadJobs(), loadFees()]);
                 if (user) {
-                    const adminData = await getAdminUser(user.uid);
-                    if (adminData) {
-                        currentUserData = { ...adminData, type: 'admin' };
-                        await loadApps();
-                        if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
-                    } else {
-                    let appData = await getApp(user.uid);
-                    if (!appData) {
-                        try {
-                            const fallback = await getDocs(query(collection(db, "applications"), where("uid", "==", user.uid), limit(1)));
-                            fallback.forEach(d => appData = { id: d.id, ...d.data() });
-                        } catch (e) { /* fallback may be restricted */ }
-                    }
-                    if (appData) {
-                        currentUserData = { ...appData, type: 'applicant' };
-                        await loadChats();
-                        subscribeChats();
-                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
-                    } else {
-                        currentUserData = { type: 'needs-profile' };
-                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
-                    }
-                    }
+                    renderNavbar(); renderCurrentView();
+                    getAdminUser(user.uid).then(adminData => {
+                        if (adminData) {
+                            currentUserData = { ...adminData, type: 'admin' };
+                            loadApps();
+                            if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
+                            renderNavbar(); renderCurrentView();
+                        } else {
+                            getApp(user.uid).then(appData => {
+                                if (!appData) {
+                                    const q2 = query(collection(db, "applications"), where("uid", "==", user.uid), limit(1));
+                                    getDocs(q2).then(s => { s.forEach(d => { appData = { id: d.id, ...d.data() }; }); }).catch(() => {});
+                                }
+                                setTimeout(() => {
+                                    if (appData) {
+                                        currentUserData = { ...appData, type: 'applicant' };
+                                        loadChats().then(() => subscribeChats());
+                                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
+                                    } else {
+                                        currentUserData = { type: 'needs-profile' };
+                                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
+                                    }
+                                    renderNavbar(); renderCurrentView();
+                                }, 100);
+                            });
+                        }
+                    });
                 } else {
                     currentUserData = null;
                     if (unsubscribeApps) { unsubscribeApps(); unsubscribeApps = null; }
@@ -1025,10 +1029,8 @@
                     if (unsubscribeFees) { unsubscribeFees(); unsubscribeFees = null; }
                     if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
                     if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+                    renderNavbar(); renderCurrentView();
                 }
-                renderNavbar();
-                renderCurrentView();
-            } catch (e) { console.error("Auth handler error:", e); }
         });
 
         function subscribeToRealtime() {
