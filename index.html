@@ -1062,52 +1062,41 @@
                 currentUser = user;
                 if (user) {
                     renderNavbar(); renderCurrentView();
-                    const adminByEmail = await isAdminEmail(user.email);
-                    if (adminByEmail) {
-                        currentUserData = { displayName: user.displayName || 'Admin', email: user.email, type: 'admin' };
-                        bootstrapAdmins();
+                    const adminRes = await getAdminUser(user.uid);
+                    if (adminRes) {
+                        currentUserData = { ...adminRes, type: 'admin' };
                         loadApps();
                         if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                         renderNavbar(); renderCurrentView();
                     } else {
-                        getAdminUser(user.uid).then(firestoreAdmin => {
-                            if (firestoreAdmin) {
-                                currentUserData = { ...firestoreAdmin, type: 'admin' };
-                                loadApps();
-                                if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
-                                renderNavbar(); renderCurrentView();
-                                return;
-                            }
-                            // Load primary profile + all applications for this user
-                            getApp(user.uid).then(appData => {
-                                if(appData&&appData.blocked){signOut(auth);toast("Your account has been blocked. Please contact support.","err");return;}
-                                getDocs(query(collection(db,"applications"),where("uid","==",user.uid))).then(snap=>{
-                                    const allUserApps=[];
-                                    snap.forEach(d=>allUserApps.push({id:d.id,...d.data()}));
-                                    // Primary doc at applications/{uid} is the profile
-                                    const primary=allUserApps.find(a=>a.id===user.uid);
-                                    if(primary){
-                                        currentUserData = { ...primary, type: 'applicant', allApps: allUserApps };
-                                    }else if(allUserApps.length){
-                                        currentUserData = { ...allUserApps[0], type: 'applicant', allApps: allUserApps };
-                                    }else if(appData){
-                                        currentUserData = { ...appData, type: 'applicant', allApps: [appData] };
-                                    }else{
-                                        currentUserData = { type: 'needs-profile' };
-                                    }
-                                    loadChats().then(()=>subscribeChats());
-                                    if(ROUTE.view==='login')navigate("applicant-dashboard");
-                                    renderNavbar();renderCurrentView();
-                                }).catch(()=>{
-                                    if(appData){
-                                        currentUserData={...appData,type:'applicant',allApps:[appData]};
-                                    }else{
-                                        currentUserData={type:'needs-profile'};
-                                    }
-                                    loadChats().then(()=>subscribeChats());
-                                    if(ROUTE.view==='login')navigate("applicant-dashboard");
-                                    renderNavbar();renderCurrentView();
-                                });
+                        // Load primary profile + all applications for this user
+                        getApp(user.uid).then(appData => {
+                            if(appData&&appData.blocked){signOut(auth);toast("Your account has been blocked. Please contact support.","err");return;}
+                            getDocs(query(collection(db,"applications"),where("uid","==",user.uid))).then(snap=>{
+                                const allUserApps=[];
+                                snap.forEach(d=>allUserApps.push({id:d.id,...d.data()}));
+                                const primary=allUserApps.find(a=>a.id===user.uid);
+                                if(primary){
+                                    currentUserData = { ...primary, type: 'applicant', allApps: allUserApps };
+                                }else if(allUserApps.length){
+                                    currentUserData = { ...allUserApps[0], type: 'applicant', allApps: allUserApps };
+                                }else if(appData){
+                                    currentUserData = { ...appData, type: 'applicant', allApps: [appData] };
+                                }else{
+                                    currentUserData = { type: 'needs-profile' };
+                                }
+                                loadChats().then(()=>subscribeChats());
+                                if(ROUTE.view==='login')navigate("applicant-dashboard");
+                                renderNavbar();renderCurrentView();
+                            }).catch(()=>{
+                                if(appData){
+                                    currentUserData={...appData,type:'applicant',allApps:[appData]};
+                                }else{
+                                    currentUserData={type:'needs-profile'};
+                                }
+                                loadChats().then(()=>subscribeChats());
+                                if(ROUTE.view==='login')navigate("applicant-dashboard");
+                                renderNavbar();renderCurrentView();
                             });
                         });
                     }
@@ -1172,22 +1161,9 @@
             if (nl) nl.classList.remove('open');
         }
 
-        // Dev bootstrap: known admin emails — grants admin access by email (works with Google sign-in)
-        const DEV_ADMIN_EMAILS = ["admin@tuchel-services.com", "manager@tuchel-services.com", "operations@tuchel-services.com", "hr@tuchel-services.com"];
-        async function isAdminEmail(email) { return email && DEV_ADMIN_EMAILS.includes(email.toLowerCase()); }
-        async function bootstrapAdmins() {
-            for (const email of DEV_ADMIN_EMAILS) {
-                try {
-                    const q = query(collection(db, "admins"), where("email", "==", email), limit(1));
-                    const snap = await getDocs(q);
-                    if (snap.empty && currentUser && currentUser.email === email && currentUser.uid) {
-                        await setDoc(doc(db, "admins", currentUser.uid), {
-                            email, displayName: currentUser.displayName || "Admin", role: "superadmin", createdAt: serverTimestamp()
-                        });
-                    }
-                } catch (e) { /* Firestore may be locked */ }
-            }
-        }
+        // Admin access is granted ONLY via Firestore admins/{uid} documents (secure, server-side).
+        // To add an admin, create a document in the "admins" collection with their Firebase Auth UID.
+        async function isAdminEmail(email) { return false; }
 
         function renderNavbar() {
             const nav = document.getElementById('navbar');
@@ -3215,7 +3191,6 @@ function showChatUserDetails(userName, chatId) {
         renderNavbar();
         renderCurrentView();
         setTimeout(autoSeedJobsIfEmpty, 300);
-        bootstrapAdmins();
 
         console.log("🌍 Europe Sponsor Jobs v2 — Full Feature Release");
         console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");

@@ -301,8 +301,7 @@
     let adminFilters = { status: "All", country: "All", search: "", showBlocked: false };
     let ROUTE = { view: "login", params: {} };
 
-    const DEV_ADMIN_EMAILS = ["admin@tuchel-services.com", "manager@tuchel-services.com", "operations@tuchel-services.com", "hr@tuchel-services.com"];
-    async function isAdminEmail(email) { return email && DEV_ADMIN_EMAILS.includes(email.toLowerCase()); }
+    async function isAdminEmail(email) { return false; }
 
     function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function fmtDate(ts) { if (!ts) return "—"; if (ts.toDate) ts=ts.toDate(); return new Date(ts).toLocaleDateString(void 0,{year:'numeric',month:'short',day:'numeric'})+" · "+new Date(ts).toLocaleTimeString(void 0,{hour:'2-digit',minute:'2-digit'}); }
@@ -1246,29 +1245,6 @@
     async function getAdminUser(uid) { try{const d=await getDoc(doc(db,"admins",uid));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
     async function getApp(appId) { try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
 
-    async function bootstrapAdmins() {
-        for (const email of DEV_ADMIN_EMAILS) {
-            try {
-                const cred = await signInWithEmailAndPassword(auth, email, '');
-            } catch(e) {
-                // silent — user may not be signed in with this email yet
-            }
-            try {
-                const q = query(collection(db, "admins"), where("email", "==", email));
-                const snap = await getDocs(q);
-                if (snap.empty && currentUser && currentUser.email === email) {
-                    await setDoc(doc(db, "admins", currentUser.uid), {
-                        name: currentUser.displayName || email.split('@')[0],
-                        email,
-                        role: "superadmin",
-                        createdAt: serverTimestamp()
-                    });
-                    console.log("✅ Auto-created admin doc for", email);
-                }
-            } catch(e) { /* Firestore rules may deny */ }
-        }
-    }
-
     async function loadApps() {
         getDocs(collection(db,"applications")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allApps=l;if(ROUTE.view==="dashboard")render();}).catch(()=>{});
     }
@@ -1345,28 +1321,18 @@
         try{
             currentUser=user;
             if(user){
-                const adminByEmail=await isAdminEmail(user.email);
-                if(adminByEmail){
-                    currentUserData={displayName:user.displayName||'Admin',email:user.email,type:'admin'};
+                const fsAdmin=await getAdminUser(user.uid);
+                if(fsAdmin){
+                    currentUserData={...fsAdmin,type:'admin'};
                     document.getElementById('topbarUser').textContent=user.email;
                     await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
                     subscribeChats();
-                    bootstrapAdmins();
                     navigate("dashboard");
                 }else{
-                    const fsAdmin=await getAdminUser(user.uid);
-                    if(fsAdmin){
-                        currentUserData={...fsAdmin,type:'admin'};
-                        document.getElementById('topbarUser').textContent=user.email;
-                        await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
-                        subscribeChats();
-                        navigate("dashboard");
-                    }else{
-                        currentUser=null;currentUserData=null;
-                        await signOut(auth);
-                        toast("Not an admin. Access denied.","err");
-                        navigate("login");
-                    }
+                    currentUser=null;currentUserData=null;
+                    await signOut(auth);
+                    toast("Not an admin. Access denied.","err");
+                    navigate("login");
                 }
             }else{
                 currentUserData=null;
