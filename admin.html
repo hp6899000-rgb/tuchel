@@ -642,7 +642,7 @@
             }
             const msgText=`📋 Status Update: ${status}${note?` — ${note}`:''}`;
             const mr=doc(collection(db,"messages"));
-            await setDoc(mr,{chatId:chat.id,sender:currentUser.uid,text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
+            await setDoc(mr,{chatId:chat.id,sender:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
             const cr=doc(db,"chats",chat.id),cs=await getDoc(cr),cd=cs.data();
             const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
             un[ou]=(un[ou]||0)+1;
@@ -789,6 +789,7 @@
 
     function wireMessagesChat() {
         const chatId=ROUTE.params.chatId;
+        const otherName=ROUTE.params.otherName||"Chat";
         if(!chatId) return;
         if(chatMessagesUnsub) chatMessagesUnsub();
         chatMessagesUnsub=subscribeMessages(chatId);
@@ -816,6 +817,44 @@
             const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
             navigate("messages-chat",{chatId:id,otherName:name});
         }));
+        // Avatar click → show applicant details
+        document.querySelector('.msg-chat-header .msg-avatar')?.addEventListener('click',()=>showUserDetails(otherName));
+    }
+
+    function showUserDetails(userName){
+        const uid=ROUTE.params.chatId ? allChats.find(c=>c.id===ROUTE.params.chatId)?.otherUid : null;
+        if(!uid){toast("User details not available.","err");return;}
+        let app=allApps.find(a=>a.uid===uid);
+        if(!app){toast("No application found for this user.","err");return;}
+        const root=document.getElementById('modal-root');
+        root.innerHTML=`
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" style="max-width:500px">
+                <div class="modal-head"><h3>${esc(app.fullName||userName)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-body">
+                    <div style="display:flex;gap:20px;margin-bottom:16px;align-items:center">
+                        <div class="msg-avatar" style="width:52px;height:52px;font-size:22px">${esc((app.fullName||userName).charAt(0).toUpperCase())}</div>
+                        <div><div style="font-size:16px;font-weight:700;color:var(--blue-900)">${esc(app.fullName||userName)}</div><div style="font-size:13px;color:var(--slate-500)">${esc(app.email||'')}</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;line-height:1.8">
+                        <div><b>Phone:</b> ${esc(app.phone||'—')}</div>
+                        <div><b>Nationality:</b> ${esc(app.nationality||'—')}</div>
+                        <div><b>Position:</b> ${esc(app.jobTitle||'—')}</div>
+                        <div><b>Country:</b> ${esc(app.country||'—')}</div>
+                        <div><b>Status:</b> ${statusBadge(app.status)}</div>
+                        <div><b>Passport:</b> ${esc(app.passportNumber||'—')}</div>
+                    </div>
+                    ${app.cvUrl?`<div style="margin-top:14px"><a href="${app.cvUrl}" target="_blank" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-lines"></i> View CV</a></div>`:''}
+                    <div style="margin-top:14px"><button class="btn btn-primary btn-sm" data-openapp="${app.id||app.uid}"><i class="fa-solid fa-arrow-right"></i> Open Full Application</button></div>
+                </div>
+                <div class="modal-foot"><button class="btn btn-outline btn-sm" id="modalCloseBtn2">Close</button></div>
+            </div>
+        </div>`;
+        document.getElementById('modalCloseBtn').addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalCloseBtn2')?.addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
+        const openBtn=root.querySelector('[data-openapp]');
+        if(openBtn)openBtn.addEventListener('click',()=>{root.innerHTML='';openAppModal(openBtn.getAttribute('data-openapp'));});
     }
 
     function renderMessagesChat(chatId,messages) {
@@ -824,7 +863,8 @@
         currentChatMessages=messages||[];
         body.innerHTML=currentChatMessages.length?currentChatMessages.map(m=>{
             const sent=m.sender===currentUser?.uid;
-            return `<div class="msg-bubble ${sent?'sent':'rec'}"><div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtDate(m.timestamp)}</div></div>`;
+            const senderDisplay=m.senderName||(sent?'Admin':(ROUTE.params.otherName||'User'));
+            return `<div class="msg-bubble ${sent?'sent':'rec'}">${sent?'':`<div style="font-size:10px;font-weight:700;color:var(--blue-700);margin-bottom:2px">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtDate(m.timestamp)}</div></div>`;
         }).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>No messages yet. Start the conversation!</p></div></div>`;
         body.scrollTop=body.scrollHeight;
     }
@@ -918,7 +958,7 @@
 
     async function sendMessage(chatId,text,fileUrl,fileName) {
         const r=doc(collection(db,"messages"));
-        const msg={chatId,sender:currentUser.uid,text,fileUrl:fileUrl||'',fileName:fileName||'',timestamp:serverTimestamp()};
+        const msg={chatId,sender:currentUser.uid,senderName:'Admin',text:text||'',fileUrl:fileUrl||'',fileName:fileName||'',timestamp:serverTimestamp()};
         await setDoc(r,msg);
         const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
         const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
@@ -967,5 +1007,42 @@
     try{await Promise.all([loadJobs(),loadFees()]);}catch(e){}
     subscribeChats();
 </script>
+<!--
+=== FIRESTORE SECURITY RULES (paste in Console → Firestore → Rules) ===
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    // Messages are immutable — cannot be deleted or edited (audit trail)
+    match /messages/{doc} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if false;
+      allow update: if false;
+    }
+    match /chats/{doc} {
+      allow read, write: if request.auth != null;
+    }
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == uid;
+    }
+    match /applications/{uid} {
+      allow read, write: if request.auth != null;
+    }
+    match /jobs/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /fees/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+-->
 </body>
 </html>
