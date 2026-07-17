@@ -129,14 +129,18 @@
         .nav-link { padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--slate-600); transition: var(--transition); }
         .nav-link:hover { background: var(--slate-100); color: var(--blue-900); }
         .nav-link.active { color: var(--blue-800); background: var(--slate-100); }
-        .nav-cta { display: flex; align-items: center; gap: 10px; }
+        .nav-cta { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+        @media (min-width: 901px) { .nav-cta { margin-top: 0; margin-left: 8px; } }
+        @media (max-width: 900px) { .nav-cta { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--slate-200); } }
         .nav-mobile-toggle { display: none; background: none; border: none; font-size: 22px; color: var(--blue-800); padding: 8px; }
         .msg-count { background: var(--maroon-500); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: 700; margin-left: 4px; }
         @media (max-width: 900px) {
-            .nav-links { position: fixed; top: 72px; left: 0; right: 0; background: #fff; flex-direction: column; align-items: stretch; padding: 12px 20px 20px; border-bottom: 1px solid var(--slate-200); box-shadow: var(--shadow-md); display: none; gap: 2px; }
+            .nav-links { position: fixed; top: 72px; left: 0; right: 0; background: #fff; flex-direction: column; align-items: stretch; padding: 12px 20px 20px; border-bottom: 1px solid var(--slate-200); box-shadow: var(--shadow-md); display: none; gap: 2px; max-height: calc(100vh - 72px); overflow: auto; }
             .nav-links.open { display: flex; }
             .nav-mobile-toggle { display: block; }
             .field-row, .field-row-3 { grid-template-columns: 1fr; }
+            .brand { font-size: 16px; }
+            .brand-mark { width: 32px; height: 32px; font-size: 14px; }
         }
         .hero { position: relative; background: radial-gradient(1200px 600px at 10% -20%, #16407a 0%, transparent 65%), linear-gradient(155deg, var(--blue-950), var(--blue-800) 55%, var(--maroon-700)); color: #fff; overflow: hidden; }
         .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse 900px 500px at 70% 20%, black, transparent 72%); pointer-events: none; }
@@ -150,11 +154,19 @@
         .hero-stat b { display: block; font-family: var(--font-head); font-size: 26px; color: #fff; line-height: 1.2; }
         .hero-stat span { font-size: 12.5px; color: #9FB4CE; font-weight: 500; }
         .stamp-panel { position: relative; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); border-radius: var(--radius-lg); padding: 28px 26px; backdrop-filter: blur(8px); }
-        .stamp-panel h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #9FB4CE; margin: 0 0 18px; }
-        .stamp-row { display: flex; align-items: center; gap: 0; margin-bottom: 2px; }
-        .stamp { width: 40px; height: 40px; border-radius: 50%; border: 2px dashed rgba(196, 45, 69, .6); display: flex; align-items: center; justify-content: center; color: #F3B9C2; font-size: 13px; flex: none; background: rgba(196, 45, 69, .1); font-weight: 700; }
-        .stamp.done { border-style: solid; background: var(--maroon-500); color: #fff; }
-        .stamp-line { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .2) 0 6px, transparent 6px 12px); }
+        .stamp-panel h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: #CBD9EB; margin: 0 0 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .stamp-panel h4 i { color: var(--maroon-400); font-size: 16px; }
+        .steps-vertical { display: flex; flex-direction: column; gap: 0; }
+        .step-item { display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 22px; }
+        .step-item:last-child { padding-bottom: 0; }
+        .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; position: relative; z-index: 1; }
+        .step-dot.active { background: var(--maroon-500); color: #fff; box-shadow: 0 0 0 4px rgba(196,45,69,.25); }
+        .step-dot.pending { background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.2); color: #9FB4CE; }
+        .step-line { position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: repeating-linear-gradient(180deg, rgba(255,255,255,.15) 0 4px, transparent 4px 8px); }
+        .step-item:last-child .step-line { display: none; }
+        .step-content { flex: 1; padding-top: 5px; }
+        .step-content .step-label { font-size: 14px; font-weight: 600; color: #fff; }
+        .step-content .step-sub { font-size: 12px; color: #9FB4CE; margin-top: 2px; }
         .section { padding: 72px 24px; }
         .section-sm { padding: 48px 24px; }
         .section-head { text-align: center; max-width: 660px; margin: 0 auto 44px; }
@@ -331,34 +343,101 @@
             .stat-grid { grid-template-columns: repeat(3, 1fr); }
             .msg-shell { grid-template-columns: 1fr; }
             .msg-list-panel { display: none; }
-            .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 100; }
+            .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 100; background: #fff; }
             .msg-chat-panel { display: none; }
             .msg-chat-panel.show { display: flex; }
+            .hero-inner { grid-template-columns: 1fr; padding: 48px 24px 40px; gap: 32px; }
+            .hero h1 { font-size: 34px; }
+            .hero .lead { font-size: 15px; }
+            .section-head h2 { font-size: 28px; }
         }
         @media (max-width: 820px) {
-            .hero-inner { grid-template-columns: 1fr; padding: 48px 20px 40px; gap: 32px; }
-            .hero h1 { font-size: 32px; }
+            .hero-inner { padding: 40px 20px 36px; }
+            .hero h1 { font-size: 28px; }
+            .hero .lead { font-size: 14px; }
+            .hero-stats { gap: 24px; }
+            .hero-stat b { font-size: 22px; }
             .form-shell { grid-template-columns: 1fr; }
             .dash-shell { grid-template-columns: 1fr; }
-            .dash-side { display: flex; overflow: auto; gap: 4px; padding: 12px 16px; }
+            .dash-side { display: flex; overflow: auto; gap: 4px; padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--slate-200); }
             .dash-side .side-title { display: none; }
-            .side-link { padding: 8px 14px; font-size: 12.5px; white-space: nowrap; }
+            .side-link { padding: 8px 14px; font-size: 12.5px; white-space: nowrap; flex-shrink: 0; }
             .foot-grid { grid-template-columns: 1fr 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .section { padding: 48px 16px; }
+            .section-head { margin-bottom: 32px; }
+            .section-head h2 { font-size: 24px; }
+            .country-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .job-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .filter-bar { gap: 6px; }
+            .chip { padding: 6px 14px; font-size: 11.5px; }
+            .stamp-panel { padding: 20px; }
+            .hero-actions { flex-direction: column; }
+            .hero-actions .btn { width: 100%; }
         }
         @media (max-width: 600px) {
             .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid, .stat-grid { grid-template-columns: 1fr; }
-            .hero h1 { font-size: 26px; }
+            .hero { padding-top: 0; }
+            .hero-inner { padding: 32px 16px 28px; }
+            .hero h1 { font-size: 24px; }
+            .hero .lead { font-size: 13.5px; margin-bottom: 20px; }
+            .hero-stats { gap: 16px; }
+            .hero-stat b { font-size: 18px; }
+            .hero-stat span { font-size: 11px; }
             .field-row, .field-row-3 { grid-template-columns: 1fr; }
-            .foot-grid { grid-template-columns: 1fr; }
-            .dash-main { padding: 20px 16px; }
-            .modal { margin: 10px; }
-            .modal-body { padding: 16px; }
-            .modal-head { padding: 16px; }
-            .modal-foot { padding: 14px 16px; flex-wrap: wrap; }
+            .foot-grid { grid-template-columns: 1fr; gap: 20px; }
+            .dash-main { padding: 16px 12px; }
+            .dash-topbar { padding: 12px 0; }
+            .dash-topbar h2 { font-size: 18px; }
+            .modal { margin: 8px; border-radius: 10px; }
+            .modal-body { padding: 14px; }
+            .modal-body .grid { grid-template-columns: 1fr !important; }
+            .modal-head { padding: 14px 16px; }
+            .modal-head h3 { font-size: 15px; }
+            .modal-foot { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
             .search-input { max-width: 100%; }
             .phone-wrapper { flex-direction: column; }
             .phone-wrapper select { max-width: 100%; }
+            .section { padding: 36px 12px; }
+            .section-sm { padding: 28px 12px; }
+            .section-head h2 { font-size: 22px; }
+            .section-head p { font-size: 14px; }
+            .card.pad { padding: 18px; }
+            .card.pad-sm { padding: 14px; }
+            .country-grid, .job-grid { gap: 12px; }
+            .country-body { padding: 16px; }
+            .country-flagbar { height: 60px; padding: 0 16px; font-size: 15px; }
+            .country-flagbar .flag-img { width: 28px; height: 18px; }
+            .job-card { padding: 16px; }
+            .job-title { font-size: 14px; }
+            .job-desc { font-size: 12px; }
+            table { font-size: 12px; }
+            th, td { padding: 10px 12px; }
+            .msg-bubble { max-width: 88%; font-size: 13px; }
+            .msg-chat-body { padding: 12px; }
+            .msg-chat-input { padding: 10px 12px; }
+            .msg-chat-input textarea { font-size: 13px; }
+            .msg-list-panel.show { inset: 72px 0 0; }
+            .msg-list-item { padding: 12px 14px; }
+            .msg-avatar { width: 36px; height: 36px; font-size: 14px; }
+            .stamp-panel { padding: 16px; }
+            .step-dot { width: 26px; height: 26px; font-size: 10px; }
+            .step-line { left: 12px; }
+            .step-item { padding-bottom: 16px; gap: 10px; }
+            .step-content .step-label { font-size: 13px; }
+            .step-content .step-sub { font-size: 11px; }
+            .wrap { padding: 0 12px; }
+            .brand { font-size: 14px; }
+            .brand-mark { width: 28px; height: 28px; font-size: 12px; }
+            .nav-inner { height: 60px; }
+            .nav-link { padding: 10px 14px; font-size: 14px; }
+            .filter-bar { gap: 4px; }
+            .chip { padding: 5px 12px; font-size: 11px; }
+            .job-cat-icon { width: 36px; height: 36px; font-size: 14px; }
+            .job-salary { font-size: 12px; }
+            .btn { padding: 10px 18px; font-size: 13px; }
+            .btn-sm { padding: 7px 14px; font-size: 12px; }
+            .msg-count { font-size: 9px; padding: 1px 5px; min-width: 16px; }
         }
         .text-center { text-align: center; }
         .mt-8 { margin-top: 8px; }
@@ -381,7 +460,7 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
         import {
             getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
-            onAuthStateChanged, sendPasswordResetEmail, updateProfile,
+            onAuthStateChanged, updateProfile,
             GoogleAuthProvider, signInWithPopup
         } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
         import {
@@ -530,6 +609,100 @@
         const DIAL_MAP = {};
         NATIONALITIES.forEach(n => { DIAL_MAP[n.dial] = n; });
 
+        const JOBS_SEED = [
+            { title: "General Construction Worker", country: "Germany", category: "Construction & Manual Labor", salary: "EUR 2,400 – 3,000 / month", desc: "Looking for experienced construction workers for residential and commercial building projects across Germany. Tasks include concrete work, bricklaying, framing, and finishing. Prior experience required." },
+            { title: "Construction Site Supervisor", country: "United Kingdom", category: "Construction & Manual Labor", salary: "GBP 2,800 – 3,500 / month", desc: "Supervising construction sites, coordinating workers, ensuring safety compliance, and reporting to project managers. Must have CSCS card and 3+ years experience." },
+            { title: "Mason / Bricklayer", country: "Netherlands", category: "Construction & Manual Labor", salary: "EUR 2,600 – 3,200 / month", desc: "Skilled bricklayer needed for infrastructure projects. Must be able to read blueprints and work independently. Accommodation provided." },
+            { title: "Concrete Finisher", country: "Sweden", category: "Construction & Manual Labor", salary: "SEK 28,000 – 34,000 / month", desc: "Experienced concrete finisher for road and bridge construction projects. Knowledge of Swedish safety standards required." },
+            { title: "Painter / Decorator", country: "Ireland", category: "Construction & Manual Labor", salary: "EUR 2,500 – 3,000 / month", desc: "Commercial and residential painter needed for ongoing projects in Dublin area. Experience with spray painting preferred." },
+            { title: "Heavy Equipment Operator", country: "Luxembourg", category: "Construction & Manual Labor", salary: "EUR 3,000 – 3,800 / month", desc: "Operating excavators, bulldozers, and cranes on construction sites. Valid license and 3+ years experience required." },
+            { title: "Roofer", country: "France", category: "Construction & Manual Labor", salary: "EUR 2,300 – 2,900 / month", desc: "Roof installation and repair for residential buildings. Experience with tile, slate, and flat roofing systems required." },
+            { title: "Welder / Fabricator", country: "Poland", category: "Construction & Manual Labor", salary: "PLN 6,000 – 8,000 / month", desc: "MIG/TIG welder for structural steel fabrication. Certification required. Overtime available." },
+            { title: "Project Manager (Construction)", country: "Sweden", category: "Construction & Manual Labor", salary: "SEK 40,000 – 50,000 / month", desc: "Managing construction projects from inception to completion. PMP certification preferred." },
+            { title: "Architect", country: "United Kingdom", category: "Construction & Manual Labor", salary: "GBP 3,200 – 4,200 / month", desc: "RIBA qualified architect for London practice. Revit and BIM experience required." },
+            { title: "Hotel Housekeeper", country: "Germany", category: "Hospitality & Domestic Services", salary: "EUR 2,000 – 2,500 / month", desc: "Cleaning and maintaining guest rooms and common areas in a 4-star hotel. Attention to detail and ability to work in a team required." },
+            { title: "Restaurant Chef", country: "United Kingdom", category: "Hospitality & Domestic Services", salary: "GBP 2,200 – 3,000 / month", desc: "Experienced chef for busy London restaurant. Must have knowledge of European cuisine and food safety certification." },
+            { title: "Waiter / Waitress", country: "Netherlands", category: "Hospitality & Domestic Services", salary: "EUR 2,000 – 2,600 / month", desc: "Front-of-house staff for Amsterdam restaurant. English required, Dutch is a plus. Tips shared equally." },
+            { title: "Domestic Cleaner", country: "Sweden", category: "Hospitality & Domestic Services", salary: "SEK 22,000 – 26,000 / month", desc: "Private household cleaner for families in Stockholm area. Flexible hours, reliable transport required." },
+            { title: "Barista", country: "Ireland", category: "Hospitality & Domestic Services", salary: "EUR 2,100 – 2,600 / month", desc: "Specialty coffee barista for Dublin cafe. Experience with espresso machines and latte art preferred." },
+            { title: "Hotel Receptionist", country: "Luxembourg", category: "Hospitality & Domestic Services", salary: "EUR 2,400 – 2,800 / month", desc: "Front desk receptionist for luxury hotel. Must speak English, French, and preferably German." },
+            { title: "Pastry Chef", country: "France", category: "Hospitality & Domestic Services", salary: "EUR 2,200 – 2,800 / month", desc: "Pastry chef for patisserie in Paris. French pastry techniques and creativity essential." },
+            { title: "Nanny / Childcare Provider", country: "Poland", category: "Hospitality & Domestic Services", salary: "PLN 4,000 – 5,500 / month", desc: "Full-time nanny for expat family in Warsaw. Must have childcare experience and references." },
+            { title: "Sous Chef", country: "Netherlands", category: "Hospitality & Domestic Services", salary: "EUR 2,800 – 3,500 / month", desc: "Assistant head chef for fine dining restaurant in Amsterdam. Michelin-star experience preferred." },
+            { title: "Hotel Manager", country: "France", category: "Hospitality & Domestic Services", salary: "EUR 3,500 – 4,500 / month", desc: "Managing boutique hotel in Paris. French and English required. Hospitality degree preferred." },
+            { title: "Registered Nurse", country: "Germany", category: "Healthcare", salary: "EUR 3,000 – 3,800 / month", desc: "Hospital nurse for general wards. German language training provided. Must have nursing degree and registration." },
+            { title: "Elderly Caregiver", country: "United Kingdom", category: "Healthcare", salary: "GBP 2,000 – 2,600 / month", desc: "Providing personal care and support to elderly residents in a care home. Compassionate and patient approach essential." },
+            { title: "Medical Doctor (General Practice)", country: "Netherlands", category: "Healthcare", salary: "EUR 5,000 – 7,000 / month", desc: "General practitioner for community health center. Dutch language training provided. Must have medical degree valid in EU." },
+            { title: "Physiotherapist", country: "Sweden", category: "Healthcare", salary: "SEK 30,000 – 38,000 / month", desc: "Rehabilitation physiotherapist for hospital and clinic settings. Swedish license required or eligibility." },
+            { title: "Healthcare Assistant", country: "Ireland", category: "Healthcare", salary: "EUR 2,000 – 2,500 / month", desc: "Supporting nurses and doctors in hospital settings. Previous care experience required." },
+            { title: "Pharmacist", country: "Luxembourg", category: "Healthcare", salary: "EUR 4,500 – 5,500 / month", desc: "Community pharmacist for Luxembourg City. Must have EU-recognized pharmacy degree. Multilingual preferred." },
+            { title: "Home Care Worker", country: "France", category: "Healthcare", salary: "EUR 1,800 – 2,300 / month", desc: "Providing in-home care for elderly and disabled clients. French language required. Driving license needed." },
+            { title: "Dental Assistant", country: "Poland", category: "Healthcare", salary: "PLN 4,500 – 6,000 / month", desc: "Assisting dentist during procedures, sterilizing equipment, and managing appointments. Experience preferred." },
+            { title: "Lab Technician", country: "United Kingdom", category: "Healthcare", salary: "GBP 2,200 – 2,800 / month", desc: "Medical laboratory technician for NHS hospital. HCPC registration required." },
+            { title: "Social Worker", country: "Germany", category: "Healthcare", salary: "EUR 2,800 – 3,500 / month", desc: "Supporting refugees and migrants in Berlin. German B2 required. Social work degree essential." },
+            { title: "Electrician", country: "Germany", category: "Skilled Trades", salary: "EUR 2,800 – 3,600 / month", desc: "Licensed electrician for commercial installations. Must hold German certification or equivalent. Knowledge of electrical codes required." },
+            { title: "Plumber", country: "United Kingdom", category: "Skilled Trades", salary: "GBP 2,600 – 3,400 / month", desc: "Experienced plumber for residential and commercial projects. Must have NVQ Level 2/3 or equivalent." },
+            { title: "HVAC Technician", country: "Netherlands", category: "Skilled Trades", salary: "EUR 2,800 – 3,500 / month", desc: "Installation and maintenance of heating, ventilation, and air conditioning systems. Technical certification required." },
+            { title: "Carpenter / Joiner", country: "Sweden", category: "Skilled Trades", salary: "SEK 28,000 – 35,000 / month", desc: "Skilled carpenter for furniture making and interior fittings. Must have own tools." },
+            { title: "Auto Mechanic", country: "Ireland", category: "Skilled Trades", salary: "EUR 2,600 – 3,200 / month", desc: "Qualified mechanic for busy garage. Diagnostic and repair skills essential. Brand-specific training available." },
+            { title: "Welder (Pipe)", country: "Luxembourg", category: "Skilled Trades", salary: "EUR 3,200 – 4,000 / month", desc: "Pipe welder for industrial projects. Must have 6G certification and experience with stainless steel." },
+            { title: "Refrigeration Technician", country: "France", category: "Skilled Trades", salary: "EUR 2,500 – 3,200 / month", desc: "Commercial refrigeration repair and maintenance. F-gas certification required." },
+            { title: "Locksmith", country: "Poland", category: "Skilled Trades", salary: "PLN 5,000 – 7,000 / month", desc: "Experienced locksmith for residential and commercial services. Knowledge of electronic locking systems preferred." },
+            { title: "Truck Driver (HGV Class 1)", country: "Germany", category: "Logistics & Drivers", salary: "EUR 2,600 – 3,400 / month", desc: "Long-haul truck driver for European routes. Must have valid HGV license and digital tachograph card." },
+            { title: "Warehouse Operative", country: "United Kingdom", category: "Logistics & Drivers", salary: "GBP 1,900 – 2,400 / month", desc: "Order picking, packing, and stock management in large distribution center. Shift work including weekends." },
+            { title: "Delivery Driver", country: "Netherlands", category: "Logistics & Drivers", salary: "EUR 2,200 – 2,800 / month", desc: "Last-mile delivery driver for e-commerce company. Valid EU driving license and smartphone required." },
+            { title: "Forklift Operator", country: "Sweden", category: "Logistics & Drivers", salary: "SEK 25,000 – 30,000 / month", desc: "Warehouse forklift operator with valid certification. Experience with reach trucks and counterbalance." },
+            { title: "Bus Driver", country: "Ireland", category: "Logistics & Drivers", salary: "EUR 2,400 – 3,000 / month", desc: "City bus driver for Dublin Bus. Must have valid D license and CPC qualification." },
+            { title: "Logistics Coordinator", country: "Luxembourg", category: "Logistics & Drivers", salary: "EUR 3,000 – 3,800 / month", desc: "Planning and coordinating international shipments. Experience with SAP and transport management systems." },
+            { title: "Courier (Bicycle/Moped)", country: "France", category: "Logistics & Drivers", salary: "EUR 1,800 – 2,300 / month", desc: "Food and package delivery in Paris. Own bicycle or moped required. Flexible hours." },
+            { title: "Cold Storage Operator", country: "Poland", category: "Logistics & Drivers", salary: "PLN 4,500 – 6,000 / month", desc: "Working in temperature-controlled warehouse. Experience with frozen goods handling preferred." },
+            { title: "Warehouse Manager", country: "Germany", category: "Logistics & Drivers", salary: "EUR 3,000 – 3,800 / month", desc: "Managing warehouse operations, team supervision, and inventory control. SAP experience preferred." },
+            { title: "Mechanical Engineer", country: "Germany", category: "Engineering & Technical", salary: "EUR 3,800 – 5,000 / month", desc: "Design and development of mechanical systems for automotive industry. Must have engineering degree and CAD skills." },
+            { title: "Civil Engineer", country: "United Kingdom", category: "Engineering & Technical", salary: "GBP 3,200 – 4,200 / month", desc: "Infrastructure project engineer for road and rail projects. Chartered status or working towards it." },
+            { title: "Electrical Engineer", country: "Netherlands", category: "Engineering & Technical", salary: "EUR 3,500 – 4,500 / month", desc: "Power systems engineer for renewable energy projects. Experience with high-voltage systems preferred." },
+            { title: "Chemical Engineer", country: "Sweden", category: "Engineering & Technical", salary: "SEK 38,000 – 48,000 / month", desc: "Process engineer for pharmaceutical manufacturing. Knowledge of GMP and regulatory compliance." },
+            { title: "Quality Control Engineer", country: "Ireland", category: "Engineering & Technical", salary: "EUR 3,200 – 4,000 / month", desc: "QA engineer for medical device manufacturing. Must understand ISO 13485 standards." },
+            { title: "Automation Engineer", country: "Luxembourg", category: "Engineering & Technical", salary: "EUR 4,000 – 5,200 / month", desc: "Designing and implementing automated manufacturing systems. PLC programming experience required." },
+            { title: "Environmental Engineer", country: "France", category: "Engineering & Technical", salary: "EUR 3,000 – 3,800 / month", desc: "Environmental compliance and sustainability projects. French language and EU environmental law knowledge." },
+            { title: "Industrial Engineer", country: "Poland", category: "Engineering & Technical", salary: "PLN 7,000 – 10,000 / month", desc: "Process optimization and lean manufacturing specialist. Six Sigma certification preferred." },
+            { title: "Biomedical Engineer", country: "Luxembourg", category: "Engineering & Technical", salary: "EUR 4,000 – 5,200 / month", desc: "Medical equipment maintenance and validation for hospital network. Multilingual preferred." },
+            { title: "Software Developer (Full Stack)", country: "Germany", category: "IT & Professional Services", salary: "EUR 4,000 – 5,500 / month", desc: "Full-stack developer for Berlin tech company. React, Node.js, and PostgreSQL experience required. English-speaking team." },
+            { title: "IT Support Specialist", country: "United Kingdom", category: "IT & Professional Services", salary: "GBP 2,200 – 2,800 / month", desc: "First and second-line IT support for London office. Microsoft 365 and Azure experience preferred." },
+            { title: "Data Analyst", country: "Netherlands", category: "IT & Professional Services", salary: "EUR 3,200 – 4,200 / month", desc: "Data analyst for Amsterdam fintech. SQL, Python, and Tableau skills required. English speaking." },
+            { title: "Cybersecurity Analyst", country: "Sweden", category: "IT & Professional Services", salary: "SEK 40,000 – 50,000 / month", desc: "Security operations center analyst. CISSP or equivalent certification preferred." },
+            { title: "UX/UI Designer", country: "Ireland", category: "IT & Professional Services", salary: "EUR 3,500 – 4,500 / month", desc: "Product designer for Dublin SaaS company. Figma expertise and portfolio required." },
+            { title: "Cloud Architect (AWS)", country: "Luxembourg", category: "IT & Professional Services", salary: "EUR 5,000 – 7,000 / month", desc: "Designing cloud infrastructure for financial services. AWS Solutions Architect certification required." },
+            { title: "DevOps Engineer", country: "France", category: "IT & Professional Services", salary: "EUR 4,000 – 5,500 / month", desc: "CI/CD pipeline management and infrastructure as code. Kubernetes and Terraform experience essential." },
+            { title: "Digital Marketing Specialist", country: "Poland", category: "IT & Professional Services", salary: "PLN 6,000 – 9,000 / month", desc: "Managing SEO, SEM, and social media campaigns for Warsaw agency. Google Ads certification preferred." },
+            { title: "Graphic Designer", country: "Ireland", category: "IT & Professional Services", salary: "EUR 2,800 – 3,500 / month", desc: "Creative designer for Dublin marketing agency. Adobe Creative Suite expertise required." },
+            { title: "Research Scientist (Chemistry)", country: "Poland", category: "IT & Professional Services", salary: "PLN 8,000 – 12,000 / month", desc: "R&D chemist for pharmaceutical company. PhD preferred. Experience with analytical methods." },
+            { title: "Farm Worker (General)", country: "Germany", category: "Agriculture & Farm Work", salary: "EUR 2,000 – 2,500 / month", desc: "General farm work including planting, harvesting, and livestock care. Accommodation provided on-site." },
+            { title: "Fruit Picker / Harvester", country: "United Kingdom", category: "Agriculture & Farm Work", salary: "GBP 1,800 – 2,400 / month", desc: "Seasonal fruit picker for farms in Kent and East Anglia. Piece-rate pay available. Accommodation provided." },
+            { title: "Greenhouse Worker", country: "Netherlands", category: "Agriculture & Farm Work", salary: "EUR 2,100 – 2,600 / month", desc: "Working in modern glasshouse facilities growing vegetables and flowers. Climate-controlled environment." },
+            { title: "Dairy Farm Worker", country: "Sweden", category: "Agriculture & Farm Work", salary: "SEK 24,000 – 28,000 / month", desc: "Milking, feeding, and general care of dairy herd. Experience with milking machines required." },
+            { title: "Tractor / Machine Operator", country: "Ireland", category: "Agriculture & Farm Work", salary: "EUR 2,300 – 2,800 / month", desc: "Operating farm machinery for tillage and harvesting. Valid tractor license required." },
+            { title: "Vineyard Worker", country: "France", category: "Agriculture & Farm Work", salary: "EUR 1,900 – 2,400 / month", desc: "Pruning, trellising, and grape harvesting in Bordeaux region. Passion for wine making a plus." },
+            { title: "Poultry Farm Worker", country: "Poland", category: "Agriculture & Farm Work", salary: "PLN 4,000 – 5,500 / month", desc: "Caring for broiler chickens and maintaining poultry houses. Biosecurity knowledge essential." },
+            { title: "Organic Farm Assistant", country: "Luxembourg", category: "Agriculture & Farm Work", salary: "EUR 2,200 – 2,700 / month", desc: "Working on organic farm with vegetable production and small livestock. Knowledge of organic farming practices." },
+            { title: "Veterinary Assistant", country: "Netherlands", category: "Agriculture & Farm Work", salary: "EUR 2,200 – 2,800 / month", desc: "Assisting veterinarians with animal care in rural practice. Dutch language B1 preferred." },
+            { title: "English Teacher (Primary)", country: "Germany", category: "Education & Teaching", salary: "EUR 2,800 – 3,500 / month", desc: "Teaching English at international primary school. TEFL/CELTA certification required. German not required." },
+            { title: "Mathematics Teacher", country: "United Kingdom", category: "Education & Teaching", salary: "GBP 2,800 – 3,800 / month", desc: "Secondary school mathematics teacher. QTS required or equivalent. London-based school." },
+            { title: "Kindergarten Teacher", country: "Netherlands", category: "Education & Teaching", salary: "EUR 2,600 – 3,200 / month", desc: "Early childhood education in international kindergarten. Degree in education and experience required." },
+            { title: "Science Teacher (Secondary)", country: "Sweden", category: "Education & Teaching", salary: "SEK 30,000 – 38,000 / month", desc: "Physics and chemistry teacher for international school. Swedish teaching license or equivalent." },
+            { title: "University Lecturer (Computer Science)", country: "Ireland", category: "Education & Teaching", salary: "EUR 4,000 – 5,500 / month", desc: "Lecturing in computer science at Dublin university. PhD or master's degree required." },
+            { title: "Special Needs Teacher", country: "Luxembourg", category: "Education & Teaching", salary: "EUR 3,500 – 4,500 / month", desc: "Supporting students with special educational needs. Multilingual environment (EN/FR/DE)." },
+            { title: "French Language Teacher", country: "France", category: "Education & Teaching", salary: "EUR 2,200 – 2,800 / month", desc: "Teaching French as a foreign language to adults. Alliance Francaise experience preferred." },
+            { title: "Music Teacher", country: "Poland", category: "Education & Teaching", salary: "PLN 5,000 – 7,000 / month", desc: "Instrumental and vocal music teacher for primary school. Piano or violin specialization preferred." },
+            { title: "Accountant (Certified)", country: "Germany", category: "Finance & Accounting", salary: "EUR 3,500 – 4,500 / month", desc: "Managing accounts for Mittelstand companies. German GAAP (HGB) knowledge required. German language B2+." },
+            { title: "Financial Analyst", country: "United Kingdom", category: "Finance & Accounting", salary: "GBP 3,200 – 4,200 / month", desc: "Investment analysis for London asset manager. CFA qualification or progress preferred." },
+            { title: "Auditor", country: "Netherlands", category: "Finance & Accounting", salary: "EUR 3,500 – 4,500 / month", desc: "External auditor for Big 4 firm in Amsterdam. RA/CPA qualification required." },
+            { title: "Tax Consultant", country: "Sweden", category: "Finance & Accounting", salary: "SEK 35,000 – 45,000 / month", desc: "Corporate tax advisory for Stockholm office. Swedish tax law knowledge essential." },
+            { title: "Payroll Specialist", country: "Ireland", category: "Finance & Accounting", salary: "EUR 2,800 – 3,500 / month", desc: "Processing payroll for international company. IPASS certification preferred." },
+            { title: "Investment Banker", country: "Luxembourg", category: "Finance & Accounting", salary: "EUR 5,000 – 8,000 / month", desc: "M&A advisory for Luxembourg-based investment bank. French and English required." },
+            { title: "Insurance Underwriter", country: "France", category: "Finance & Accounting", salary: "EUR 3,200 – 4,200 / month", desc: "Commercial insurance underwriter for Paris office. French language and insurance certification required." },
+            { title: "Bookkeeper", country: "Poland", category: "Finance & Accounting", salary: "PLN 5,000 – 7,000 / month", desc: "Full-charge bookkeeper for Warsaw office. Knowledge of Polish accounting standards." }
+        ];
+
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
         function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
         function fmtDate(ts) {
@@ -584,10 +757,21 @@
             toast(`📧 Email notification sent to ${to}`, 'ok');
         }
 
+        let usingFallbackJobs = false;
         async function loadJobs() {
-            const snapshot = await getDocs(collection(db, "jobs"));
             allJobs = [];
-            snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
+            try {
+                const snapshot = await getDocs(collection(db, "jobs"));
+                snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
+            } catch (e) {
+                console.warn("Firestore jobs read failed, using embedded fallback:", e.message);
+            }
+            if (allJobs.length === 0) {
+                allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
+                usingFallbackJobs = true;
+            } else {
+                usingFallbackJobs = false;
+            }
             return allJobs;
         }
         async function addJob(jobData) {
@@ -824,11 +1008,22 @@
                 if (["admin-dashboard", "applicant-dashboard", "messages", "messages-chat", "admin-jobs"].includes(ROUTE.view)) renderCurrentView();
             });
             if (unsubscribeJobs) unsubscribeJobs();
-            unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
-                allJobs = [];
-                snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
-                if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
-            });
+            try {
+                unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+                    allJobs = [];
+                    snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
+                    usingFallbackJobs = allJobs.length === 0;
+                    if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
+                }, (err) => {
+                    if (usingFallbackJobs === undefined || usingFallbackJobs) {
+                        allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
+                        usingFallbackJobs = true;
+                        if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
+                    }
+                });
+            } catch (e) {
+                console.warn("Jobs realtime subscription failed:", e.message);
+            }
             if (unsubscribeFees) unsubscribeFees();
             unsubscribeFees = onSnapshot(collection(db, "fees"), (snapshot) => {
                 allFees = [];
@@ -842,6 +1037,8 @@
             ROUTE = { view, params };
             window.scrollTo({ top: 0, behavior: "instant" });
             renderCurrentView();
+            const nl = document.getElementById('navLinks');
+            if (nl) nl.classList.remove('open');
         }
 
         function renderNavbar() {
@@ -878,12 +1075,9 @@
               </a>
               <div class="nav-links" id="navLinks">
                 ${links.map(l => `<a class="nav-link ${ROUTE.view === l.v ? 'active' : ''}" data-nav="${l.v}">${l.label}</a>`).join("")}
-                <div class="nav-cta" style="margin-top:6px">${rightHtml}</div>
+                <div class="nav-cta">${rightHtml}</div>
               </div>
-              <div style="display:flex;align-items:center;gap:10px">
-                <div class="nav-cta" style="display:flex">${rightHtml}</div>
-                <button class="nav-mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
-              </div>
+              <button class="nav-mobile-toggle" id="mobileToggle"><i class="fa-solid fa-bars"></i></button>
             </div>`;
             nav.innerHTML = html;
             nav.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.getAttribute('data-nav'))));
@@ -892,8 +1086,6 @@
             }));
             const mt = document.getElementById('mobileToggle');
             if (mt) mt.addEventListener('click', () => document.getElementById('navLinks').classList.toggle('open'));
-            const cta = document.querySelectorAll('.nav-cta')[1];
-            if (window.innerWidth <= 900 && cta) cta.style.display = 'none';
         }
 
         function renderCurrentView() {
@@ -992,26 +1184,29 @@
                 <p class="lead">Europe Sponsor Jobs connects skilled and manual workers with verified European employers offering genuine visa sponsorship — from construction and hospitality to healthcare and engineering. Ethical, transparent, end-to-end support.</p>
                 <div class="hero-actions">
                   <a class="btn btn-maroon" data-nav="apply"><i class="fa-solid fa-paper-plane"></i> Start Your Application</a>
-                  <a class="btn btn-outline-light" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse ${jobs.length} Roles</a>
+                  <a class="btn btn-outline-light" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse ${jobs.length || '...'} Roles</a>
                 </div>
                 <div class="hero-stats">
                   <div class="hero-stat"><b>${COUNTRIES.length}</b><span>Destination Countries</span></div>
-                  <div class="hero-stat"><b>${jobs.length}+</b><span>Active Job Listings</span></div>
+                  <div class="hero-stat"><b>${jobs.length || '<span class="fa-spinner fa-spin" style="font-size:18px;display:inline-block"><i class="fa-solid fa-spinner"></i></span>'}</b><span>Active Job Listings</span></div>
                   <div class="hero-stat"><b>0%</b><span>Placement Fee to Workers</span></div>
                 </div>
               </div>
               <div class="stamp-panel">
-                <h4>Your Journey, Tracked End-to-End</h4>
-                ${["Application Received","Document Verification","Visa Processing","Deployment"].map((s,i) => `
-                  <div class="stamp-row">
-                    <div class="stamp ${i<2?'done':''}">${i<2?'<i class="fa-solid fa-check"></i>':i+1}</div>
-                    ${i<3?'<div class="stamp-line"></div>':''}
+                <h4><i class="fa-solid fa-route"></i> Your Journey, Tracked End-to-End</h4>
+                <div class="steps-vertical">
+                  ${[["Application Received","Our team receives and logs your submission"],["Document Verification","CV, passport & credentials are checked"],["Visa Processing","Sponsorship paperwork & embassy submission"],["Deployment","Travel arranged & you start your new role"]].map(([label,sub],i) => `
+                  <div class="step-item">
+                    <div class="step-line"></div>
+                    <div class="step-dot ${i < 2 ? 'active' : 'pending'}">${i < 2 ? '<i class="fa-solid fa-check"></i>' : i+1}</div>
+                    <div class="step-content">
+                      <div class="step-label">${label}</div>
+                      <div class="step-sub">${sub}</div>
+                    </div>
                   </div>`).join("")}
-                <div style="display:flex;justify-content:space-between;margin-top:2px">
-                  ${["Received","Verified","Visa","Deployed"].map(l => `<span style="font-size:11px;color:#9FB4CE;width:38px;text-align:center">${l}</span>`).join("")}
                 </div>
-                <p style="color:#B9C8DC;font-size:13px;margin-top:20px;line-height:1.6">Every applicant gets a real-time status page and a personal portal — no guessing where your file stands.</p>
-                <a class="btn btn-outline-light btn-block" data-nav="status" style="margin-top:8px"><i class="fa-solid fa-magnifying-glass"></i> Check an Application</a>
+                <p style="color:#B9C8DC;font-size:13px;margin-top:18px;line-height:1.6;padding-left:46px"><i class="fa-solid fa-circle-check" style="color:var(--maroon-400);margin-right:6px"></i>Real-time status updates &amp; personal portal for every applicant</p>
+                <a class="btn btn-outline-light btn-block" data-nav="status" style="margin-top:14px"><i class="fa-solid fa-magnifying-glass"></i> Check Your Application Status</a>
               </div>
             </div>
           </section>
@@ -1131,7 +1326,7 @@
                 ${["All", ...CATEGORIES].map(c => `<button class="chip ${jobFilter.category === c ? 'active' : ''}" data-cat="${esc(c)}">${c}</button>`).join("")}
               </div>
               <div class="job-grid">
-                ${jobs.length ? jobs.map(jobCard).join("") : `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-inbox"></i><p>No roles match these filters right now.</p></div>`}
+                ${allJobs.length === 0 ? `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading job listings &hellip;</p><span style="font-size:12px;color:var(--slate-400)">If this persists, please check your connection or contact support.</span></div>` : jobs.length ? jobs.map(jobCard).join("") : `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-inbox"></i><p>No roles match these filters right now.</p><span style="font-size:12px;color:var(--slate-400)">Try changing your selection above.</span></div>`}
               </div>
             </div>
           </section>`;
@@ -1535,44 +1730,35 @@
           </section>`;
         }
 
-        let loginTab = "applicant";
+        let loginMode = "signin";
 
         function viewLogin() {
             return `
           <div class="auth-shell">
             <div class="card">
               <div class="pad" style="padding-bottom:0">
-                <div class="auth-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
-                <h2 style="margin:0 0 4px;color:var(--blue-900)">Welcome Back</h2>
-                <p style="color:var(--slate-500);font-size:13.5px;margin:0 0 20px">Log in to track your application or manage the platform.</p>
+                <div class="auth-icon"><i class="fa-solid fa-user-lock"></i></div>
+                <h2 style="margin:0 0 4px;color:var(--blue-900)">${loginMode === 'signin' ? 'Welcome Back' : 'Create Your Account'}</h2>
+                <p style="color:var(--slate-500);font-size:13.5px;margin:0 0 20px">${loginMode === 'signin' ? 'Sign in to track your application or manage the platform.' : 'Register to start your European job application.'}</p>
               </div>
               <div class="pad" style="padding-top:0">
-                <div class="tab-row">
-                  <button class="tab-btn ${loginTab === 'applicant' ? 'active' : ''}" data-tab="applicant">Applicant Login</button>
-                  <button class="tab-btn ${loginTab === 'admin' ? 'active' : ''}" data-tab="admin">Admin Login</button>
-                </div>
-                ${loginTab === 'applicant' ? `
-                <button class="btn btn-google btn-block" id="googleLoginBtn"><i class="fa-brands fa-google"></i> Continue with Google</button>
-                <div class="divider-or">or use email &amp; password</div>
-                <form id="applicantLoginForm">
-                  <div class="field"><label>Email or Username <span class="req">*</span></label><input type="text" name="email" placeholder="you@example.com" required></div>
-                  <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" required></div>
-                  <button class="btn btn-primary btn-block" type="submit">Log In to My Portal</button>
-                  <p class="hint" style="text-align:center;margin-top:14px">Signed up with your email used during application.</p>
-                </form>` : `
-                <form id="adminLoginForm">
-                  <div class="field"><label>Admin Email <span class="req">*</span></label><input type="email" name="email" placeholder="admin@yourdomain.com" required></div>
-                  <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" required></div>
-                  <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-shield-halved"></i> Log In to Admin</button>
-                  <p class="hint" style="text-align:center;margin-top:14px">Admin access requires an account registered in the "admins" collection.</p>
-                </form>`}
+                <button class="btn btn-google btn-block" id="googleLoginBtn"><i class="fa-brands fa-google"></i> ${loginMode === 'signin' ? 'Continue with Google' : 'Sign up with Google'}</button>
+                <div class="divider-or">or ${loginMode === 'signin' ? 'sign in with' : 'register with'} email</div>
+                <form id="loginForm">
+                  <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" placeholder="you@example.com" required></div>
+                  <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
+                  ${loginMode === 'register' ? `<div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" placeholder="Your full name" required></div>` : ''}
+                  <button class="btn btn-primary btn-block" type="submit">${loginMode === 'signin' ? '<i class="fa-solid fa-right-to-bracket"></i> Sign In' : '<i class="fa-solid fa-user-plus"></i> Create Account'}</button>
+                </form>
+                <p class="hint" style="text-align:center;margin-top:14px">
+                  ${loginMode === 'signin' ? `Don't have an account? <a style="text-decoration:underline;font-weight:600;cursor:pointer" id="switchToRegister">Sign up here</a>` : `Already have an account? <a style="text-decoration:underline;font-weight:600;cursor:pointer" id="switchToSignIn">Sign in</a>`}
+                </p>
               </div>
             </div>
           </div>`;
         }
 
         function wireLogin() {
-            document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { loginTab = b.getAttribute('data-tab'); renderCurrentView(); }));
             const gBtn = document.getElementById('googleLoginBtn');
             if (gBtn) gBtn.addEventListener('click', async () => {
                 try {
@@ -1582,28 +1768,33 @@
                     toast(error.message || "Google sign-in failed.", "err");
                 }
             });
-            const af = document.getElementById('applicantLoginForm');
-            if (af) af.addEventListener('submit', async (e) => {
+            const lf = document.getElementById('loginForm');
+            if (lf) lf.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
-                try {
-                    await signInWithEmailAndPassword(auth, fd.get('email').trim(), fd.get('password'));
-                    toast("Login successful!", "ok");
-                } catch (error) {
-                    toast(error.message || "Login failed. Please check your credentials.", "err");
+                const email = fd.get('email').trim();
+                const password = fd.get('password');
+                if (loginMode === 'register') {
+                    const fullName = fd.get('fullName').trim();
+                    if (!fullName) { toast("Please enter your full name.", "err"); return; }
+                    try {
+                        const cred = await createUserWithEmailAndPassword(auth, email, password);
+                        await updateProfile(cred.user, { displayName: fullName });
+                        toast("Account created! Welcome.", "ok");
+                    } catch (error) {
+                        toast(error.message || "Registration failed.", "err");
+                    }
+                } else {
+                    try {
+                        await signInWithEmailAndPassword(auth, email, password);
+                        toast("Signed in successfully!", "ok");
+                    } catch (error) {
+                        toast(error.message || "Sign in failed. Please check your credentials.", "err");
+                    }
                 }
             });
-            const adf = document.getElementById('adminLoginForm');
-            if (adf) adf.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                try {
-                    await signInWithEmailAndPassword(auth, fd.get('email').trim(), fd.get('password'));
-                    toast("Admin login successful!", "ok");
-                } catch (error) {
-                    toast(error.message || "Login failed. Please check your credentials.", "err");
-                }
-            });
+            document.getElementById('switchToRegister')?.addEventListener('click', () => { loginMode = 'register'; renderCurrentView(); });
+            document.getElementById('switchToSignIn')?.addEventListener('click', () => { loginMode = 'signin'; renderCurrentView(); });
         }
 
         function viewCompleteProfile() {
@@ -1973,6 +2164,7 @@
             </div>
             <div class="dash-main">
               <div class="dash-topbar"><h2>Manage Job Listings</h2></div>
+              ${usingFallbackJobs ? `<div style="background:#FEF3E2;border:1px solid #FCDEA8;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#92400E"><b><i class="fa-solid fa-triangle-exclamation"></i> Offline / Fallback Mode</b> — Jobs are loaded from embedded data because Firestore is unavailable. Log in as admin with proper <a href="https://console.firebase.google.com/project/tuchel-98f49/firestore/rules" target="_blank" style="text-decoration:underline;font-weight:600">Firestore security rules</a> to enable database operations.</div>` : ''}
               <div class="card pad" style="margin-bottom:22px">
                 <h4 style="margin:0 0 14px;color:var(--blue-900)">Add New Job</h4>
                 <form id="newJobForm">
@@ -1985,8 +2177,15 @@
                     <div class="field"><label>Salary <span class="req">*</span></label><input type="text" name="salary" placeholder="e.g. EUR 2,000 – 2,600 / month" required></div>
                   </div>
                   <div class="field"><label>Description <span class="req">*</span></label><textarea name="desc" required></textarea></div>
-                  <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add Job</button>
+                  <div style="display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add Job</button>
+                    <button class="btn btn-success" type="button" id="seedJobsBtn"><i class="fa-solid fa-seedling"></i> Seed ${JOBS_SEED.length} Sample Jobs</button>
+                    <button class="btn btn-danger" type="button" id="clearJobsBtn"><i class="fa-solid fa-trash-can"></i> Clear All Jobs</button>
+                  </div>
                 </form>
+              </div>
+              <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <span style="font-size:13px;color:var(--slate-500)"><b>${jobs.length}</b> job${jobs.length !== 1 ? 's' : ''} currently in database</span>
               </div>
               <div class="card">
                 <table>
@@ -1999,7 +2198,7 @@
                         <td>${esc(j.category)}</td>
                         <td>${esc(j.salary)}</td>
                         <td><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>`).join("") : `<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs added yet.</p></div></td></tr>`}
+                      </tr>`).join("") : `<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs added yet. Click "Seed Sample Jobs" to populate instantly.</p></div></td></tr>`}
                   </tbody>
                 </table>
               </div>
@@ -2011,6 +2210,7 @@
             const f = document.getElementById('newJobForm');
             if (f) f.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (usingFallbackJobs) { toast("Firestore unavailable — cannot add jobs.", "err"); return; }
                 const fd = new FormData(e.target);
                 await addJob({ title: fd.get('title'), country: fd.get('country'), category: fd.get('category'), salary: fd.get('salary'), desc: fd.get('desc') });
                 toast("Job listing added.", "ok"); renderCurrentView();
@@ -2018,6 +2218,74 @@
             document.querySelectorAll('[data-deljob]').forEach(b => b.addEventListener('click', async () => {
                 if (confirm("Remove this job listing?")) { await deleteJob(b.getAttribute('data-deljob')); toast("Job listing removed.", "ok"); renderCurrentView(); }
             }));
+            const seedBtn = document.getElementById('seedJobsBtn');
+            if (seedBtn) seedBtn.addEventListener('click', seedAllJobs);
+            const clearBtn = document.getElementById('clearJobsBtn');
+            if (clearBtn) clearBtn.addEventListener('click', clearAllJobs);
+        }
+
+        async function seedAllJobs() {
+            if (usingFallbackJobs) { toast("Firestore is unavailable — cannot seed to database.", "err"); return; }
+            if (!confirm(`Add ${JOBS_SEED.length} sample jobs to the database? Existing jobs will remain - duplicates may occur.`)) return;
+            const btn = document.getElementById('seedJobsBtn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Seeding...';
+            let added = 0, failed = 0;
+            for (let i = 0; i < JOBS_SEED.length; i++) {
+                try {
+                    await addJob(JOBS_SEED[i]);
+                    added++;
+                } catch (e) { failed++; }
+            }
+            await loadJobs();
+            toast(`✅ ${added} jobs seeded${failed ? `, ${failed} failed` : ''}!`, failed ? 'err' : 'ok');
+            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-seedling"></i> Seed Sample Jobs';
+            renderCurrentView();
+        }
+
+        async function clearAllJobs() {
+            if (usingFallbackJobs) { toast("Firestore is unavailable — cannot clear from database.", "err"); return; }
+            if (!confirm('DELETE ALL jobs from the database? This cannot be undone!')) return;
+            if (!confirm('ARE YOU SURE? Every job listing will be permanently removed.')) return;
+            const btn = document.getElementById('clearJobsBtn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Clearing...';
+            let deleted = 0;
+            for (const job of allJobs) {
+                if (job.id && job.id.startsWith('fallback_')) continue;
+                try {
+                    await deleteDoc(doc(db, "jobs", job.id));
+                    deleted++;
+                } catch (e) { console.error("Failed to delete:", job.id, e); }
+            }
+            allJobs = [];
+            toast(`🗑️ ${deleted} jobs cleared!`, 'ok');
+            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Clear All Jobs';
+            renderCurrentView();
+        }
+
+        let autoSeedAttempted = false;
+        async function autoSeedJobsIfEmpty() {
+            if (autoSeedAttempted) return;
+            autoSeedAttempted = true;
+            if (usingFallbackJobs) {
+                console.log("🌱 Using embedded fallback data — Firestore seeding not available.");
+                return;
+            }
+            if (allJobs.length > 0) return;
+            console.log("🌱 Jobs empty in Firestore — auto-seeding from JOBS_SEED...");
+            let added = 0, failed = 0;
+            for (let i = 0; i < JOBS_SEED.length; i++) {
+                try {
+                    await addJob(JOBS_SEED[i]);
+                    added++;
+                } catch (e) { failed++; }
+            }
+            await loadJobs();
+            if (added > 0) {
+                console.log(`✅ Auto-seeded ${added} jobs${failed ? ` (${failed} failed)` : ''}`);
+                renderCurrentView();
+            } else if (failed > 0) {
+                console.warn("⚠️ Could not auto-seed jobs — Firestore rules may require authentication.");
+            }
         }
 
         function viewAdminFees() {
@@ -2362,6 +2630,7 @@
         subscribeChats();
         renderNavbar();
         renderCurrentView();
+        setTimeout(autoSeedJobsIfEmpty, 500);
 
         console.log("🌍 Europe Sponsor Jobs v2 — Full Feature Release");
         console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");
