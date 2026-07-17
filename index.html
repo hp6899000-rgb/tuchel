@@ -801,8 +801,10 @@
             return allApps;
         }
         async function getApp(appId) {
-            const docSnap = await getDoc(doc(db, "applications", appId));
-            if (docSnap.exists()) return { id: docSnap.id, ...docSnap.data() };
+            try {
+                const docSnap = await getDoc(doc(db, "applications", appId));
+                if (docSnap.exists()) return { id: docSnap.id, ...docSnap.data() };
+            } catch (e) { /* may be restricted */ }
             return null;
         }
         async function createApp(appData) {
@@ -844,8 +846,10 @@
         async function deleteFee(feeId) { await deleteDoc(doc(db, "fees", feeId)); await loadFees(); }
 
         async function getAdminUser(uid) {
-            const docSnap = await getDoc(doc(db, "admins", uid));
-            if (docSnap.exists()) return { id: docSnap.id, ...docSnap.data() };
+            try {
+                const docSnap = await getDoc(doc(db, "admins", uid));
+                if (docSnap.exists()) return { id: docSnap.id, ...docSnap.data() };
+            } catch (e) { /* may be restricted */ }
             return null;
         }
 
@@ -980,40 +984,42 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
-            currentUser = user;
-            if (user) {
-                const adminData = await getAdminUser(user.uid);
-                if (adminData) {
-                    currentUserData = { ...adminData, type: 'admin' };
-                    await Promise.all([loadJobs(), loadApps(), loadFees(), loadChats()]);
-                    subscribeToRealtime();
-                    subscribeChats();
-                    if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
-                } else {
-                    const appData = await getApp(user.uid);
-                    if (appData) {
-                        currentUserData = { ...appData, type: 'applicant' };
-                        await Promise.all([loadJobs(), loadFees(), loadChats()]);
+            try {
+                currentUser = user;
+                if (user) {
+                    const adminData = await getAdminUser(user.uid);
+                    if (adminData) {
+                        currentUserData = { ...adminData, type: 'admin' };
+                        await Promise.all([loadJobs(), loadApps(), loadFees(), loadChats()]);
                         subscribeToRealtime();
                         subscribeChats();
-                        if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
-                    } else if (ROUTE.view === 'complete-profile') {
+                        if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                     } else {
-                        currentUserData = { type: 'needs-profile' };
-                        navigate("complete-profile");
-                        return;
+                        const appData = await getApp(user.uid);
+                        if (appData) {
+                            currentUserData = { ...appData, type: 'applicant' };
+                            await Promise.all([loadJobs(), loadFees(), loadChats()]);
+                            subscribeToRealtime();
+                            subscribeChats();
+                            if (ROUTE.view === 'login') { navigate("applicant-dashboard"); return; }
+                        } else if (ROUTE.view === 'complete-profile') {
+                        } else {
+                            currentUserData = { type: 'needs-profile' };
+                            navigate("complete-profile");
+                            return;
+                        }
                     }
+                } else {
+                    currentUserData = null;
+                    if (unsubscribeApps) { unsubscribeApps(); unsubscribeApps = null; }
+                    if (unsubscribeJobs) { unsubscribeJobs(); unsubscribeJobs = null; }
+                    if (unsubscribeFees) { unsubscribeFees(); unsubscribeFees = null; }
+                    if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
+                    if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
                 }
-            } else {
-                currentUserData = null;
-                if (unsubscribeApps) { unsubscribeApps(); unsubscribeApps = null; }
-                if (unsubscribeJobs) { unsubscribeJobs(); unsubscribeJobs = null; }
-                if (unsubscribeFees) { unsubscribeFees(); unsubscribeFees = null; }
-                if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
-                if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
-            }
-            renderNavbar();
-            renderCurrentView();
+                renderNavbar();
+                renderCurrentView();
+            } catch (e) { console.error("Auth handler error:", e); }
         });
 
         function subscribeToRealtime() {
@@ -2637,7 +2643,9 @@
         // =============================================================
         // BOOT
         // =============================================================
-        await Promise.all([loadJobs(), loadFees(), loadApps(), loadChats()]);
+        try {
+            await Promise.all([loadJobs(), loadFees(), loadApps(), loadChats()]);
+        } catch (e) { console.warn("Initial data load issue:", e.message); }
         subscribeToRealtime();
         subscribeChats();
         renderNavbar();
@@ -2695,7 +2703,7 @@
     Also lock down Firestore Security Rules so only signed-in admins
     can write to "jobs", "fees", and other applicants' "applications"
     docs — right now this file assumes rules do that server-side;
-    client code alone cannot enforce permissions. JSSS
+    client code alone cannot enforce permissions.
     ===================================================================== -->
 </body>
 </html>
