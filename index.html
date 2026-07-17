@@ -8,11 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-
-    <!-- Uploadcare Widget -->
     <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js" charset="utf-8"></script>
-
-    <!-- Firebase SDKs -->
     <script type="importmap">
         {
             "imports": {
@@ -22,11 +18,7 @@
             }
         }
     </script>
-
     <style>
-        /* ============================================================
-           DESIGN TOKENS — Europe Sponsor Jobs: blue / white / maroon
-           ============================================================ */
         :root {
             --blue-950: #06132b;
             --blue-900: #0A1F44;
@@ -67,32 +59,25 @@
             --font-head: 'Sora', sans-serif;
             --font-body: 'Inter', sans-serif;
             --transition: .25s cubic-bezier(.4, 0, .2, 1);
+            --msg-sent: #DCF8C6;
+            --msg-rec: #fff;
         }
-
         * { box-sizing: border-box; margin: 0; }
         html { scroll-behavior: smooth; }
-        body {
-            font-family: var(--font-body);
-            background: var(--bg);
-            color: var(--slate-900);
-            -webkit-font-smoothing: antialiased;
-            line-height: 1.6;
-        }
+        body { font-family: var(--font-body); background: var(--bg); color: var(--slate-900); -webkit-font-smoothing: antialiased; line-height: 1.6; }
         h1, h2, h3, h4, .font-head { font-family: var(--font-head); letter-spacing: -0.01em; }
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; cursor: pointer; border: none; background: none; }
         img, svg { display: block; }
         ::selection { background: var(--maroon-400); color: #fff; }
         :focus-visible { outline: 2px solid var(--maroon-500); outline-offset: 2px; }
-
         .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
         .grid { display: grid; gap: 24px; }
         .card { background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius); box-shadow: var(--shadow-sm); transition: var(--transition); }
         .card:hover { box-shadow: var(--shadow-md); }
-        .card-glow { border-color: var(--maroon-400); box-shadow: 0 0 0 1px rgba(168, 23, 47, .15), var(--shadow-md); }
+        .card-glow { border-color: var(--maroon-400); }
         .pad { padding: 28px 30px; }
         .pad-sm { padding: 18px 20px; }
-
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1.5px solid transparent; transition: var(--transition); white-space: nowrap; line-height: 1.2; }
         .btn-primary { background: var(--blue-800); color: #fff; border-color: var(--blue-800); }
         .btn-primary:hover { background: var(--blue-700); border-color: var(--blue-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
@@ -111,23 +96,20 @@
         .btn-sm { padding: 8px 16px; font-size: 12.5px; }
         .btn-block { width: 100%; }
         .btn[disabled] { opacity: .5; cursor: not-allowed; pointer-events: none; }
-
         label { display: block; font-size: 12.5px; font-weight: 600; color: var(--slate-700); margin-bottom: 5px; }
         .req { color: var(--maroon-500); }
-
         input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
             width: 100%; padding: 11px 14px; border: 1.5px solid var(--slate-200); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: var(--slate-900); transition: var(--transition);
         }
         input:focus, select:focus, textarea:focus { border-color: var(--blue-500); outline: none; box-shadow: 0 0 0 3px rgba(46, 104, 184, .12); }
         textarea { resize: vertical; min-height: 90px; }
-
         .field { margin-bottom: 18px; }
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
         .hint { font-size: 12px; color: var(--slate-500); margin-top: 5px; }
         .error-text { font-size: 12px; color: var(--maroon-500); margin-top: 4px; font-weight: 600; }
         .divider-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--slate-400); font-size: 12px; font-weight: 700; text-transform: uppercase; }
         .divider-or::before, .divider-or::after { content: ""; flex: 1; height: 1px; background: var(--slate-200); }
-
         .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 4px 12px; border-radius: 100px; white-space: nowrap; text-transform: uppercase; letter-spacing: .02em; }
         .badge-blue { background: var(--blue-800); color: #fff; }
         .badge-maroon { background: var(--maroon-600); color: #fff; }
@@ -135,12 +117,10 @@
         .badge-amber { background: var(--amber-50); color: var(--amber-600); }
         .badge-rose { background: var(--rose-50); color: var(--rose-600); }
         .badge-slate { background: var(--slate-100); color: var(--slate-700); }
-
         table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
         th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate-500); padding: 12px 16px; border-bottom: 2px solid var(--slate-200); font-weight: 700; }
         td { padding: 14px 16px; border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
         tr:hover td { background: var(--slate-50); }
-
         #navbar { position: sticky; top: 0; z-index: 500; background: rgba(255, 255, 255, .94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--slate-200); }
         .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
         .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 19px; color: var(--blue-900); }
@@ -151,14 +131,13 @@
         .nav-link.active { color: var(--blue-800); background: var(--slate-100); }
         .nav-cta { display: flex; align-items: center; gap: 10px; }
         .nav-mobile-toggle { display: none; background: none; border: none; font-size: 22px; color: var(--blue-800); padding: 8px; }
-
+        .msg-count { background: var(--maroon-500); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: 700; margin-left: 4px; }
         @media (max-width: 900px) {
             .nav-links { position: fixed; top: 72px; left: 0; right: 0; background: #fff; flex-direction: column; align-items: stretch; padding: 12px 20px 20px; border-bottom: 1px solid var(--slate-200); box-shadow: var(--shadow-md); display: none; gap: 2px; }
             .nav-links.open { display: flex; }
             .nav-mobile-toggle { display: block; }
-            .field-row { grid-template-columns: 1fr; }
+            .field-row, .field-row-3 { grid-template-columns: 1fr; }
         }
-
         .hero { position: relative; background: radial-gradient(1200px 600px at 10% -20%, #16407a 0%, transparent 65%), linear-gradient(155deg, var(--blue-950), var(--blue-800) 55%, var(--maroon-700)); color: #fff; overflow: hidden; }
         .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse 900px 500px at 70% 20%, black, transparent 72%); pointer-events: none; }
         .hero-inner { position: relative; padding: 80px 24px 68px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 48px; align-items: center; }
@@ -170,14 +149,12 @@
         .hero-stats { display: flex; gap: 40px; flex-wrap: wrap; }
         .hero-stat b { display: block; font-family: var(--font-head); font-size: 26px; color: #fff; line-height: 1.2; }
         .hero-stat span { font-size: 12.5px; color: #9FB4CE; font-weight: 500; }
-
         .stamp-panel { position: relative; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); border-radius: var(--radius-lg); padding: 28px 26px; backdrop-filter: blur(8px); }
         .stamp-panel h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #9FB4CE; margin: 0 0 18px; }
         .stamp-row { display: flex; align-items: center; gap: 0; margin-bottom: 2px; }
         .stamp { width: 40px; height: 40px; border-radius: 50%; border: 2px dashed rgba(196, 45, 69, .6); display: flex; align-items: center; justify-content: center; color: #F3B9C2; font-size: 13px; flex: none; background: rgba(196, 45, 69, .1); font-weight: 700; }
         .stamp.done { border-style: solid; background: var(--maroon-500); color: #fff; }
         .stamp-line { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .2) 0 6px, transparent 6px 12px); }
-
         .section { padding: 72px 24px; }
         .section-sm { padding: 48px 24px; }
         .section-head { text-align: center; max-width: 660px; margin: 0 auto 44px; }
@@ -185,7 +162,6 @@
         .section-head h2 { font-size: 32px; margin: 0 0 10px; color: var(--blue-900); }
         .section-head p { color: var(--slate-500); font-size: 15.5px; margin: 0; }
         .section-alt { background: var(--white); border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200); }
-
         .country-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
         .country-card { border-radius: var(--radius-lg); overflow: hidden; background: var(--white); border: 1px solid var(--slate-200); box-shadow: var(--shadow-sm); transition: var(--transition); }
         .country-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); border-color: var(--maroon-400); }
@@ -197,7 +173,6 @@
         .country-body li i { color: var(--emerald-600); margin-top: 3px; font-size: 12px; flex-shrink: 0; }
         .country-foot { display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--slate-100); }
         .country-foot .count { font-size: 12.5px; color: var(--slate-500); font-weight: 600; }
-
         .job-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .job-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 22px; transition: var(--transition); }
         .job-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-md); transform: translateY(-2px); }
@@ -208,12 +183,10 @@
         .job-desc { font-size: 13px; color: var(--slate-500); margin: 0 0 16px; line-height: 1.6; }
         .job-foot { display: flex; justify-content: space-between; align-items: center; }
         .job-salary { font-weight: 700; color: var(--blue-800); font-size: 13.5px; }
-
         .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .chip { padding: 7px 18px; border-radius: 100px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 12.5px; font-weight: 600; color: var(--slate-700); transition: var(--transition); }
         .chip:hover { border-color: var(--blue-500); color: var(--blue-800); }
         .chip.active { background: var(--blue-800); border-color: var(--blue-800); color: #fff; }
-
         .fee-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
         .fee-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 22px 20px; text-align: center; transition: var(--transition); }
         .fee-card:hover { border-color: var(--maroon-400); box-shadow: var(--shadow-md); transform: translateY(-3px); }
@@ -223,26 +196,22 @@
         .fee-card .fee-desc { font-size: 12.5px; color: var(--slate-600); margin-top: 6px; }
         .fee-card.paid-by-employer { border-color: var(--emerald-600); background: var(--emerald-50); }
         .fee-card.paid-by-employer .fee-icon { background: var(--white); }
-
         .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         .why-item { text-align: center; padding: 24px 16px; background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); transition: var(--transition); }
         .why-item:hover { border-color: var(--maroon-400); box-shadow: var(--shadow-md); transform: translateY(-3px); }
         .why-icon { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, var(--blue-800), var(--maroon-600)); color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 22px; }
         .why-item h4 { font-size: 15px; margin: 0 0 6px; color: var(--blue-900); }
         .why-item p { font-size: 13px; color: var(--slate-500); margin: 0; line-height: 1.5; }
-
         .process-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
         .process-step { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 20px 18px; transition: var(--transition); text-align: center; }
         .process-step:hover { border-color: var(--maroon-400); box-shadow: var(--shadow-md); transform: translateY(-2px); }
         .process-num { font-family: var(--font-head); font-size: 11px; font-weight: 800; color: var(--maroon-500); letter-spacing: .06em; margin-bottom: 8px; text-transform: uppercase; }
         .process-step h4 { font-size: 14px; margin: 0 0 6px; color: var(--blue-900); }
         .process-step p { font-size: 12px; color: var(--slate-500); margin: 0; line-height: 1.5; }
-
         .trust-banner { background: var(--emerald-50); border: 1px solid #bfe6cc; border-radius: var(--radius); padding: 20px 24px; display: flex; gap: 16px; align-items: flex-start; }
         .trust-banner i { color: var(--emerald-600); font-size: 22px; margin-top: 2px; flex-shrink: 0; }
         .trust-banner b { color: #0b6b3c; }
         .trust-banner p { margin: 2px 0 0; font-size: 13.5px; color: #0b6b3c; }
-
         .form-shell { display: grid; grid-template-columns: 1.5fr .9fr; gap: 28px; align-items: start; }
         .upload-box { border: 2px dashed var(--slate-300); border-radius: var(--radius); padding: 24px; text-align: center; background: var(--slate-50); cursor: pointer; transition: var(--transition); }
         .upload-box:hover { border-color: var(--blue-500); background: #EEF3F9; }
@@ -251,14 +220,11 @@
         .upload-box .u-sub { font-size: 11.5px; color: var(--slate-500); margin-top: 3px; }
         .upload-box.filled { border-style: solid; border-color: var(--emerald-600); background: var(--emerald-50); }
         .upload-box.filled i { color: var(--emerald-600); }
-
         .tip-card ul { list-style: none; padding: 0; margin: 0; }
         .tip-card li { display: flex; gap: 10px; font-size: 13px; color: var(--slate-700); margin-bottom: 10px; align-items: flex-start; }
         .tip-card li i { color: var(--maroon-500); margin-top: 3px; font-size: 12px; flex-shrink: 0; }
-
         .checkbox-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--slate-600); font-weight: 400 !important; }
         .checkbox-row input { margin-top: 3px; flex-shrink: 0; }
-
         .timeline { position: relative; padding-left: 4px; }
         .tl-item { position: relative; padding: 0 0 24px 34px; border-left: 2.5px solid var(--slate-200); }
         .tl-item:last-child { border-color: transparent; padding-bottom: 2px; }
@@ -269,7 +235,6 @@
         .tl-title { font-weight: 700; font-size: 14px; color: var(--blue-900); }
         .tl-date { font-size: 11.5px; color: var(--slate-500); margin-top: 2px; }
         .tl-note { font-size: 13px; color: var(--slate-600); margin-top: 6px; background: var(--slate-100); padding: 8px 12px; border-radius: 7px; }
-
         .dash-shell { display: grid; grid-template-columns: 230px 1fr; gap: 0; min-height: calc(100vh - 72px); }
         .dash-side { background: var(--blue-950); color: #fff; padding: 24px 16px; }
         .dash-side .side-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: #7C93B3; padding: 8px 12px 12px; font-weight: 700; }
@@ -277,21 +242,17 @@
         .side-link i { width: 18px; text-align: center; font-size: 15px; }
         .side-link:hover { background: rgba(255, 255, 255, .06); color: #fff; }
         .side-link.active { background: var(--maroon-600); color: #fff; }
-
         .dash-main { padding: 28px 32px; background: var(--bg); }
         .dash-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px; }
         .dash-topbar h2 { margin: 0; font-size: 22px; color: var(--blue-900); }
-
         .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
         .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px 18px; transition: var(--transition); }
         .stat-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-sm); }
         .stat-card .n { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--blue-900); line-height: 1.2; }
         .stat-card .l { font-size: 11.5px; color: var(--slate-500); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-
         .search-input { position: relative; flex: 1; min-width: 220px; max-width: 340px; }
         .search-input i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--slate-400); }
         .search-input input { padding-left: 38px; border-radius: 8px; }
-
         .modal-overlay { position: fixed; inset: 0; background: rgba(10, 31, 68, .55); backdrop-filter: blur(4px); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 1000; overflow: auto; }
         .modal { background: #fff; border-radius: var(--radius-lg); max-width: 780px; width: 100%; box-shadow: var(--shadow-xl); margin: auto; }
         .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 26px; border-bottom: 1px solid var(--slate-200); }
@@ -300,11 +261,9 @@
         .modal-close:hover { background: var(--slate-200); }
         .modal-body { padding: 24px 26px; max-height: 70vh; overflow: auto; }
         .modal-foot { padding: 16px 26px; border-top: 1px solid var(--slate-200); display: flex; justify-content: flex-end; gap: 10px; }
-
         .doc-row { display: flex; align-items: center; justify-content: space-between; background: var(--slate-50); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
         .doc-row .di { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--blue-800); }
         .doc-row .di i { color: var(--blue-700); }
-
         .toast-wrap { position: fixed; top: 84px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; max-width: 380px; }
         .toast { background: var(--blue-900); color: #fff; padding: 14px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; animation: slideIn .25s ease; }
         .toast i { color: #F3B9C2; font-size: 18px; }
@@ -313,7 +272,6 @@
         .toast.ok { background: var(--emerald-600); }
         .toast.ok i { color: #fff; }
         @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
         .auth-shell { max-width: 440px; margin: 56px auto; padding: 0 20px; }
         .auth-shell .card { padding: 34px 32px; }
         .auth-icon { width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(135deg, var(--blue-800), var(--maroon-600)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
@@ -321,7 +279,6 @@
         .tab-btn { flex: 1; text-align: center; padding: 9px 12px; border-radius: 7px; font-size: 13px; font-weight: 700; color: var(--slate-500); background: transparent; border: none; transition: var(--transition); }
         .tab-btn.active { background: #fff; color: var(--blue-900); box-shadow: var(--shadow-sm); }
         .tab-btn:hover:not(.active) { color: var(--slate-700); }
-
         footer { background: var(--blue-950); color: #B9C8DC; padding: 56px 24px 28px; border-top: 1px solid rgba(255, 255, 255, .05); }
         .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 36px; }
         .foot-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 19px; color: #fff; margin-bottom: 12px; }
@@ -329,19 +286,54 @@
         footer a { display: block; font-size: 13px; color: #B9C8DC; margin-bottom: 10px; transition: var(--transition); }
         footer a:hover { color: #F3B9C2; }
         .foot-bottom { border-top: 1px solid rgba(255, 255, 255, .06); padding-top: 20px; font-size: 12px; color: #7C93B3; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-
         .legal-body h3 { color: var(--blue-900); font-size: 17px; margin-top: 28px; }
         .legal-body p, .legal-body li { color: var(--slate-700); font-size: 14px; line-height: 1.8; }
         .legal-body { max-width: 800px; margin: 0 auto; }
         .legal-body ul { padding-left: 20px; }
-
         .empty-state { text-align: center; padding: 48px 20px; color: var(--slate-500); }
         .empty-state i { font-size: 32px; color: var(--slate-300); margin-bottom: 12px; }
-
+        .phone-wrapper { display: flex; gap: 8px; }
+        .phone-wrapper select { flex: 0 0 auto; max-width: 160px; }
+        .phone-wrapper input { flex: 1; }
+        .country-select-wrapper { position: relative; }
+        .country-select-wrapper select { padding-left: 36px; }
+        .country-flag-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 20px; height: 15px; border-radius: 2px; pointer-events: none; }
+        .msg-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 72px); }
+        .msg-list-panel { background: #fff; border-right: 1px solid var(--slate-200); overflow: auto; }
+        .msg-list-panel .msg-list-header { padding: 18px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; color: var(--blue-900); font-family: var(--font-head); }
+        .msg-list-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--slate-100); cursor: pointer; transition: var(--transition); }
+        .msg-list-item:hover { background: var(--slate-50); }
+        .msg-list-item.active { background: var(--slate-100); border-left: 3px solid var(--maroon-500); }
+        .msg-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--blue-800), var(--maroon-600)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+        .msg-list-content { flex: 1; min-width: 0; }
+        .msg-list-name { font-weight: 600; font-size: 13.5px; color: var(--slate-900); }
+        .msg-list-preview { font-size: 12px; color: var(--slate-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-list-time { font-size: 11px; color: var(--slate-400); white-space: nowrap; }
+        .msg-list-meta { display: flex; align-items: center; gap: 8px; }
+        .msg-unread { background: var(--maroon-500); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: 700; min-width: 18px; text-align: center; }
+        .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); }
+        .msg-chat-header { padding: 14px 20px; border-bottom: 1px solid var(--slate-200); background: #fff; display: flex; align-items: center; gap: 12px; font-weight: 600; }
+        .msg-chat-body { flex: 1; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .msg-bubble { max-width: 75%; padding: 10px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; word-wrap: break-word; }
+        .msg-bubble.sent { align-self: flex-end; background: var(--msg-sent); border-bottom-right-radius: 4px; }
+        .msg-bubble.rec { align-self: flex-start; background: var(--msg-rec); border: 1px solid var(--slate-200); border-bottom-left-radius: 4px; }
+        .msg-bubble .msg-time { font-size: 10px; color: var(--slate-400); margin-top: 4px; text-align: right; }
+        .msg-bubble .msg-file { display: flex; align-items: center; gap: 8px; background: var(--slate-100); padding: 8px 12px; border-radius: 8px; margin-top: 6px; }
+        .msg-bubble .msg-file a { color: var(--blue-700); font-weight: 600; font-size: 12px; }
+        .msg-chat-input { padding: 12px 20px; border-top: 1px solid var(--slate-200); background: #fff; display: flex; gap: 10px; align-items: flex-end; }
+        .msg-chat-input textarea { flex: 1; resize: none; min-height: 20px; max-height: 120px; padding: 10px 14px; border-radius: 20px; }
+        .msg-chat-input .btn { border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .msg-empty { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--slate-400); text-align: center; padding: 40px; }
+        .msg-empty i { font-size: 48px; margin-bottom: 16px; color: var(--slate-300); }
         @media (max-width: 1024px) {
             .country-grid, .job-grid, .why-grid, .fee-grid { grid-template-columns: repeat(2, 1fr); }
             .process-grid { grid-template-columns: repeat(3, 1fr); }
             .stat-grid { grid-template-columns: repeat(3, 1fr); }
+            .msg-shell { grid-template-columns: 1fr; }
+            .msg-list-panel { display: none; }
+            .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 100; }
+            .msg-chat-panel { display: none; }
+            .msg-chat-panel.show { display: flex; }
         }
         @media (max-width: 820px) {
             .hero-inner { grid-template-columns: 1fr; padding: 48px 20px 40px; gap: 32px; }
@@ -357,7 +349,7 @@
         @media (max-width: 600px) {
             .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid, .stat-grid { grid-template-columns: 1fr; }
             .hero h1 { font-size: 26px; }
-            .field-row { grid-template-columns: 1fr; }
+            .field-row, .field-row-3 { grid-template-columns: 1fr; }
             .foot-grid { grid-template-columns: 1fr; }
             .dash-main { padding: 20px 16px; }
             .modal { margin: 10px; }
@@ -365,8 +357,9 @@
             .modal-head { padding: 16px; }
             .modal-foot { padding: 14px 16px; flex-wrap: wrap; }
             .search-input { max-width: 100%; }
+            .phone-wrapper { flex-direction: column; }
+            .phone-wrapper select { max-width: 100%; }
         }
-
         .text-center { text-align: center; }
         .mt-8 { margin-top: 8px; }
         .mt-16 { margin-top: 16px; }
@@ -377,16 +370,13 @@
     </style>
 </head>
 <body>
-
     <div id="navbar"></div>
     <div id="app"></div>
     <div id="modal-root"></div>
     <div class="toast-wrap" id="toast-wrap"></div>
 
     <script type="module">
-        // =============================================================
-        // IMPORTS
-        // =============================================================
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
         import {
@@ -396,14 +386,9 @@
         } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
         import {
             getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc,
-            query, where, orderBy, onSnapshot, Timestamp, serverTimestamp, arrayUnion, arrayRemove
+            query, where, orderBy, onSnapshot, Timestamp, serverTimestamp, arrayUnion, limit
         } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-        // =============================================================
-        // FIREBASE CONFIG (public client identifiers — safe to expose;
-        // access is controlled by Firestore/Storage security rules,
-        // NOT by keeping this object secret)
-        // =============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyCAKCZJTAq_NeLmo5toNjYVHFqZFSQxNzE",
             authDomain: "tuchel-98f49.firebaseapp.com",
@@ -419,24 +404,21 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const googleProvider = new GoogleAuthProvider();
-
         const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
 
-        // =============================================================
-        // GLOBALS
-        // =============================================================
         let currentUser = null;
         let currentUserData = null;
         let allJobs = [];
         let allApps = [];
         let allFees = [];
+        let allChats = [];
         let unsubscribeApps = null;
         let unsubscribeJobs = null;
         let unsubscribeFees = null;
+        let unsubscribeChats = null;
+        let unsubscribeMessages = null;
+        let chatWindowOpen = null;
 
-        // =============================================================
-        // CONSTANTS
-        // =============================================================
         const COUNTRIES = [
             "Germany", "United Kingdom", "Netherlands", "Sweden",
             "Ireland", "Luxembourg", "France", "Poland"
@@ -478,10 +460,76 @@
         const TERMINAL_ALT = ["On Hold", "Rejected", "Withdrawn by Applicant"];
         const ALL_STATUSES = [...STATUS_STEPS, ...TERMINAL_ALT];
         const FLAG_BASE = "https://flagcdn.com/";
+        const EDUCATION_LEVELS = [
+            "High School / Secondary", "Diploma / Certificate", "Bachelor's Degree",
+            "Master's Degree", "PhD / Doctorate", "Vocational / Trade", "Other"
+        ];
+        const NATIONALITIES = [
+            { name: "Kenya", code: "KE", dial: "+254", flag: "ke" },
+            { name: "Nigeria", code: "NG", dial: "+234", flag: "ng" },
+            { name: "Ghana", code: "GH", dial: "+233", flag: "gh" },
+            { name: "South Africa", code: "ZA", dial: "+27", flag: "za" },
+            { name: "Uganda", code: "UG", dial: "+256", flag: "ug" },
+            { name: "Tanzania", code: "TZ", dial: "+255", flag: "tz" },
+            { name: "Ethiopia", code: "ET", dial: "+251", flag: "et" },
+            { name: "India", code: "IN", dial: "+91", flag: "in" },
+            { name: "Philippines", code: "PH", dial: "+63", flag: "ph" },
+            { name: "Bangladesh", code: "BD", dial: "+880", flag: "bd" },
+            { name: "Pakistan", code: "PK", dial: "+92", flag: "pk" },
+            { name: "Nepal", code: "NP", dial: "+977", flag: "np" },
+            { name: "Sri Lanka", code: "LK", dial: "+94", flag: "lk" },
+            { name: "Cameroon", code: "CM", dial: "+237", flag: "cm" },
+            { name: "Cote d'Ivoire", code: "CI", dial: "+225", flag: "ci" },
+            { name: "Senegal", code: "SN", dial: "+221", flag: "sn" },
+            { name: "Morocco", code: "MA", dial: "+212", flag: "ma" },
+            { name: "Egypt", code: "EG", dial: "+20", flag: "eg" },
+            { name: "Zimbabwe", code: "ZW", dial: "+263", flag: "zw" },
+            { name: "Zambia", code: "ZM", dial: "+260", flag: "zm" },
+            { name: "Rwanda", code: "RW", dial: "+250", flag: "rw" },
+            { name: "Somalia", code: "SO", dial: "+252", flag: "so" },
+            { name: "Sudan", code: "SD", dial: "+249", flag: "sd" },
+            { name: "Liberia", code: "LR", dial: "+231", flag: "lr" },
+            { name: "Sierra Leone", code: "SL", dial: "+232", flag: "sl" },
+            { name: "Gambia", code: "GM", dial: "+220", flag: "gm" },
+            { name: "Botswana", code: "BW", dial: "+267", flag: "bw" },
+            { name: "Malawi", code: "MW", dial: "+265", flag: "mw" },
+            { name: "Mozambique", code: "MZ", dial: "+258", flag: "mz" },
+            { name: "Angola", code: "AO", dial: "+244", flag: "ao" },
+            { name: "DR Congo", code: "CD", dial: "+243", flag: "cd" },
+            { name: "Benin", code: "BJ", dial: "+229", flag: "bj" },
+            { name: "Burkina Faso", code: "BF", dial: "+226", flag: "bf" },
+            { name: "Mali", code: "ML", dial: "+223", flag: "ml" },
+            { name: "Niger", code: "NE", dial: "+227", flag: "ne" },
+            { name: "Togo", code: "TG", dial: "+228", flag: "tg" },
+            { name: "Chad", code: "TD", dial: "+235", flag: "td" },
+            { name: "Mauritius", code: "MU", dial: "+230", flag: "mu" },
+            { name: "Seychelles", code: "SC", dial: "+248", flag: "sc" },
+            { name: "Comoros", code: "KM", dial: "+269", flag: "km" },
+            { name: "Lesotho", code: "LS", dial: "+266", flag: "ls" },
+            { name: "Eswatini", code: "SZ", dial: "+268", flag: "sz" },
+            { name: "Namibia", code: "NA", dial: "+264", flag: "na" },
+            { name: "Mauritania", code: "MR", dial: "+222", flag: "mr" },
+            { name: "Guinea", code: "GN", dial: "+224", flag: "gn" },
+            { name: "Guinea-Bissau", code: "GW", dial: "+245", flag: "gw" },
+            { name: "Equatorial Guinea", code: "GQ", dial: "+240", flag: "gq" },
+            { name: "Gabon", code: "GA", dial: "+241", flag: "ga" },
+            { name: "Congo", code: "CG", dial: "+242", flag: "cg" },
+            { name: "Central African Republic", code: "CF", dial: "+236", flag: "cf" },
+            { name: "Burundi", code: "BI", dial: "+257", flag: "bi" },
+            { name: "Madagascar", code: "MG", dial: "+261", flag: "mg" },
+            { name: "Cabo Verde", code: "CV", dial: "+238", flag: "cv" },
+            { name: "Sao Tome & Principe", code: "ST", dial: "+239", flag: "st" },
+            { name: "Djibouti", code: "DJ", dial: "+253", flag: "dj" },
+            { name: "Eritrea", code: "ER", dial: "+291", flag: "er" },
+            { name: "United Kingdom", code: "GB", dial: "+44", flag: "gb" },
+            { name: "United States", code: "US", dial: "+1", flag: "us" },
+            { name: "Canada", code: "CA", dial: "+1", flag: "ca" },
+            { name: "Australia", code: "AU", dial: "+61", flag: "au" },
+            { name: "Other", code: "XX", dial: "+0", flag: "xx" }
+        ];
+        const DIAL_MAP = {};
+        NATIONALITIES.forEach(n => { DIAL_MAP[n.dial] = n; });
 
-        // =============================================================
-        // HELPERS
-        // =============================================================
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
         function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
         function fmtDate(ts) {
@@ -489,6 +537,21 @@
             if (ts.toDate) ts = ts.toDate();
             const d = new Date(ts);
             return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) + " · " + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        function fmtTime(ts) {
+            if (!ts) return "";
+            if (ts.toDate) ts = ts.toDate();
+            return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        function fmtDateShort(ts) {
+            if (!ts) return "";
+            if (ts.toDate) ts = ts.toDate();
+            const d = new Date(ts);
+            const now = new Date();
+            const diff = (now - d) / (1000 * 60 * 60 * 24);
+            if (diff < 1) return fmtTime(ts);
+            if (diff < 7) return d.toLocaleDateString(undefined, { weekday: 'short' });
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
         function genAppId() {
             const yr = new Date().getFullYear();
@@ -521,9 +584,6 @@
             toast(`📧 Email notification sent to ${to}`, 'ok');
         }
 
-        // =============================================================
-        // FIRESTORE DATA ACCESS
-        // =============================================================
         async function loadJobs() {
             const snapshot = await getDocs(collection(db, "jobs"));
             allJobs = [];
@@ -585,35 +645,159 @@
         }
         async function deleteFee(feeId) { await deleteDoc(doc(db, "fees", feeId)); await loadFees(); }
 
-        // --- Admins are looked up by Firestore doc, NEVER by a
-        // hardcoded credential check in client code. See the
-        // ADMIN BOOTSTRAP note at the bottom of this file for how
-        // to create the real admin account. ---
         async function getAdminUser(uid) {
             const docSnap = await getDoc(doc(db, "admins", uid));
             if (docSnap.exists()) return { id: docSnap.id, ...docSnap.data() };
             return null;
         }
 
-        // =============================================================
-        // AUTH STATE
-        // =============================================================
+        // --- MESSAGING SYSTEM (WhatsApp-like multi-device) ---
+        async function getOrCreateChat(otherUid, otherName) {
+            if (!currentUser) return null;
+            const uid = currentUser.uid;
+            const chatsSnap = await getDocs(query(collection(db, "chats"), where("participants", "array-contains", uid)));
+            let existing = null;
+            chatsSnap.forEach(d => {
+                const data = d.data();
+                if (data.participants && data.participants.includes(otherUid)) {
+                    existing = { id: d.id, ...data };
+                }
+            });
+            if (existing) return existing;
+            const chatRef = doc(collection(db, "chats"));
+            const myName = currentUserData?.fullName || currentUser?.displayName || currentUser?.email || "User";
+            const chatData = {
+                participants: [uid, otherUid],
+                participantNames: { [uid]: myName, [otherUid]: otherName },
+                createdAt: serverTimestamp(),
+                lastMessage: "",
+                lastTimestamp: serverTimestamp(),
+                lastSender: uid,
+                unread: { [uid]: 0, [otherUid]: 0 }
+            };
+            await setDoc(chatRef, chatData);
+            return { id: chatRef.id, ...chatData };
+        }
+
+        async function sendMessage(chatId, text, fileUrl, fileName) {
+            if (!text && !fileUrl) return;
+            const msgRef = doc(collection(db, "messages"));
+            const msgData = {
+                chatId,
+                senderId: currentUser.uid,
+                senderName: currentUserData?.fullName || currentUser?.displayName || currentUser?.email || "User",
+                text: text || "",
+                type: fileUrl ? "file" : "text",
+                fileUrl: fileUrl || "",
+                fileName: fileName || "",
+                timestamp: serverTimestamp(),
+                read: false
+            };
+            await setDoc(msgRef, msgData);
+            const chatRef = doc(db, "chats", chatId);
+            const chatSnap = await getDoc(chatRef);
+            const chatData = chatSnap.data();
+            const otherUid = chatData.participants.find(p => p !== currentUser.uid);
+            const unread = chatData.unread || {};
+            unread[otherUid] = (unread[otherUid] || 0) + 1;
+            await updateDoc(chatRef, {
+                lastMessage: text || (fileUrl ? `📎 ${fileName || 'File'}` : ""),
+                lastTimestamp: serverTimestamp(),
+                lastSender: currentUser.uid,
+                unread
+            });
+            await loadChats();
+        }
+
+        async function loadChats() {
+            if (!currentUser) return;
+            const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+            const snap = await getDocs(q);
+            allChats = [];
+            snap.forEach(d => {
+                const data = d.data();
+                const otherUid = data.participants?.find(p => p !== currentUser.uid);
+                const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
+                allChats.push({ id: d.id, ...data, otherUid, otherName });
+            });
+            allChats.sort((a, b) => {
+                const ta = a.lastTimestamp ? new Date(a.lastTimestamp.seconds ? a.lastTimestamp.seconds * 1000 : a.lastTimestamp) : new Date(0);
+                const tb = b.lastTimestamp ? new Date(b.lastTimestamp.seconds ? b.lastTimestamp.seconds * 1000 : b.lastTimestamp) : new Date(0);
+                return tb - ta;
+            });
+            return allChats;
+        }
+
+        function subscribeChats() {
+            if (!currentUser || unsubscribeChats) return;
+            const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+            unsubscribeChats = onSnapshot(q, (snapshot) => {
+                allChats = [];
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    const otherUid = data.participants?.find(p => p !== currentUser.uid);
+                    const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
+                    allChats.push({ id: d.id, ...data, otherUid, otherName });
+                });
+                allChats.sort((a, b) => {
+                    const ta = a.lastTimestamp ? new Date(a.lastTimestamp.seconds ? a.lastTimestamp.seconds * 1000 : a.lastTimestamp) : new Date(0);
+                    const tb = b.lastTimestamp ? new Date(b.lastTimestamp.seconds ? b.lastTimestamp.seconds * 1000 : b.lastTimestamp) : new Date(0);
+                    return tb - ta;
+                });
+                if (ROUTE.view === "messages" || ROUTE.view === "messages-chat") renderCurrentView();
+                renderNavbar();
+            });
+        }
+
+        function subscribeMessages(chatId) {
+            if (unsubscribeMessages) unsubscribeMessages();
+            const q = query(collection(db, "messages"), where("chatId", "==", chatId), orderBy("timestamp", "asc"));
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                const msgs = [];
+                snapshot.forEach(d => msgs.push({ id: d.id, ...d.data() }));
+                if (ROUTE.view === "messages-chat") {
+                    renderMessagesChat(chatId, msgs);
+                }
+                markChatRead(chatId);
+            });
+        }
+
+        async function markChatRead(chatId) {
+            if (!currentUser) return;
+            const chatRef = doc(db, "chats", chatId);
+            const chatSnap = await getDoc(chatRef);
+            if (chatSnap.exists()) {
+                const data = chatSnap.data();
+                const unread = data.unread || {};
+                if (unread[currentUser.uid] > 0) {
+                    unread[currentUser.uid] = 0;
+                    await updateDoc(chatRef, { unread });
+                }
+            }
+        }
+
+        function getUnreadCount() {
+            if (!currentUser || !allChats.length) return 0;
+            return allChats.reduce((sum, c) => sum + ((c.unread?.[currentUser.uid]) || 0), 0);
+        }
+
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             if (user) {
                 const adminData = await getAdminUser(user.uid);
                 if (adminData) {
                     currentUserData = { ...adminData, type: 'admin' };
-                    await loadJobs(); await loadApps(); await loadFees();
+                    await loadJobs(); await loadApps(); await loadFees(); await loadChats();
                     subscribeToRealtime();
+                    subscribeChats();
                 } else {
                     const appData = await getApp(user.uid);
                     if (appData) {
                         currentUserData = { ...appData, type: 'applicant' };
-                        await loadJobs(); await loadFees();
+                        await loadJobs(); await loadFees(); await loadChats();
                         subscribeToRealtime();
+                        subscribeChats();
                     } else if (ROUTE.view === 'complete-profile') {
-                        // mid-signup via Google — let the profile-completion view handle it
                     } else {
                         currentUserData = { type: 'needs-profile' };
                         navigate("complete-profile");
@@ -625,6 +809,8 @@
                 if (unsubscribeApps) { unsubscribeApps(); unsubscribeApps = null; }
                 if (unsubscribeJobs) { unsubscribeJobs(); unsubscribeJobs = null; }
                 if (unsubscribeFees) { unsubscribeFees(); unsubscribeFees = null; }
+                if (unsubscribeChats) { unsubscribeChats(); unsubscribeChats = null; }
+                if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
             }
             renderNavbar();
             renderCurrentView();
@@ -635,25 +821,22 @@
             unsubscribeApps = onSnapshot(collection(db, "applications"), (snapshot) => {
                 allApps = [];
                 snapshot.forEach(d => allApps.push({ id: d.id, ...d.data() }));
-                if (ROUTE.view === "admin-dashboard" || ROUTE.view === "applicant-dashboard") renderCurrentView();
+                if (["admin-dashboard", "applicant-dashboard", "messages", "messages-chat", "admin-jobs"].includes(ROUTE.view)) renderCurrentView();
             });
             if (unsubscribeJobs) unsubscribeJobs();
             unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
                 allJobs = [];
                 snapshot.forEach(d => allJobs.push({ id: d.id, ...d.data() }));
-                if (ROUTE.view === "jobs" || ROUTE.view === "admin-jobs" || ROUTE.view === "home") renderCurrentView();
+                if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
             });
             if (unsubscribeFees) unsubscribeFees();
             unsubscribeFees = onSnapshot(collection(db, "fees"), (snapshot) => {
                 allFees = [];
                 snapshot.forEach(d => allFees.push({ id: d.id, ...d.data() }));
-                if (ROUTE.view === "fees" || ROUTE.view === "admin-fees") renderCurrentView();
+                if (["fees", "admin-fees"].includes(ROUTE.view)) renderCurrentView();
             });
         }
 
-        // =============================================================
-        // ROUTER
-        // =============================================================
         let ROUTE = { view: "home", params: {} };
         function navigate(view, params = {}) {
             ROUTE = { view, params };
@@ -661,9 +844,6 @@
             renderCurrentView();
         }
 
-        // =============================================================
-        // NAVBAR
-        // =============================================================
         function renderNavbar() {
             const nav = document.getElementById('navbar');
             const links = [
@@ -675,11 +855,15 @@
             ];
             let rightHtml = "";
             if (currentUser && currentUserData) {
+                const unread = getUnreadCount();
+                const msgBadge = unread ? `<span class="msg-count">${unread}</span>` : '';
                 if (currentUserData.type === 'applicant') {
-                    rightHtml = `<a class="nav-link" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
+                    rightHtml = `<a class="nav-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
+                <a class="nav-link" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
                 <button class="btn btn-outline btn-sm" data-action="logout">Log out</button>`;
                 } else if (currentUserData.type === 'admin') {
-                    rightHtml = `<a class="nav-link" data-nav="admin-dashboard"><i class="fa-solid fa-shield-halved"></i> Admin</a>
+                    rightHtml = `<a class="nav-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
+                <a class="nav-link" data-nav="admin-dashboard"><i class="fa-solid fa-shield-halved"></i> Admin</a>
                 <button class="btn btn-outline btn-sm" data-action="logout">Log out</button>`;
                 }
             } else {
@@ -712,9 +896,6 @@
             if (window.innerWidth <= 900 && cta) cta.style.display = 'none';
         }
 
-        // =============================================================
-        // RENDER ENGINE
-        // =============================================================
         function renderCurrentView() {
             const appEl = document.getElementById('app');
             let html = "";
@@ -731,6 +912,8 @@
                 case "admin-dashboard": html = viewAdminDashboard(); break;
                 case "admin-jobs": html = viewAdminJobs(); break;
                 case "admin-fees": html = viewAdminFees(); break;
+                case "messages": html = viewMessages(); break;
+                case "messages-chat": html = viewMessagesChat(); break;
                 case "faq": html = viewFaq(); break;
                 case "terms": html = viewTerms(); break;
                 case "privacy": html = viewPrivacy(); break;
@@ -746,6 +929,8 @@
             if (ROUTE.view === "admin-dashboard") wireAdminDashboard();
             if (ROUTE.view === "admin-jobs") wireAdminJobs();
             if (ROUTE.view === "admin-fees") wireAdminFees();
+            if (ROUTE.view === "messages") wireMessages();
+            if (ROUTE.view === "messages-chat") wireMessagesChat();
             if (ROUTE.view === "jobs") wireJobsFilters();
         }
 
@@ -796,9 +981,6 @@
           </footer>`;
         }
 
-        // =============================================================
-        // VIEWS
-        // =============================================================
         function viewHome() {
             const jobs = allJobs;
             return `
@@ -995,26 +1177,59 @@
                 <div class="card pad">
                   <form id="applyForm" novalidate>
                     <div class="field-row">
-                      <div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" placeholder="As shown on passport" required></div>
-                      <div class="field"><label>Email Address <span class="req">*</span></label><input type="email" name="email" placeholder="you@example.com" required></div>
+                      <div class="field"><label>Full Name (as on passport) <span class="req">*</span></label><input type="text" name="fullName" placeholder="Surname / First name / Middle names" required></div>
+                      <div class="field"><label>Date of Birth <span class="req">*</span></label><input type="date" name="dob" required></div>
                     </div>
                     <div class="field-row">
-                      <div class="field"><label>Phone Number <span class="req">*</span></label><input type="tel" name="phone" placeholder="+254 7xx xxx xxx" required></div>
-                      <div class="field"><label>Country of Residence <span class="req">*</span></label>
-                        <select name="residence" required>
-                          <option value="">Select Country</option>
-                          ${["Kenya","Uganda","Tanzania","Nigeria","Ghana","Philippines","India","South Africa","Other"].map(c => `<option>${c}</option>`).join("")}
-                        </select>
+                      <div class="field">
+                        <label>Nationality <span class="req">*</span></label>
+                        <div class="country-select-wrapper">
+                          <select name="nationality" id="nationalitySelect" required>
+                            <option value="">Select Nationality</option>
+                            ${NATIONALITIES.map(n => `<option value="${n.code}" data-flag="${n.flag}" data-dial="${n.dial}">${n.name}</option>`).join("")}
+                          </select>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label>Phone Number <span class="req">*</span></label>
+                        <div class="phone-wrapper">
+                          <select name="phoneCode" id="phoneCode">
+                            ${NATIONALITIES.filter(n => n.dial !== "+0").map(n => `<option value="${n.dial}" data-flag="${n.flag}">${n.flag.toUpperCase()} ${n.dial}</option>`).join("")}
+                          </select>
+                          <input type="tel" name="phone" placeholder="712 345 678" required>
+                        </div>
                       </div>
                     </div>
                     <div class="field-row">
+                      <div class="field"><label>Email Address <span class="req">*</span></label><input type="email" name="email" placeholder="you@example.com" required></div>
+                      <div class="field"><label>Current Residential Address <span class="req">*</span></label><input type="text" name="address" placeholder="Street, City, Province, Postal Code" required></div>
+                    </div>
+                    <div class="field-row">
+                      <div class="field"><label>Country of Residence <span class="req">*</span></label>
+                        <select name="residence" required>
+                          <option value="">Select Country</option>
+                          ${NATIONALITIES.map(n => `<option value="${n.name}">${n.name}</option>`).join("")}
+                        </select>
+                      </div>
                       <div class="field"><label>City <span class="req">*</span></label><input type="text" name="city" placeholder="Your current city" required></div>
-                      <div class="field"><label>Job Selection <span class="req">*</span></label>
+                    </div>
+                    <div class="field-row">
+                      <div class="field"><label>Education Level <span class="req">*</span></label>
+                        <select name="education" required>
+                          <option value="">Select Education Level</option>
+                          ${EDUCATION_LEVELS.map(e => `<option>${e}</option>`).join("")}
+                        </select>
+                      </div>
+                      <div class="field"><label>Job Interested In <span class="req">*</span></label>
                         <select name="jobId" id="jobSelect" required>
                           <option value="">Select a Job</option>
                           ${COUNTRIES.map(c => `<optgroup label="${c}">${(byCountry[c]||[]).map(j => `<option value="${j.id}" ${j.id === preselectJob ? 'selected' : ''}>${esc(j.title)} — ${esc(j.salary)}</option>`).join("")}</optgroup>`).join("")}
                         </select>
                       </div>
+                    </div>
+                    <div class="field">
+                      <label>Work Experience <span class="req">*</span></label>
+                      <textarea name="workExperience" placeholder="Describe your work history — employers, roles, duration, key responsibilities. Include relevant skills and achievements." required></textarea>
                     </div>
                     <div class="field-row">
                       <div class="field">
@@ -1027,23 +1242,22 @@
                         <input type="hidden" id="cvUploaded" name="cvUrl" />
                       </div>
                       <div class="field">
-                        <label>Passport Copy (Optional)</label>
+                        <label>Passport Photo <span class="req">*</span></label>
                         <div class="upload-box" id="passBox">
                           <i class="fa-solid fa-cloud-arrow-up"></i>
-                          <div class="u-title">Click to upload Passport Copy</div>
-                          <div class="u-sub" id="passSub">Upload via Uploadcare — JPG, PNG, PDF</div>
+                          <div class="u-title">Click to upload Passport Photo</div>
+                          <div class="u-sub" id="passSub">Upload via Uploadcare — JPG, PNG</div>
                         </div>
                         <input type="hidden" id="passUploaded" name="passportUrl" />
                       </div>
                     </div>
+                    <div class="field-row">
+                      <div class="field"><label>Passport Number <span class="req">*</span></label><input type="text" name="passportNumber" placeholder="e.g. AB1234567" required></div>
+                      <div class="field"><label>Portal Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
+                    </div>
                     <div class="field">
                       <label>Cover Letter / Message (Optional)</label>
                       <textarea name="cover" placeholder="Write your cover letter or additional message here..."></textarea>
-                    </div>
-                    <div class="field">
-                      <label>Create a Portal Password <span class="req">*</span></label>
-                      <input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6">
-                      <div class="hint">Use this with your email (or Application ID) to log into your applicant portal.</div>
                     </div>
                     <div class="field">
                       <label class="checkbox-row"><input type="checkbox" name="terms" required> I agree to the <a data-nav="terms" style="text-decoration:underline">Terms &amp; Conditions</a> and consent to the processing of my personal data for recruitment purposes, in accordance with the <a data-nav="privacy" style="text-decoration:underline">Privacy Policy</a>.</label>
@@ -1057,6 +1271,7 @@
                     <ul>
                       <li><i class="fa-solid fa-check"></i> Ensure all fields are correctly filled</li>
                       <li><i class="fa-solid fa-check"></i> Upload CV in PDF or Word format</li>
+                      <li><i class="fa-solid fa-check"></i> Passport photo must be clear and legible</li>
                       <li><i class="fa-solid fa-check"></i> Double-check your contact information</li>
                       <li><i class="fa-solid fa-check"></i> Save your Application ID for tracking</li>
                     </ul>
@@ -1074,7 +1289,24 @@
         function wireApplyForm() {
             const cvBox = document.getElementById('cvBox');
             const passBox = document.getElementById('passBox');
+            const natSelect = document.getElementById('nationalitySelect');
+            const phoneCode = document.getElementById('phoneCode');
             if (!cvBox) return;
+
+            if (natSelect && phoneCode) {
+                natSelect.addEventListener('change', () => {
+                    const selected = natSelect.options[natSelect.selectedIndex];
+                    const dial = selected.getAttribute('data-dial');
+                    if (dial && dial !== '+0') {
+                        for (let i = 0; i < phoneCode.options.length; i++) {
+                            if (phoneCode.options[i].value === dial) {
+                                phoneCode.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
 
             cvBox.addEventListener('click', () => {
                 const dialog = uploadcare.openDialog(null, {
@@ -1095,7 +1327,7 @@
             passBox.addEventListener('click', () => {
                 const dialog = uploadcare.openDialog(null, {
                     publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
-                    accept: 'image/jpeg,image/png,application/pdf'
+                    accept: 'image/jpeg,image/png'
                 });
                 dialog.done((result) => {
                     result.files[0].promise().then((info) => {
@@ -1112,22 +1344,35 @@
                 e.preventDefault();
                 const fd = new FormData(e.target);
                 const fullName = fd.get('fullName').trim();
-                const email = fd.get('email').trim();
+                const dob = fd.get('dob');
+                const nationality = fd.get('nationality');
+                const phoneCode = fd.get('phoneCode');
                 const phone = fd.get('phone').trim();
+                const email = fd.get('email').trim();
+                const address = fd.get('address').trim();
                 const residence = fd.get('residence');
                 const city = fd.get('city').trim();
+                const education = fd.get('education');
+                const workExperience = fd.get('workExperience').trim();
                 const jobId = fd.get('jobId');
+                const passportNumber = fd.get('passportNumber').trim();
                 const cover = fd.get('cover').trim();
                 const password = fd.get('password');
                 const terms = fd.get('terms');
                 const cvUrl = fd.get('cvUrl');
                 const passportUrl = fd.get('passportUrl');
 
-                if (!fullName || !email || !phone || !residence || !city || !jobId) { toast("Please complete all required fields.", "err"); return; }
+                if (!fullName || !dob || !nationality || !phone || !email || !address || !residence || !city || !education || !workExperience || !jobId || !passportNumber) {
+                    toast("Please complete all required fields.", "err"); return;
+                }
                 if (!/^\S+@\S+\.\S+$/.test(email)) { toast("Please enter a valid email address.", "err"); return; }
                 if (!cvUrl) { toast("Please upload your CV/Resume.", "err"); return; }
+                if (!passportUrl) { toast("Please upload your Passport photo.", "err"); return; }
                 if (!password || password.length < 6) { toast("Password must be at least 6 characters.", "err"); return; }
                 if (!terms) { toast("Please accept the Terms & Conditions to continue.", "err"); return; }
+
+                const natObj = NATIONALITIES.find(n => n.code === nationality);
+                const fullPhone = `${phoneCode} ${phone}`;
 
                 try {
                     const userCred = await createUserWithEmailAndPassword(auth, email, password);
@@ -1135,16 +1380,19 @@
                     await updateProfile(user, { displayName: fullName });
                     const job = allJobs.find(j => j.id === jobId);
                     const appData = {
-                        uid: user.uid, fullName, email, phone, country: job.country, city, jobId,
-                        jobTitle: job.title, coverLetter: cover, cvUrl, passportUrl: passportUrl || '',
+                        uid: user.uid, fullName, dob, nationality: natObj ? natObj.name : nationality,
+                        nationalityCode: nationality, phone: fullPhone, phoneCode, phoneNumber: phone,
+                        email, address, residence, city, education, workExperience, jobId,
+                        jobTitle: job.title, coverLetter: cover, cvUrl, passportUrl,
+                        passportNumber, country: job.country,
                         status: "Application Received",
-                        documentsVerified: { cv: true, passport: !!passportUrl },
+                        documentsVerified: { cv: true, passport: true },
                         timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted via the Europe Sponsor Jobs website." }],
                         internalNotes: [], archived: false
                     };
                     await createApp(appData);
                     simulateEmail(email, "Application Received – Europe Sponsor Jobs",
-                        `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs. Your Application ID is ${user.uid}.\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
+                        `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${user.uid}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job.title}\nCountry: ${job.country}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                     currentUserData = { ...appData, type: 'applicant' };
                     toast(`Application submitted! Your ID: ${user.uid}`, 'ok');
                     navigate("confirmation", { appId: user.uid });
@@ -1165,7 +1413,7 @@
               <div class="card pad" style="text-align:center">
                 <div style="width:64px;height:64px;border-radius:50%;background:var(--emerald-50);color:var(--emerald-600);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px"><i class="fa-solid fa-check"></i></div>
                 <h2 style="margin:0 0 8px;color:var(--blue-900)">Application Submitted!</h2>
-                <p style="color:var(--slate-500);margin:0 0 22px">Thank you, ${esc(found.fullName)}. Save your Application ID below — you'll need it to check your status or log in.</p>
+                <p style="color:var(--slate-500);margin:0 0 22px">Thank you, ${esc(found.fullName)}. Save your Application ID below — you'll need it to log in to your portal.</p>
                 <div style="background:var(--slate-100);border-radius:10px;padding:16px;font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--blue-900);letter-spacing:.03em;margin-bottom:22px">${found.id || found.uid}</div>
                 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
                   <a class="btn btn-primary" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> Go to My Portal</a>
@@ -1287,7 +1535,6 @@
           </section>`;
         }
 
-        // --- LOGIN ---
         let loginTab = "applicant";
 
         function viewLogin() {
@@ -1311,13 +1558,13 @@
                   <div class="field"><label>Email or Username <span class="req">*</span></label><input type="text" name="email" placeholder="you@example.com" required></div>
                   <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" required></div>
                   <button class="btn btn-primary btn-block" type="submit">Log In to My Portal</button>
-                  <p class="hint" style="text-align:center;margin-top:14px">Signed up with your phone number instead? Use the email linked to your application.</p>
+                  <p class="hint" style="text-align:center;margin-top:14px">Signed up with your email used during application.</p>
                 </form>` : `
                 <form id="adminLoginForm">
                   <div class="field"><label>Admin Email <span class="req">*</span></label><input type="email" name="email" placeholder="admin@yourdomain.com" required></div>
                   <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" required></div>
                   <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-shield-halved"></i> Log In to Admin</button>
-                  <p class="hint" style="text-align:center;margin-top:14px">Admin access requires an account registered in the "admins" collection. See the ADMIN BOOTSTRAP guide shipped with this file.</p>
+                  <p class="hint" style="text-align:center;margin-top:14px">Admin access requires an account registered in the "admins" collection.</p>
                 </form>`}
               </div>
             </div>
@@ -1326,7 +1573,6 @@
 
         function wireLogin() {
             document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { loginTab = b.getAttribute('data-tab'); renderCurrentView(); }));
-
             const gBtn = document.getElementById('googleLoginBtn');
             if (gBtn) gBtn.addEventListener('click', async () => {
                 try {
@@ -1336,7 +1582,6 @@
                     toast(error.message || "Google sign-in failed.", "err");
                 }
             });
-
             const af = document.getElementById('applicantLoginForm');
             if (af) af.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1348,7 +1593,6 @@
                     toast(error.message || "Login failed. Please check your credentials.", "err");
                 }
             });
-
             const adf = document.getElementById('adminLoginForm');
             if (adf) adf.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1362,7 +1606,6 @@
             });
         }
 
-        // --- COMPLETE PROFILE (for brand-new Google sign-ins with no application yet) ---
         function viewCompleteProfile() {
             if (!currentUser) return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in first.</p></div></div></div>`;
             return `
@@ -1373,7 +1616,14 @@
               <p style="color:var(--slate-500);font-size:13.5px;margin:0 0 20px">We need a few more details and a job selection to finish setting up your applicant profile, ${esc(currentUser.displayName || currentUser.email)}.</p>
               <form id="completeProfileForm">
                 <div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" value="${esc(currentUser.displayName || '')}" required></div>
-                <div class="field"><label>Phone Number <span class="req">*</span></label><input type="tel" name="phone" placeholder="+254 7xx xxx xxx" required></div>
+                <div class="field"><label>Phone Number <span class="req">*</span></label>
+                  <div class="phone-wrapper">
+                    <select name="phoneCode">
+                      ${NATIONALITIES.filter(n => n.dial !== "+0").map(n => `<option value="${n.dial}">${n.flag.toUpperCase()} ${n.dial}</option>`).join("")}
+                    </select>
+                    <input type="tel" name="phone" placeholder="712 345 678" required>
+                  </div>
+                </div>
                 <div class="field"><label>City <span class="req">*</span></label><input type="text" name="city" required></div>
                 <div class="field"><label>Job of Interest <span class="req">*</span></label>
                   <select name="jobId" required>
@@ -1396,9 +1646,12 @@
                 const jobId = fd.get('jobId');
                 const job = allJobs.find(j => j.id === jobId);
                 if (!job) { toast("Please select a job.", "err"); return; }
+                const phoneCode = fd.get('phoneCode');
+                const phone = fd.get('phone').trim();
                 const appData = {
                     uid: currentUser.uid, fullName: fd.get('fullName').trim(), email: currentUser.email,
-                    phone: fd.get('phone').trim(), country: job.country, city: fd.get('city').trim(),
+                    phone: `${phoneCode} ${phone}`, phoneCode, phoneNumber: phone,
+                    country: job.country, city: fd.get('city').trim(),
                     jobId, jobTitle: job.title, coverLetter: '', cvUrl: '', passportUrl: '',
                     status: "Application Received",
                     documentsVerified: { cv: false, passport: false },
@@ -1407,23 +1660,24 @@
                 };
                 await createApp(appData);
                 currentUserData = { ...appData, type: 'applicant' };
-                await loadJobs(); await loadFees(); subscribeToRealtime();
+                await loadJobs(); await loadFees(); await loadChats(); subscribeToRealtime(); subscribeChats();
                 toast("Profile completed! You can now upload your CV from your portal.", "ok");
                 navigate("applicant-dashboard");
             });
         }
 
-        // --- APPLICANT DASHBOARD ---
         function viewApplicantDashboard() {
             if (!currentUser || !currentUserData || currentUserData.type !== 'applicant') {
                 return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in to view your dashboard.</p><a class="btn btn-primary" data-nav="login">Log In</a></div></div></div>`;
             }
             const app = currentUserData;
+            const unread = getUnreadCount();
             return `
           <div class="dash-shell">
             <div class="dash-side">
               <div class="side-title">My Portal</div>
               <a class="side-link active"><i class="fa-solid fa-gauge"></i> Application Overview</a>
+              <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread ? ` <span class="msg-count">${unread}</span>` : ''}</a>
               <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse More Jobs</a>
               <a class="side-link" data-nav="faq"><i class="fa-solid fa-circle-question"></i> FAQ</a>
               <div class="side-title" style="margin-top:20px">Account</div>
@@ -1432,7 +1686,7 @@
             <div class="dash-main">
               <div class="dash-topbar">
                 <div>
-                  <h2>Hello, ${esc(app.fullName?.split(' ')[0] || '')} 👋</h2>
+                  <h2>Hello, ${esc(app.fullName?.split(' ')[0] || '')}</h2>
                   <div style="font-size:13px;color:var(--slate-500)">Application ${app.id || app.uid} · Last updated ${fmtDate(app.updatedAt)}</div>
                 </div>
                 ${statusBadge(app.status)}
@@ -1451,6 +1705,19 @@
                       <div><b>Applied:</b> ${fmtDate(app.createdAt)}</div>
                     </div>
                   </div>
+                  <div class="card pad" style="margin-bottom:18px">
+                    <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Personal Details</h4>
+                    <div style="font-size:13.5px;color:var(--slate-600);line-height:1.9">
+                      <div><b>Full Name:</b> ${esc(app.fullName)}</div>
+                      ${app.dob ? `<div><b>Date of Birth:</b> ${esc(app.dob)}</div>` : ''}
+                      ${app.nationality ? `<div><b>Nationality:</b> ${esc(app.nationality)}</div>` : ''}
+                      <div><b>Phone:</b> ${esc(app.phone)}</div>
+                      <div><b>Email:</b> ${esc(app.email)}</div>
+                      ${app.address ? `<div><b>Address:</b> ${esc(app.address)}</div>` : ''}
+                      ${app.education ? `<div><b>Education:</b> ${esc(app.education)}</div>` : ''}
+                      ${app.passportNumber ? `<div><b>Passport:</b> ${esc(app.passportNumber)}</div>` : ''}
+                    </div>
+                  </div>
                   <div class="card pad">
                     <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Documents</h4>
                     <div class="doc-row"><div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div>${app.documentsVerified?.cv ? '<span class="badge badge-green">Verified</span>' : '<span class="badge badge-amber">Pending</span>'}</div>
@@ -1461,18 +1728,18 @@
                 </div>
               </div>
               <div class="card pad" style="margin-top:22px">
-                <h4 style="margin:0 0 6px;color:var(--blue-900)">Need help?</h4>
+                <h4 style="margin:0 0 6px;color:var(--blue-900)">Need help? Chat with Admin</h4>
                 <p style="font-size:13.5px;color:var(--slate-500);margin:0 0 14px">Contact our support team referencing your Application ID <b>${app.id || app.uid}</b>.</p>
                 <div style="display:flex;gap:10px;flex-wrap:wrap">
                   <span class="badge badge-slate"><i class="fa-solid fa-envelope"></i> support@europesponsorjobs.com</span>
                   <span class="badge badge-slate"><i class="fa-solid fa-phone"></i> +254 103 387012</span>
+                  <a class="btn btn-primary btn-sm" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Open Messages</a>
                 </div>
               </div>
             </div>
           </div>`;
         }
 
-        // --- ADMIN DASHBOARD ---
         let adminFilters = { status: "All", country: "All", search: "" };
 
         function viewAdminDashboard() {
@@ -1490,9 +1757,10 @@
             let filtered = apps.filter(a =>
                 (adminFilters.status === "All" || a.status === adminFilters.status) &&
                 (adminFilters.country === "All" || a.country === adminFilters.country) &&
-                (adminFilters.search === "" || (a.fullName + a.email + a.id + a.uid + a.jobTitle).toLowerCase().includes(adminFilters.search.toLowerCase()))
+                (adminFilters.search === "" || (a.fullName + a.email + a.id + a.uid + a.jobTitle + (a.nationality||'') + (a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))
             ).sort((a, b) => { const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0); const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0); return db - da; });
 
+            const unread = getUnreadCount();
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -1500,6 +1768,7 @@
               <a class="side-link active"><i class="fa-solid fa-gauge"></i> Applications</a>
               <a class="side-link" data-nav="admin-jobs"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
               <a class="side-link" data-nav="admin-fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread ? ` <span class="msg-count">${unread}</span>` : ''}</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
@@ -1557,6 +1826,7 @@
             if (!app) { try { const docSnap = await getDoc(doc(db, "applications", appId)); if (docSnap.exists()) app = { id: docSnap.id, ...docSnap.data() }; } catch (e) {} }
             if (!app) { toast("Application not found.", "err"); return; }
             const root = document.getElementById('modal-root');
+            const natFlag = app.nationalityCode ? NATIONALITIES.find(n => n.code === app.nationalityCode) : null;
             root.innerHTML = `
           <div class="modal-overlay" id="modalOverlay">
             <div class="modal">
@@ -1565,26 +1835,41 @@
                 <button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
               </div>
               <div class="modal-body">
-                <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+                <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:20px">
+                  <div>
+                    <div style="font-size:12px;color:var(--slate-500)">Full Name</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.fullName)}</div>
+                    ${app.dob ? `<div style="font-size:12px;color:var(--slate-500)">Date of Birth</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.dob)}</div>` : ''}
+                    <div style="font-size:12px;color:var(--slate-500)">Nationality</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px">${natFlag ? `<img src="${flagUrl(natFlag.flag)}" style="width:20px;height:15px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:6px">` : ''}${esc(app.nationality || '—')}</div>
+                    <div style="font-size:12px;color:var(--slate-500)">Passport Number</div>
+                    <div style="font-size:14px;font-weight:600">${esc(app.passportNumber || '—')}</div>
+                  </div>
                   <div>
                     <div style="font-size:12px;color:var(--slate-500)">Email</div>
                     <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.email)}</div>
                     <div style="font-size:12px;color:var(--slate-500)">Phone</div>
                     <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.phone || '—')}</div>
+                    <div style="font-size:12px;color:var(--slate-500)">Address</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.address || '—')}</div>
                     <div style="font-size:12px;color:var(--slate-500)">City / Residence</div>
-                    <div style="font-size:14px;font-weight:600">${esc(app.city || '—')}</div>
+                    <div style="font-size:14px;font-weight:600">${esc(app.city || '—')} / ${esc(app.residence || '—')}</div>
                   </div>
                   <div>
                     <div style="font-size:12px;color:var(--slate-500)">Position</div>
                     <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.jobTitle)}</div>
                     <div style="font-size:12px;color:var(--slate-500)">Destination</div>
                     <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.country)}</div>
+                    <div style="font-size:12px;color:var(--slate-500)">Education</div>
+                    <div style="font-size:14px;font-weight:600;margin-bottom:10px">${esc(app.education || '—')}</div>
                     <div style="font-size:12px;color:var(--slate-500)">Applied</div>
                     <div style="font-size:14px;font-weight:600">${fmtDate(app.createdAt)}</div>
                   </div>
                 </div>
-                ${app.coverLetter ? `<div style="margin-bottom:20px"><div style="font-size:12px;color:var(--slate-500);margin-bottom:6px">Cover Letter</div><div style="font-size:13.5px;background:var(--slate-100);padding:12px 14px;border-radius:8px;color:var(--slate-700)">${esc(app.coverLetter)}</div></div>` : ""}
-                <div style="margin-bottom:20px">
+                ${app.workExperience ? `<div style="margin-bottom:14px"><div style="font-size:12px;color:var(--slate-500);margin-bottom:6px">Work Experience</div><div style="font-size:13.5px;background:var(--slate-100);padding:12px 14px;border-radius:8px;color:var(--slate-700);white-space:pre-wrap">${esc(app.workExperience)}</div></div>` : ""}
+                ${app.coverLetter ? `<div style="margin-bottom:14px"><div style="font-size:12px;color:var(--slate-500);margin-bottom:6px">Cover Letter</div><div style="font-size:13.5px;background:var(--slate-100);padding:12px 14px;border-radius:8px;color:var(--slate-700)">${esc(app.coverLetter)}</div></div>` : ""}
+                <div style="margin-bottom:14px">
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px">Documents</div>
                   <div class="doc-row">
                     <div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div>
@@ -1601,7 +1886,7 @@
                     </div>
                   </div>
                 </div>
-                <div style="margin-bottom:20px">
+                <div style="margin-bottom:14px">
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px">Update Status</div>
                   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
                     <select id="statusSelect" style="max-width:280px">${ALL_STATUSES.map(s => `<option value="${esc(s)}" ${s === app.status ? 'selected' : ''}>${s}</option>`).join("")}</select>
@@ -1616,6 +1901,7 @@
                 </div>
               </div>
               <div class="modal-foot">
+                <button class="btn btn-primary btn-sm" data-startchat="${app.uid}" data-chatname="${app.fullName}"><i class="fa-solid fa-comment-dots"></i> Chat</button>
                 <button class="btn btn-danger btn-sm" id="archiveBtn"><i class="fa-solid fa-box-archive"></i> Archive</button>
                 <button class="btn btn-outline" id="modalCloseBtn2">Close</button>
               </div>
@@ -1657,11 +1943,20 @@
             document.getElementById('archiveBtn').addEventListener('click', async () => {
                 if (confirm("Archive this application?")) { await updateApp(appIdKey, { archived: true }); toast("Application archived.", "ok"); await loadApps(); closeModal(); renderCurrentView(); }
             });
+            document.querySelectorAll('[data-startchat]').forEach(el => {
+                el.addEventListener('click', async () => {
+                    const otherUid = el.getAttribute('data-startchat');
+                    const otherName = el.getAttribute('data-chatname') || otherUid;
+                    closeModal();
+                    if (!currentUser) { toast("Please log in first.", "err"); return; }
+                    const chat = await getOrCreateChat(otherUid, otherName);
+                    if (chat) navigate("messages-chat", { chatId: chat.id, otherName });
+                });
+            });
         }
 
         function closeModal() { document.getElementById('modal-root').innerHTML = ""; }
 
-        // --- ADMIN JOBS ---
         function viewAdminJobs() {
             if (!currentUser || !currentUserData || currentUserData.type !== 'admin') return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Admin access required.</p></div></div></div>`;
             const jobs = allJobs;
@@ -1672,6 +1967,7 @@
               <a class="side-link" data-nav="admin-dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
               <a class="side-link active"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
               <a class="side-link" data-nav="admin-fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages ${getUnreadCount() ? `<span class="msg-count">${getUnreadCount()}</span>` : ''}</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
@@ -1724,7 +2020,6 @@
             }));
         }
 
-        // --- ADMIN FEES ---
         function viewAdminFees() {
             if (!currentUser || !currentUserData || currentUserData.type !== 'admin') return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Admin access required.</p></div></div></div>`;
             const fees = allFees;
@@ -1735,6 +2030,7 @@
               <a class="side-link" data-nav="admin-dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
               <a class="side-link" data-nav="admin-jobs"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
               <a class="side-link active"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages ${getUnreadCount() ? `<span class="msg-count">${getUnreadCount()}</span>` : ''}</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
@@ -1745,7 +2041,7 @@
                 <form id="newFeeForm">
                   <div class="field-row">
                     <div class="field"><label>Fee Label <span class="req">*</span></label><input type="text" name="label" placeholder="e.g. Visa Sponsorship Processing" required></div>
-                    <div class="field"><label>Amount <span class="req">*</span></label><input type="text" name="amount" placeholder="e.g. €0 or Varies" required></div>
+                    <div class="field"><label>Amount <span class="req">*</span></label><input type="text" name="amount" placeholder="e.g. EUR 0 or Varies" required></div>
                   </div>
                   <div class="field-row">
                     <div class="field"><label>Paid By <span class="req">*</span></label>
@@ -1788,15 +2084,210 @@
             }));
         }
 
-        // --- FAQ / TERMS / PRIVACY / ABOUT ---
+        // =============================================================
+        // MESSAGING VIEWS (WhatsApp-like multi-device chat)
+        // =============================================================
+        function viewMessages() {
+            if (!currentUser || !currentUserData) {
+                return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in to view messages.</p><a class="btn btn-primary" data-nav="login">Log In</a></div></div></div>`;
+            }
+            if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+            const chats = allChats;
+            return `
+          <div class="msg-shell">
+            <div class="msg-list-panel show">
+              <div class="msg-list-header">
+                <i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages
+                <span style="font-size:12px;color:var(--slate-500);font-weight:400;margin-left:8px">${chats.length} conversation${chats.length !== 1 ? 's' : ''}</span>
+              </div>
+              ${chats.length ? chats.map(c => {
+                const unread = c.unread?.[currentUser.uid] || 0;
+                const isActive = ROUTE.params.chatId === c.id;
+                return `
+                  <div class="msg-list-item ${isActive ? 'active' : ''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}">
+                    <div class="msg-avatar">${esc(c.otherName?.charAt(0)?.toUpperCase() || '?')}</div>
+                    <div class="msg-list-content">
+                      <div class="msg-list-name">${esc(c.otherName)}</div>
+                      <div class="msg-list-preview">${esc(c.lastMessage || 'No messages yet')}</div>
+                    </div>
+                    <div class="msg-list-meta">
+                      ${unread ? `<span class="msg-unread">${unread}</span>` : ''}
+                      <div class="msg-list-time">${c.lastTimestamp ? fmtDateShort(c.lastTimestamp) : ''}</div>
+                    </div>
+                  </div>`;
+              }).join("") : `
+                <div class="msg-empty" style="flex-direction:column;padding:40px 20px">
+                  <i class="fa-solid fa-comment-slash"></i>
+                  <p style="font-size:14px;color:var(--slate-500);margin-top:10px">No conversations yet.</p>
+                  <p style="font-size:12px;color:var(--slate-400);margin-top:4px">When an admin contacts you, it will appear here.</p>
+                </div>`}
+            </div>
+            <div class="msg-chat-panel show">
+              <div class="msg-empty" style="flex-direction:column">
+                <i class="fa-solid fa-comment-dots"></i>
+                <p style="font-size:14px;color:var(--slate-500);margin-top:10px">Select a conversation to start chatting</p>
+                <p style="font-size:12px;color:var(--slate-400);margin-top:4px">Real-time messaging across all your devices</p>
+              </div>
+            </div>
+          </div>`;
+        }
+
+        function wireMessages() {
+            document.querySelectorAll('[data-chatid]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const chatId = el.getAttribute('data-chatid');
+                    const otherName = el.getAttribute('data-chatname') || "Chat";
+                    navigate("messages-chat", { chatId, otherName });
+                });
+            });
+        }
+
+        function viewMessagesChat() {
+            if (!currentUser || !currentUserData) {
+                return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Please log in to view messages.</p></div></div></div>`;
+            }
+            const chatId = ROUTE.params.chatId;
+            const otherName = ROUTE.params.otherName || "User";
+            const chats = allChats;
+            return `
+          <div class="msg-shell">
+            <div class="msg-list-panel show">
+              <div class="msg-list-header">
+                <i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages
+              </div>
+              ${chats.length ? chats.map(c => {
+                const unread = c.unread?.[currentUser.uid] || 0;
+                const isActive = c.id === chatId;
+                return `
+                  <div class="msg-list-item ${isActive ? 'active' : ''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}">
+                    <div class="msg-avatar">${esc(c.otherName?.charAt(0)?.toUpperCase() || '?')}</div>
+                    <div class="msg-list-content">
+                      <div class="msg-list-name">${esc(c.otherName)}</div>
+                      <div class="msg-list-preview">${esc(c.lastMessage || 'No messages yet')}</div>
+                    </div>
+                    <div class="msg-list-meta">
+                      ${unread ? `<span class="msg-unread">${unread}</span>` : ''}
+                      <div class="msg-list-time">${c.lastTimestamp ? fmtDateShort(c.lastTimestamp) : ''}</div>
+                    </div>
+                  </div>`;
+              }).join("") : `<div class="msg-empty" style="flex-direction:column;padding:40px 20px"><i class="fa-solid fa-comment-slash"></i></div>`}
+            </div>
+            <div class="msg-chat-panel show" id="chatPanel">
+              <div class="msg-chat-header">
+                <button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="msg-avatar" style="width:36px;height:36px;font-size:14px">${esc(otherName?.charAt(0)?.toUpperCase() || '?')}</div>
+                <span>${esc(otherName)}</span>
+              </div>
+              <div class="msg-chat-body" id="msgChatBody">
+                <div class="msg-empty" style="flex-direction:column;padding:20px">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <p style="font-size:13px;color:var(--slate-500);margin-top:8px">Loading messages...</p>
+                </div>
+              </div>
+              <div class="msg-chat-input">
+                <textarea id="msgInput" placeholder="Type a message..." rows="1"></textarea>
+                <button class="btn btn-primary" id="msgSendBtn"><i class="fa-solid fa-paper-plane"></i></button>
+                <button class="btn btn-outline" id="msgFileBtn"><i class="fa-solid fa-paperclip"></i></button>
+              </div>
+            </div>
+          </div>`;
+        }
+
+        let currentChatMessages = [];
+
+        function renderMessagesChat(chatId, messages) {
+            const body = document.getElementById('msgChatBody');
+            if (!body) return;
+            currentChatMessages = messages || [];
+            const uid = currentUser.uid;
+            if (!messages || messages.length === 0) {
+                body.innerHTML = `<div class="msg-empty" style="flex-direction:column;padding:40px 20px">
+                  <i class="fa-solid fa-comment-dots"></i>
+                  <p style="font-size:14px;color:var(--slate-500);margin-top:10px">No messages yet</p>
+                  <p style="font-size:12px;color:var(--slate-400);margin-top:4px">Send a message to start the conversation</p>
+                </div>`;
+                return;
+            }
+            body.innerHTML = messages.map(m => {
+                const isSent = m.senderId === uid;
+                const time = m.timestamp ? fmtTime(m.timestamp) : '';
+                const fileHtml = m.fileUrl ? `<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName || 'View File')}</a></div>` : '';
+                return `<div class="msg-bubble ${isSent ? 'sent' : 'rec'}">
+                  <div>${esc(m.text)}</div>
+                  ${fileHtml}
+                  <div class="msg-time">${time}</div>
+                </div>`;
+            }).join("");
+            body.scrollTop = body.scrollHeight;
+        }
+
+        function wireMessagesChat() {
+            const chatId = ROUTE.params.chatId;
+            const otherName = ROUTE.params.otherName || "User";
+            if (!chatId) { toast("Chat not found.", "err"); navigate("messages"); return; }
+
+            const backBtn = document.getElementById('msgBackBtn');
+            if (backBtn && window.innerWidth <= 1024) backBtn.style.display = 'inline-flex';
+            if (backBtn) backBtn.addEventListener('click', () => navigate("messages"));
+
+            document.querySelectorAll('[data-chatid]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const cid = el.getAttribute('data-chatid');
+                    const oname = el.getAttribute('data-chatname') || "Chat";
+                    navigate("messages-chat", { chatId: cid, otherName: oname });
+                });
+            });
+
+            subscribeMessages(chatId);
+
+            const input = document.getElementById('msgInput');
+            const sendBtn = document.getElementById('msgSendBtn');
+            const fileBtn = document.getElementById('msgFileBtn');
+
+            function doSend() {
+                const text = input.value.trim();
+                if (text) {
+                    sendMessage(chatId, text, '', '');
+                    input.value = '';
+                    input.style.height = 'auto';
+                }
+            }
+
+            sendBtn.addEventListener('click', doSend);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    doSend();
+                }
+            });
+            input.addEventListener('input', () => {
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            });
+
+            fileBtn.addEventListener('click', () => {
+                const dialog = uploadcare.openDialog(null, {
+                    publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false
+                });
+                dialog.done((result) => {
+                    result.files[0].promise().then((info) => {
+                        sendMessage(chatId, '', info.cdnUrl, info.name || 'File');
+                        toast('File sent!', 'ok');
+                    });
+                });
+                dialog.fail(() => toast('Upload cancelled.', 'err'));
+            });
+        }
+
         function viewFaq() {
             const faqs = [
                 ["Does Europe Sponsor Jobs charge job seekers a fee?", "No. In line with ILO Fair Recruitment principles, we do not charge workers placement fees. Any legitimate third-party costs (e.g. government visa fees, medical exams) are disclosed transparently."],
                 ["How long does visa sponsorship processing take?", "Typically 4–10 weeks depending on destination country and role, though this can vary based on embassy processing times and document readiness."],
-                ["What documents do I need to apply?", "A CV/Resume is required to apply. A passport copy speeds up processing but can be added later. Additional documents (medical, police clearance) are requested once you reach the relevant stage."],
+                ["What documents do I need to apply?", "A CV/Resume and passport photo are required to apply. A passport number and details are needed. Additional documents (medical, police clearance) are requested once you reach the relevant stage."],
                 ["Can I apply for more than one job?", "Yes — you're welcome to submit separate applications for different roles. Our team will match you to the most suitable opportunity."],
                 ["Is accommodation provided?", "Many employer partners provide or subsidise accommodation. This is specified per job listing."],
-                ["How do I check my application status?", "Use the 'Check Status' page with your Application ID or email, or log into your applicant portal for full details and document status."]
+                ["How do I check my application status?", "Use the 'Check Status' page with your Application ID or email, or log into your applicant portal for full details, document status, and messaging."],
+                ["How does the messaging system work?", "Once you have an application, you can chat with our admin team in real-time — like WhatsApp. Messages sync across all your devices automatically."]
             ];
             return `<section class="section" style="padding-top:44px"><div class="wrap legal-body">
             <div class="section-head"><div class="eyebrow"><i class="fa-solid fa-circle-question"></i> FAQ</div><h2>Frequently Asked Questions</h2></div>
@@ -1813,15 +2304,15 @@
             <h3>4. Selection &amp; Placement</h3><p>Submitting an application does not guarantee an interview, job offer, or visa approval. Final hiring decisions rest with partner employers.</p>
             <h3>5. Data Processing</h3><p>Personal data is processed solely for recruitment purposes, as described in our Privacy Policy.</p>
             <h3>6. Governing Law</h3><p>These Terms are governed by the laws of the jurisdiction in which Europe Sponsor Jobs is registered.</p>
-            <h3>7. Contact</h3><p>Questions can be directed to support@europesponsorjobs.com.</p>
+            <h3>7. Contact</h3><p>Questions can be directed to support@europesponsorjobs.com or via the in-app messaging system.</p>
           </div></section>`;
         }
 
         function viewPrivacy() {
             return `<section class="section" style="padding-top:44px"><div class="wrap legal-body">
             <div class="section-head"><div class="eyebrow"><i class="fa-solid fa-lock"></i> Legal</div><h2>Privacy &amp; Data Protection</h2><p>Last updated: July 2026</p></div>
-            <h3>1. Information We Collect</h3><p>Name, contact details (including phone number), residence/city, CV/resume, passport copy (if provided), cover letter, and application status history.</p>
-            <h3>2. How We Use It</h3><p>To evaluate your application, match you with employers, process visa sponsorship documentation, and communicate with you about your application status.</p>
+            <h3>1. Information We Collect</h3><p>Full name, date of birth, nationality, phone number, email address, residential address, education level, work experience, passport number, passport photo, CV/resume, cover letter, application status history, and messaging/chat communications.</p>
+            <h3>2. How We Use It</h3><p>To evaluate your application, match you with employers, process visa sponsorship documentation, communicate with you about your application status, and provide real-time messaging support.</p>
             <h3>3. Who We Share It With</h3><p>Relevant details are shared with prospective employers and, where required, government or immigration authorities, solely for recruitment and deployment purposes.</p>
             <h3>4. Data Protection Principles</h3><p>We apply data minimisation, purpose limitation, and reasonable security safeguards consistent with international data protection standards, including GDPR for EU-based data flows.</p>
             <h3>5. Your Rights</h3><p>You may request access to, correction of, or deletion of your personal data by contacting support@europesponsorjobs.com.</p>
@@ -1831,20 +2322,31 @@
         function viewAboutDemo() {
             return `<section class="section" style="padding-top:44px"><div class="wrap legal-body">
             <div class="section-head"><div class="eyebrow"><i class="fa-solid fa-flask"></i> Platform</div><h2>About This Platform</h2></div>
-            <p>Europe Sponsor Jobs is built with Firebase and Uploadcare.</p>
+            <p>Europe Sponsor Jobs is built with Firebase and Uploadcare — a fully serverless, real-time recruitment platform.</p>
             <h3>Tech Stack</h3>
             <ul>
               <li><b>Firebase Authentication</b> — Email/password and Google sign-in for applicants; email/password for admins</li>
-              <li><b>Firestore</b> — Real-time NoSQL database for applications, jobs, and fees</li>
-              <li><b>Uploadcare</b> — Professional file uploads with CDN delivery</li>
+              <li><b>Firestore</b> — Real-time NoSQL database for applications, jobs, fees, chats, and messages</li>
+              <li><b>Uploadcare</b> — Professional file uploads with CDN delivery (CVs, passport photos, chat file attachments)</li>
+              <li><b>Real-time Messaging</b> — Multi-device, multi-network chat system (like WhatsApp) for applicant-admin coordination</li>
               <li><b>Pure HTML/CSS/JS</b> — No frameworks, fast and lightweight</li>
+            </ul>
+            <h3>System Collections (Firestore)</h3>
+            <ul>
+              <li><b>jobs</b> — Job listings with title, country, category, salary, description</li>
+              <li><b>applications</b> — Full applicant profiles with all personal data, documents, status timeline, internal notes</li>
+              <li><b>fees</b> — Service fee structure</li>
+              <li><b>admins</b> — Admin user registry (keyed by Firebase Auth UID)</li>
+              <li><b>chats</b> — Chat conversations with participants, unread counts, last message</li>
+              <li><b>messages</b> — Individual messages within chats (real-time synced)</li>
             </ul>
             <h3>Security &amp; Compliance</h3>
             <ul>
-              <li>Passwords are hashed and handled entirely by Firebase Auth — never stored or checked in this file</li>
-              <li>Admin access is granted via a Firestore "admins" document keyed to a real Firebase Auth UID, not a password embedded in the code</li>
-              <li>Real-time data synchronization across devices</li>
-              <li>GDPR-ready consent management</li>
+              <li>Passwords are hashed and handled entirely by Firebase Auth — never stored or checked in client code</li>
+              <li>Admin access is granted via a Firestore "admins" document keyed to a real Firebase Auth UID</li>
+              <li>Real-time data synchronization across all devices</li>
+              <li>GDPR-ready consent management with full data disclosure</li>
+              <li>Chat messages are encrypted in transit via Firebase/Google infrastructure</li>
             </ul>
           </div></section>`;
         }
@@ -1855,15 +2357,17 @@
         await loadJobs();
         await loadFees();
         await loadApps();
+        await loadChats();
         subscribeToRealtime();
+        subscribeChats();
         renderNavbar();
         renderCurrentView();
 
-        console.log("🌍 Europe Sponsor Jobs is live with Firebase + Uploadcare!");
-        console.log("📊 Firestore collections: jobs, applications, fees, admins");
+        console.log("🌍 Europe Sponsor Jobs v2 — Full Feature Release");
+        console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");
+        console.log("💬 WhatsApp-like messaging system active");
         console.log("📁 Uploadcare public key:", UPLOADCARE_PUBLIC_KEY);
     </script>
-
     <!-- =====================================================================
     ADMIN BOOTSTRAP — READ THIS BEFORE GOING LIVE
     =====================================================================
