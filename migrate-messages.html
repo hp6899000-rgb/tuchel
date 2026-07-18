@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head><title>Migrate Messages</title></head>
+<body><h2>Messages Migration</h2><div id="out"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+const firebaseConfig = { apiKey: "AIzaSyB36QSz6KJzSM4YTQE7c7UZQnVqNgT4aXg", authDomain: "tuchel-98f49.firebaseapp.com", projectId: "tuchel-98f49", storageBucket: "tuchel-98f49.firebasestorage.app", messagingSenderId: "800137140751", appId: "1:800137140751:web:150d3bb08384e4442307c5" };
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const out = document.getElementById('out');
+async function migrate() {
+  out.textContent = 'Reading flat messages...';
+  const snap = await getDocs(collection(db, 'messages'));
+  const total = snap.size;
+  out.textContent = `Found ${total} messages. Migrating to subcollections...`;
+  let ok = 0, err = 0;
+  for (const d of snap.docs) {
+    const data = d.data();
+    const chatId = data.chatId;
+    if (!chatId) { err++; continue; }
+    try {
+      delete data.chatId;
+      await setDoc(doc(db, 'chats', chatId, 'messages', d.id), data);
+      await deleteDoc(doc(db, 'messages', d.id));
+      ok++;
+    } catch (e) { err++; console.error(e); }
+  }
+  out.textContent = `Done. Migrated: ${ok}, Errors: ${err}`;
+}
+migrate();
+</script></body></html>
