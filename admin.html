@@ -130,6 +130,9 @@
         .msg-list-time { font-size: 11px; color: var(--slate-400); white-space: nowrap; }
         .msg-list-meta { display: flex; align-items: center; gap: 8px; }
         .msg-unread { background: var(--maroon-500); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: 700; min-width: 18px; text-align: center; }
+        .chat-del { background:none;border:none;color:var(--slate-300);font-size:14px;cursor:pointer;display:none;padding:6px;border-radius:6px;transition:.15s;flex-shrink:0;margin-left:auto; }
+        .msg-list-item:hover .chat-del { display:flex; }
+        .chat-del:hover { color:var(--maroon-600);background:var(--maroon-50); }
         .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); }
         .msg-chat-header { padding: 14px 20px; border-bottom: 1px solid var(--slate-200); background: #fff; display: flex; align-items: center; gap: 12px; font-weight: 600; }
         .msg-chat-header .msg-avatar { cursor: pointer; }
@@ -1316,33 +1319,46 @@
         if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         if(chatMessagesUnsub){chatMessagesUnsub();chatMessagesUnsub=null;}
         olderMessages=[];msgEarliestTimestamp=null;msgHasMore=false;
-        const chats=allChats;
+        const chats=_visibleChats(allChats);
         return `
         <div class="msg-shell">
             <div class="msg-list-panel show">
                 <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages <span style="font-size:12px;color:var(--slate-500);font-weight:400;margin-left:8px">${chats.length} conversation${chats.length!==1?'s':''}</span></div>
-                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0;return `<div class="msg-list-item ${ROUTE.params.chatId===c.id?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'No messages yet')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div></div>`;}).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-slash"></i><p>No conversations yet.</p></div></div>`}
+                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0;return `<div class="msg-list-item ${ROUTE.params.chatId===c.id?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'No messages yet')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-slash"></i><p>No conversations yet.</p></div></div>`}
+                <div style="padding:10px 16px;border-top:1px solid var(--slate-100)"><button class="btn btn-xs btn-outline" id="archiveToggleBtn" style="font-size:11px;width:100%"><i class="fa-solid fa-box-archive"></i> <span id="archiveToggleText">${_showArchived?'Hide archived':'Show archived'}</span></button></div>
             </div>
             <div class="msg-chat-panel show"><div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>Select a conversation</p></div></div></div>
         </div>`;
     }
 
     function wireMessages() {
-        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(){
+        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(e){
+            if(e.target.closest('.chat-del'))return;
             const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
             navigate("messages-chat",{chatId:id,otherName:name});
         }));
+        document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
+            e.stopPropagation();
+            const id=this.getAttribute('data-delchat');
+            if(id)await deleteChat(id);
+        }));
+        document.getElementById('archiveToggleBtn')?.addEventListener('click',function(){
+            _showArchived=!_showArchived;
+            this.querySelector('#archiveToggleText').textContent=_showArchived?'Hide archived':'Show archived';
+            render();
+        });
     }
 
     function viewMessagesChat() {
         if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         const chatId=ROUTE.params.chatId,otherName=ROUTE.params.otherName||"Chat";
-        const chats=allChats;
+        const chats=_visibleChats(allChats);
         return `
         <div class="msg-shell">
             <div class="msg-list-panel show" id="msgListPanel">
                 <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages</div>
-                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div></div>`;}).join(""):''}
+                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):''}
+                <div style="padding:10px 16px;border-top:1px solid var(--slate-100)"><button class="btn btn-xs btn-outline" id="archiveToggleBtn" style="font-size:11px;width:100%"><i class="fa-solid fa-box-archive"></i> <span id="archiveToggleText">${_showArchived?'Hide archived':'Show archived'}</span></button></div>
             </div>
             <div class="msg-chat-panel show">
                 <div class="msg-chat-header"><button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button><div class="msg-avatar" title="Click for user details">${esc(otherName.charAt(0).toUpperCase())}</div><div>${esc(otherName)}</div></div>
@@ -1392,10 +1408,22 @@
                 toast("Service offer sent!","ok");
             });
         }
-        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(){
+        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(e){
+            if(e.target.closest('.chat-del'))return;
             const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
             navigate("messages-chat",{chatId:id,otherName:name});
         }));
+        document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
+            e.stopPropagation();
+            const id=this.getAttribute('data-delchat');
+            if(id)await deleteChat(id);
+        }));
+        document.getElementById('archiveToggleBtn')?.addEventListener('click',function(){
+            _showArchived=!_showArchived;
+            const t=document.getElementById('archiveToggleText');
+            if(t)t.textContent=_showArchived?'Hide archived':'Show archived';
+            render();
+        });
         // Avatar click → show applicant details
         document.querySelector('.msg-chat-header .msg-avatar')?.addEventListener('click',()=>showUserDetails(otherName));
     }
@@ -1484,6 +1512,8 @@
         const uid=docId.startsWith('client_')?docId.slice(7):data.participants?.find(p=>p!==currentUser?.uid);
         return {uid:uid||null,name:uid?(data.participantNames?.[uid]||uid):"Unknown"};
     }
+    let _showArchived=false;
+    function _visibleChats(arr){return arr.filter(c=>_showArchived||!c.hidden?.[currentUser?.uid]);}
     async function loadChats() {
         if(!currentUser)return;
         const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
@@ -1495,6 +1525,11 @@
         const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
         if(allMessagesSub)allMessagesSub();
         allMessagesSub=onSnapshot(q,(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
+    }
+
+    async function deleteChat(chatId) {
+        if(!currentUser||!confirm('Delete this conversation? It can be restored from Archived.'))return;
+        try{await updateDoc(doc(db,"chats",chatId),{[`hidden.${currentUser.uid}`]:serverTimestamp()});toast('Conversation archived.','ok');}catch(e){toast('Failed to archive.','err');}
     }
 
     function subscribeMessages(chatId) {
@@ -1537,7 +1572,10 @@
         const chatId=`client_${otherUid}`,chatRef=doc(db,"chats",chatId);
         const existing=await getDoc(chatRef);
         if(existing.exists())return{id:existing.id,...existing.data()};
-        const adminUids=await getAllAdminUids();
+        // Double-check no duplicate chat exists for this user
+        const dup=await getDocs(query(collection(db,"chats"),where("participants","array-contains",otherUid)));
+        if(!dup.empty)return{id:dup.docs[0].id,...dup.docs[0].data()};
+        const adminUids=cachedAdminUids||await getAllAdminUids();
         const allParticipants=[otherUid,...adminUids];
         const participantNames={[otherUid]:otherName};
         adminUids.forEach(uid=>{participantNames[uid]='Admin';});

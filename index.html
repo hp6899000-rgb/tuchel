@@ -1038,7 +1038,9 @@
             const chatRef = doc(db, "chats", chatId);
             const existing = await getDoc(chatRef);
             if (existing.exists()) return { id: existing.id, ...existing.data() };
-            const adminUids = await getAllAdminUids();
+            const dup = await getDocs(query(collection(db,"chats"),where("participants","array-contains",uid)));
+            if (!dup.empty) return { id: dup.docs[0].id, ...dup.docs[0].data() };
+            const adminUids = cachedAdminUids || await getAllAdminUids();
             const allParticipants = [uid, ...adminUids];
             const participantNames = { [uid]: applicantName || currentUserData?.fullName || currentUser?.displayName || currentUser?.email || "User" };
             adminUids.forEach(auid => { participantNames[auid] = 'Admin'; });
