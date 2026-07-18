@@ -499,10 +499,11 @@
         import {
             getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
             onAuthStateChanged, updateProfile,
-            GoogleAuthProvider, signInWithPopup
+            GoogleAuthProvider, signInWithPopup,
+            setPersistence, browserSessionPersistence
         } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
         import {
-            getFirestore, enableMultiTabIndexedDbPersistence, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc,
+            getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc,
             query, where, orderBy, onSnapshot, serverTimestamp, arrayUnion, limit, limitToLast, startAfter
         } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
@@ -519,11 +520,8 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const auth = getAuth(app);
+        setPersistence(auth, browserSessionPersistence).catch(e=>console.warn("Auth persistence:",e.message));
         const db = getFirestore(app);
-        enableMultiTabIndexedDbPersistence(db).catch((e)=>{
-            if(e.code==='failed-precondition')console.warn("Persistence: multiple tabs open, offline only in first tab.");
-            else if(e.code==='unimplemented')console.warn("Persistence not supported in this browser.");
-        });
         const googleProvider = new GoogleAuthProvider();
         const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
 
@@ -1168,7 +1166,7 @@
                     if (adminRes) {
                         currentUserData = { ...adminRes, type: 'admin' };
                         loadApps();
-                        const saved = localStorage.getItem('lastRoute');
+                        const saved = sessionStorage.getItem('lastRoute');
                         if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
                         if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                         renderNavbar(); renderCurrentView();
@@ -1257,7 +1255,7 @@
 
         let ROUTE = { view: "home", params: {} };
         function restoreLastRoute() {
-            const saved = localStorage.getItem('lastRoute');
+            const saved = sessionStorage.getItem('lastRoute');
             if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
             if (ROUTE.view === 'login') navigate("applicant-dashboard");
         }
@@ -1268,7 +1266,7 @@
             renderCurrentView();
             const nl = document.getElementById('navLinks');
             if (nl) nl.classList.remove('open');
-            localStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+            sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
             history.pushState(ROUTE, '');
         }
         window.addEventListener('popstate', (e) => {
@@ -3413,6 +3411,10 @@ function showChatUserDetails(userName, chatId) {
         renderCurrentView();
         setTimeout(autoSeedJobsIfEmpty, 300);
 
+        // Network stability monitor
+        let wasOffline = false;
+        window.addEventListener('online',()=>{if(wasOffline){toast('Connection restored.','ok');wasOffline=false;}});
+        window.addEventListener('offline',()=>{wasOffline=true;toast('Network lost — working offline. Reconnect to sync.','err');});
         console.log("🌍 Europe Sponsor Jobs v2 — Full Feature Release");
         console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");
         console.log("💬 WhatsApp-like messaging system active");

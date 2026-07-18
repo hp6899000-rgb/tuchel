@@ -251,8 +251,8 @@
 
 <script type="module">
     import { initializeApp } from "firebase/app";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-    import { getFirestore, enableMultiTabIndexedDbPersistence, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit, limitToLast, startAfter } from "firebase/firestore";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, setPersistence, browserSessionPersistence } from "firebase/auth";
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit, limitToLast, startAfter } from "firebase/firestore";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCAKCZJTAq_NeLmo5toNjYVHFqZFSQxNzE",
@@ -265,11 +265,8 @@
     };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    setPersistence(auth, browserSessionPersistence).catch(e=>console.warn("Auth persistence:",e.message));
     const db = getFirestore(app);
-    enableMultiTabIndexedDbPersistence(db).catch((e)=>{
-        if(e.code==='failed-precondition')console.warn("Persistence: multiple tabs open, offline only in first tab.");
-        else if(e.code==='unimplemented')console.warn("Persistence not supported in this browser.");
-    });
     const googleProvider = new GoogleAuthProvider();
     const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
     const COUNTRY_META = {
@@ -401,7 +398,7 @@
         ROUTE={view:v,params:p};
         window.scrollTo({top:0,behavior:'instant'});
         render();
-        localStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+        sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
         history.pushState(ROUTE, '');
     }
     window.addEventListener('popstate',(e)=>{
@@ -1497,7 +1494,7 @@
                     subscribeChats();
                     fixAdminChatNames();
                     subscribeApps();
-                    const saved=localStorage.getItem('lastRoute');
+                    const saved=sessionStorage.getItem('lastRoute');
                     if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){navigate(r.view,r.params||{});return;}}catch(e){}}
                     navigate("dashboard");
                 }else{
@@ -1519,6 +1516,10 @@
 
     // Boot
     try{await Promise.all([loadJobs(),loadFees()]);}catch(e){}
+    // Network stability monitor
+    let wasOffline = false;
+    window.addEventListener('online',()=>{if(wasOffline){toast('Connection restored.','ok');wasOffline=false;}});
+    window.addEventListener('offline',()=>{wasOffline=true;toast('Network lost — working offline. Reconnect to sync.','err');});
 </script>
 <!--
 === FIRESTORE SECURITY RULES (paste in Console → Firestore → Rules) ===
