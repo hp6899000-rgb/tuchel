@@ -288,10 +288,15 @@
     let allMessagesSub = null;
 
     const STATUS_STEPS = [
-        "Application Received", "Document Verification", "Screening Interview",
-        "Employer Matching", "Job Offer Extended", "Contract Signing",
-        "Visa Sponsorship Processing", "Medical & Police Clearance",
-        "Travel & Deployment", "Placed — Active Employment"
+        "Application Received",
+        "Documents Processing (Work Permit, Standard Europe Pass CV / Cover Letter)",
+        "Documents Review & Approval",
+        "Employer Matching & Interview",
+        "Job Offer & Contract Signing",
+        "Visa Sponsorship Processing",
+        "Medical & Police Clearance",
+        "Travel & Deployment",
+        "Placed — Active Employment"
     ];
     const TERMINAL_ALT = ["On Hold", "Rejected", "Withdrawn by Applicant"];
     const ALL_STATUSES = [...STATUS_STEPS, ...TERMINAL_ALT];
@@ -345,23 +350,25 @@
             reqs.push({label:'CV verified by admin', met:!!a.documentsVerified?.cv});
             reqs.push({label:'Passport verified by admin', met:!!a.documentsVerified?.passport});
         }
-        if(stageIdx>=2) reqs.push({label:'Screening interview completed', met:!!(a.timeline||[]).some(t=>t.status==='Screening Interview')});
-        if(stageIdx>=3) reqs.push({label:'Employer matched', met:!!(a.timeline||[]).some(t=>t.status==='Employer Matching')});
+        if(stageIdx>=2){
+            reqs.push({label:'Certificates verified', met:!!a.documentsVerified?.certificates});
+            reqs.push({label:'Reference letter verified', met:!!a.documentsVerified?.reference});
+        }
+        if(stageIdx>=3) reqs.push({label:'Employer matched & interview completed', met:!!(a.timeline||[]).some(t=>t.status==='Employer Matching & Interview')});
         if(stageIdx>=4){
-            reqs.push({label:'Job offer extended', met:!!(a.timeline||[]).some(t=>t.status==='Job Offer Extended')});
+            reqs.push({label:'Job offer extended & contract signed', met:!!(a.timeline||[]).some(t=>t.status==='Job Offer & Contract Signing')});
             reqs.push({label:'Contract documents uploaded', met:!!a.contractUrl});
         }
-        if(stageIdx>=5) reqs.push({label:'Contract signed', met:!!(a.timeline||[]).some(t=>t.status==='Contract Signing')});
-        if(stageIdx>=6){
+        if(stageIdx>=5){
             reqs.push({label:'Medical report uploaded', met:!!a.medicalUrl});
             reqs.push({label:'Reference letters uploaded', met:!!a.referenceUrl});
             reqs.push({label:'Certificates uploaded', met:!!a.certificatesUrl});
         }
-        if(stageIdx>=7){
+        if(stageIdx>=6){
             reqs.push({label:'Medical report cleared', met:!!a.documentsVerified?.medical});
             reqs.push({label:'Police clearance submitted', met:!!a.policeClearanceUrl});
         }
-        if(stageIdx>=8) reqs.push({label:'Travel & deployment arranged', met:!!(a.timeline||[]).some(t=>t.status==='Travel & Deployment')});
+        if(stageIdx>=7) reqs.push({label:'Travel & deployment arranged', met:!!(a.timeline||[]).some(t=>t.status==='Travel & Deployment')});
         return reqs;
     }
     function checkAutoAdvance(a) {
@@ -468,7 +475,7 @@
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
                     <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:var(--slate-600)"><input type="checkbox" id="showBlockedCb" ${adminFilters.showBlocked?'checked':''}> Show blocked accounts</label>
                 </div>
-                <div class="filter-bar">${["All","Germany","UK","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
+                <div class="filter-bar">${["All","Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
                 <div class="filter-bar">${["All",...ALL_STATUSES].map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
                 <div class="card" style="overflow-x:auto">
                     <table class="app-table">
@@ -867,10 +874,10 @@
         document.getElementById('adminUploadDocBtn').addEventListener('click',()=>{
             const field=document.getElementById('adminDocType').value;
             const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
-            dialog.done(async(result)=>{
+            dialog.done(async(file)=>{
                 try{
-                    const info=await result.files[0].promise(); if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
-                    const url=info.cdnUrl+(info.isImage?' -/preview/800x800/':'');
+                    const info=await file.promise(); if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
+                    const url=info.cdnUrl;
                     const id=appId(app);
                     await updateDoc(doc(db,"applications",id),{[field]:url,updatedAt:serverTimestamp()});
                     toast("Document uploaded to application.","ok");
@@ -1000,8 +1007,8 @@
                     <h4 style="margin:0 0 16px;color:var(--blue-900)">Add New Job</h4>
                     <form id="addJobForm" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                         <div class="field" style="margin:0"><label>Title <span class="req">*</span></label><input type="text" name="title" required></div>
-                        <div class="field" style="margin:0"><label>Country <span class="req">*</span></label><select name="country" required><option value="">Select</option>${["Germany","UK","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
-                        <div class="field" style="margin:0"><label>Category <span class="req">*</span></label><select name="category" required><option value="">Select</option>${["Construction & Manual Labor","Hospitality & Domestic Services","Healthcare","Skilled Trades","Logistics & Drivers","Engineering & Technical","IT & Professional Services","Agriculture & Farm Work","Education & Teaching","Finance & Accounting"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+                        <div class="field" style="margin:0"><label>Country <span class="req">*</span></label><select name="country" required><option value="">Select</option>${["Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+                        <div class="field" style="margin:0"><label>Category <span class="req">*</span></label><select name="category" required><option value="">Select</option>${["Healthcare","Security & Safety","Logistics & Warehousing","Construction & Manual Labor","Cleaning & Maintenance","Health, Safety & Environment","Hospitality & Tourism","Agriculture & Farming"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
                         <div class="field" style="margin:0"><label>Salary</label><input type="text" name="salary" placeholder="e.g. EUR 2,500/month"></div>
                         <div class="field" style="margin:0;grid-column:1/-1"><label>Description</label><textarea name="desc" rows="2"></textarea></div>
                         <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Job</button>
@@ -1160,13 +1167,13 @@
             fileBtn.addEventListener('click',()=>{
                 const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
                 dialog.done((file)=>{
-                    file.progress((u)=>console.log("Upload progress:",u));
-                    file.done((finfo)=>{
-                        if(finfo.size&&finfo.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
-                        const url=finfo.cdnUrl+(finfo.isImage?' -/preview/800x800/':'');
-                        sendMessage(chatId,'',url,finfo.name||'File');
-                    });
+                    file.promise().then((info)=>{
+                        if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
+                        const url=info.cdnUrl;
+                        sendMessage(chatId,'',url,info.name||'File');
+                    }).catch(()=>toast("Upload failed.","err"));
                 });
+                dialog.fail(()=>toast("Upload cancelled.","err"));
             });
         }
         const svcBtn=document.getElementById('sendServiceOfferBtn');
