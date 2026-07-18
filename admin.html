@@ -52,6 +52,7 @@
         .btn-outline:hover { border-color: var(--blue-600); background: var(--slate-50); color: var(--blue-800); }
         .btn-sm { padding: 8px 16px; font-size: 12.5px; }
         .btn-block { width: 100%; }
+        .btn:disabled, button:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
         .card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
         .card.pad { padding: 22px 26px; }
         .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
@@ -67,6 +68,7 @@
         .badge-green { background: var(--emerald-50); color: var(--emerald-600); }
         .badge-amber { background: var(--amber-50); color: var(--amber-600); }
         .badge-rose { background: var(--rose-50); color: var(--rose-600); }
+        .badge-indigo { background: #EEF2FF; color: #4F46E5; }
         .badge-slate { background: var(--slate-100); color: var(--slate-700); }
         .chip { padding: 7px 18px; border-radius: 100px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 12.5px; font-weight: 600; color: var(--slate-700); transition: var(--transition); }
         .chip:hover { border-color: var(--blue-500); color: var(--blue-800); }
@@ -265,7 +267,7 @@
     };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    setPersistence(auth, browserSessionPersistence).catch(e=>console.warn("Auth persistence:",e.message));
+    try{await setPersistence(auth, browserSessionPersistence);}catch(e){console.warn("Auth persistence:",e.message);}
     const db = getFirestore(app);
     const googleProvider = new GoogleAuthProvider();
     const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
@@ -335,6 +337,21 @@
     function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
     function statusBadge(s) { if(!s)return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`; const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
     function appId(a) { return a.appId || a.id || a.uid || ''; }
+    function docStatusBadge(st){
+        const m={
+            'not_uploaded':['badge-slate','Not Uploaded'],
+            'received':['badge-blue','Received'],
+            'pending_review':['badge-amber','Pending Review'],
+            'processing':['badge-indigo','Processing'],
+            'verified':['badge-green','Verified'],
+            'rejected':['badge-rose','Rejected'],
+            'upload_again':['badge-rose','Re-upload Required'],
+            'reuploaded':['badge-indigo','Re-uploaded'],
+            'changes_requested':['badge-rose','Changes Requested']
+        };
+        const b=m[st]||m['not_uploaded'];
+        return `<span class="badge ${b[0]}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${b[1]}</span>`;
+    }
     async function addAuditLog(action,details,targetId=''){try{await addDoc(collection(db,"auditLog"),{action,details,targetId,adminEmail:currentUserData?.email||currentUser?.email||'unknown',timestamp:serverTimestamp()});}catch(e){}}
     function calcCompleteness(a) {
         const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
@@ -618,7 +635,7 @@
 
                     <!-- TAB: Documents -->
                     <div class="tab-panel" data-tab="docs">
-                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Uploaded Documents</h4>
+                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Documents</h4>
                         ${[
                             {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
                             {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
@@ -630,16 +647,24 @@
                             const hasUrl=!!d.url;
                             const acts=[];
                             if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                            if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);
+                            if(st==='received') acts.push(`<button class="btn btn-outline btn-sm docStartReviewBtn" data-dockey="${d.key}">Start Review</button>`);
                             if(st==='pending_review'||st==='reuploaded'){
                                 acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                                acts.push(`<button class="btn btn-outline btn-sm docRequestChangeBtn" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
-                            }else if(st==='verified'){
-                                acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
-                            }else if(st==='changes_requested'){
+                                acts.push(`<button class="btn btn-outline btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
+                                acts.push(`<button class="btn btn-outline btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                            }
+                            if(st==='processing'){
+                                acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                                acts.push(`<button class="btn btn-outline btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                            }
+                            if(st==='verified') acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                            if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm docAllowReuploadBtn" data-dockey="${d.key}">Allow Re-upload</button>`);
+                            if(st==='changes_requested'||st==='upload_again'){
                                 acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
                                 acts.push(`<button class="btn btn-outline btn-sm docCancelReqBtn" data-dockey="${d.key}">Cancel Request</button>`);
                             }
-                            return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="badge ${st==='verified'?'badge-green':st==='pending_review'?'badge-amber':st==='reuploaded'?'badge-blue':st==='changes_requested'?'badge-rose':'badge-slate'}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${st==='verified'?'Verified':st==='pending_review'?'Pending Review':st==='reuploaded'?'Re-uploaded':st==='changes_requested'?'Changes Requested':'Not Uploaded'}</span>${acts.join('')}</div></div>`;
+                            return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                         }).join("")}
                         <h4 style="margin:16px 0 12px;color:var(--blue-900);font-size:14px">Upload Document for Applicant</h4>
                         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -920,6 +945,41 @@
             await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
             toast(`Change request cancelled for "${key}".`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
         }));
+        document.querySelectorAll('.docMarkReceivedBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'received'};
+            await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
+            try{sendSystemNotification(app.uid,app.fullName,`📄 Document "${key.toUpperCase()}" has been received and is under review.`);}catch(e){}
+            toast(`"${key}" marked as received.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docStartReviewBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'pending_review'};
+            await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
+            try{sendSystemNotification(app.uid,app.fullName,`🔍 Document "${key.toUpperCase()}" is now under review.`);}catch(e){}
+            toast(`"${key}" moved to review.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docProcessBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'processing'};
+            await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
+            try{sendSystemNotification(app.uid,app.fullName,`⚙️ Document "${key.toUpperCase()}" is being processed.`);}catch(e){}
+            toast(`"${key}" set to processing.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docRejectBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'rejected'};
+            await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
+            try{sendSystemNotification(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please contact support for details.`);}catch(e){}
+            toast(`"${key}" rejected.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docAllowReuploadBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'upload_again'};
+            await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
+            try{sendSystemNotification(app.uid,app.fullName,`📤 Document "${key.toUpperCase()}": You may now upload a new version.`);}catch(e){}
+            toast(`Re-upload allowed for "${key}".`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+        }));
 
         // Auto-advance
         document.getElementById('autoAdvanceBtn')?.addEventListener('click',async()=>{
@@ -1072,10 +1132,8 @@
         if(!currentUser)return;
         const chat=await getOrCreateChat(uid,name);
         if(!chat)return;
-        const mr=doc(collection(db,"chats",chat.id,"messages"));
-        await setDoc(mr,{senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
-        const cr=doc(db,"chats",chat.id);
-        await updateDoc(cr,{[`unread.${uid}`]:increment(1),lastMessage:msgText,lastTimestamp:serverTimestamp()});
+        await setDoc(doc(collection(db,"chats",chat.id,"messages")),{senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
+        await updateDoc(doc(db,"chats",chat.id),{[`unread.${uid}`]:increment(1),lastMessage:msgText,lastTimestamp:serverTimestamp()});
     }
 
     async function sendServiceStatusNotification(uid,name,svcLabel,oldStatus,newStatus){
@@ -1091,9 +1149,13 @@
             await sendSystemNotification(uid,name,msgText);
         }catch(e){console.warn("Status notification send failed:",e);}
     }
+    let _fixAdminHash = '';
     async function fixAdminChatNames() {
         try {
             const adminUids = await getAllAdminUids();
+            const hash = adminUids.sort().join(',');
+            if (hash === _fixAdminHash) return;
+            _fixAdminHash = hash;
             if (!adminUids.length) return;
             const snap = await getDocs(collection(db, "chats"));
             let fixed = 0;
@@ -1303,7 +1365,7 @@
         const input=document.getElementById('chatInput');
         const sendBtn=document.getElementById('sendBtn');
         const fileBtn=document.getElementById('msgFileBtn');
-        function send(){const t=input.value.trim();if(t){sendMessage(chatId,t);input.value='';input.style.height='auto';}}
+        async function send(){const t=input.value.trim();if(t&&!sendBtn.disabled){sendBtn.disabled=true;sendBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';try{await sendMessage(chatId,t);input.value='';input.style.height='auto';}finally{sendBtn.disabled=false;sendBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>';}}}
         sendBtn.addEventListener('click',send);
         input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
         input.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'});
@@ -1418,17 +1480,21 @@
 
     function computeCountryCounts(){}
 
+    function _otherFromChat(docId,data) {
+        const uid=docId.startsWith('client_')?docId.slice(7):data.participants?.find(p=>p!==currentUser?.uid);
+        return {uid:uid||null,name:uid?(data.participantNames?.[uid]||uid):"Unknown"};
+    }
     async function loadChats() {
         if(!currentUser)return;
         const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
-        getDocs(q).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ou=dt.participants?.find(p=>p!==currentUser.uid),on=ou?(dt.participantNames?.[ou]||ou):"Unknown";allChats.push({id:d.id,...dt,otherUid:ou,otherName:on});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();}).catch(()=>{});
+        return getDocs(q).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();return allChats;}).catch(()=>[]);
     }
 
     function subscribeChats() {
         if(!currentUser)return;
         const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
         if(allMessagesSub)allMessagesSub();
-        allMessagesSub=onSnapshot(q,(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ou=dt.participants?.find(p=>p!==currentUser.uid),on=ou?(dt.participantNames?.[ou]||ou):"Unknown";allChats.push({id:d.id,...dt,otherUid:ou,otherName:on});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
+        allMessagesSub=onSnapshot(q,(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
     }
 
     function subscribeMessages(chatId) {
@@ -1451,7 +1517,7 @@
     }
 
     async function markChatRead(chatId) {
-        try{const adminUids=await getAllAdminUids();const zeroed={};adminUids.forEach(uid=>{zeroed[`unread.${uid}`]=0;});await updateDoc(doc(db,"chats",chatId),zeroed);}catch(e){}
+        try{if(currentUser)await updateDoc(doc(db,"chats",chatId),{[`unread.${currentUser.uid}`]:0});}catch(e){}
     }
 
     function getUnreadCount() {
@@ -1486,9 +1552,12 @@
         const msg={senderId:currentUser.uid,senderName:'Admin',text:text||'',type:fileUrl?'file':'text',fileUrl:fileUrl||'',fileName:fileName||'',read:false,timestamp:serverTimestamp()};
         await setDoc(r,msg);
         const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
-        const ou=cd.participants.find(p=>p!==currentUser.uid);
-        await updateDoc(cr,{[`unread.${ou}`]:increment(1),lastMessage:text||(fileUrl?`📎 ${fileName||'File'}`:''),lastTimestamp:serverTimestamp(),lastSender:currentUser.uid});
-        await loadChats();
+        const updates={};
+        cd.participants.forEach(p=>{if(p!==currentUser.uid)updates[`unread.${p}`]=increment(1);});
+        updates.lastMessage=text||(fileUrl?`📎 ${fileName||'File'}`:'');
+        updates.lastTimestamp=serverTimestamp();
+        updates.lastSender=currentUser.uid;
+        await updateDoc(cr,updates);
     }
 
     // ============= AUTH =============
@@ -1500,14 +1569,13 @@
                 if(fsAdmin){
                     currentUserData={...fsAdmin,type:'admin'};
                     document.getElementById('topbarUser').textContent=user.email;
-                    await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
-                    getAllAdminUids();
-                    subscribeChats();
-                    subscribeApps();
-                    fixAdminChatNames();
                     const saved=sessionStorage.getItem('lastRoute');
-                    if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){navigate(r.view,r.params||{});return;}}catch(e){}}
-                    navigate("dashboard");
+                    if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){navigate(r.view,r.params||{});}}catch(e){}}
+                    if(ROUTE.view==='login'||!ROUTE.view)navigate("dashboard");
+                    getAllAdminUids().catch(()=>{});
+                    loadApps();loadJobs();loadFees();
+                    fixAdminChatNames().finally(()=>{loadChats();subscribeChats();});
+                    subscribeApps();
                 }else{
                     currentUser=null;currentUserData=null;
                     await signOut(auth);

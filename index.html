@@ -95,7 +95,7 @@
         .btn-google:hover { background: var(--slate-50); border-color: var(--slate-400); }
         .btn-sm { padding: 8px 16px; font-size: 12.5px; }
         .btn-block { width: 100%; }
-        .btn[disabled] { opacity: .5; cursor: not-allowed; pointer-events: none; }
+        .btn[disabled], .btn:disabled, button:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
         label { display: block; font-size: 12.5px; font-weight: 600; color: var(--slate-700); margin-bottom: 5px; }
         .req { color: var(--maroon-500); }
         input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
@@ -118,6 +118,7 @@
         .badge-green { background: var(--emerald-50); color: var(--emerald-600); }
         .badge-amber { background: var(--amber-50); color: var(--amber-600); }
         .badge-rose { background: var(--rose-50); color: var(--rose-600); }
+        .badge-indigo { background: #EEF2FF; color: #4F46E5; }
         .badge-slate { background: var(--slate-100); color: var(--slate-700); }
         table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
         th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate-500); padding: 12px 16px; border-bottom: 2px solid var(--slate-200); font-weight: 700; }
@@ -520,7 +521,7 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const auth = getAuth(app);
-        setPersistence(auth, browserSessionPersistence).catch(e=>console.warn("Auth persistence:",e.message));
+        try{await setPersistence(auth, browserSessionPersistence);}catch(e){console.warn("Auth persistence:",e.message);}
         const db = getFirestore(app);
         const googleProvider = new GoogleAuthProvider();
         const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
@@ -782,10 +783,14 @@
         function docStatusBadge(st){
             const m={
                 'not_uploaded':['badge-slate','Not Uploaded'],
+                'received':['badge-blue','Received'],
                 'pending_review':['badge-amber','Pending Review'],
-                'changes_requested':['badge-rose','Changes Requested'],
-                'reuploaded':['badge-blue','Re-uploaded'],
-                'verified':['badge-green','Verified']
+                'processing':['badge-indigo','Processing'],
+                'verified':['badge-green','Verified'],
+                'rejected':['badge-rose','Rejected'],
+                'upload_again':['badge-rose','Re-upload Required'],
+                'reuploaded':['badge-indigo','Re-uploaded'],
+                'changes_requested':['badge-rose','Changes Requested']
             };
             const b=m[st]||m['not_uploaded'];
             return `<span class="badge ${b[0]}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${b[1]}</span>`;
@@ -818,9 +823,13 @@
                 await updateDoc(cr, updates);
             } catch (e) { console.warn("notifyAdmin error:", e); }
         }
+        let _fixAdminHash = '';
         async function fixAdminChatNames() {
             try {
                 const adminUids = await getAllAdminUids();
+                const hash = adminUids.sort().join(',');
+                if (hash === _fixAdminHash) return;
+                _fixAdminHash = hash;
                 if (!adminUids.length) return;
                 const snap = await getDocs(collection(db, "chats"));
                 let fixed = 0;
@@ -1064,18 +1073,17 @@
             updates.lastTimestamp = serverTimestamp();
             updates.lastSender = currentUser.uid;
             await updateDoc(chatRef, updates);
-            await loadChats();
         }
 
         async function loadChats() {
             if (!currentUser) return;
             const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
-            getDocs(q).then(snap => {
+            return getDocs(q).then(snap => {
                 allChats = [];
                 snap.forEach(d => {
                     const data = d.data();
                     const otherUid = data.participants?.find(p => p !== currentUser.uid);
-                    const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Admin Team";
+                    const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
                     allChats.push({ id: d.id, ...data, otherUid, otherName });
                 });
                 allChats.sort((a, b) => {
@@ -1084,8 +1092,8 @@
                     return tb - ta;
                 });
                 if (ROUTE.view === "messages" || ROUTE.view === "messages-chat") renderCurrentView();
-            }).catch(() => {});
-            return allChats;
+                return allChats;
+            }).catch(() => []);
         }
 
         function subscribeChats() {
@@ -1171,47 +1179,35 @@
             try {
                 currentUser = user;
                 if (user) {
-                    renderNavbar(); renderCurrentView();
+                    renderNavbar();
                     const adminRes = await getAdminUser(user.uid);
                     if (adminRes) {
                         currentUserData = { ...adminRes, type: 'admin' };
-                        getAllAdminUids();
+                        getAllAdminUids().catch(()=>{});
                         loadApps();
-                        const saved = sessionStorage.getItem('lastRoute');
-                        if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
-                        if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
+                        restoreLastRoute();
+                        if (ROUTE.view === 'login') navigate("admin-dashboard");
                         renderNavbar(); renderCurrentView();
                     } else {
-                        // Load primary profile + all applications for this user
-                        getApp(user.uid).then(appData => {
-                            if(appData&&appData.blocked){signOut(auth);toast("Your account has been blocked. Please contact support.","err");return;}
-                            getDocs(query(collection(db,"applications"),where("uid","==",user.uid))).then(snap=>{
-                                const allUserApps=[];
-                                snap.forEach(d=>allUserApps.push({id:d.id,...d.data()}));
-                                const primary=allUserApps.find(a=>a.id===user.uid);
-                                if(primary){
-                                    currentUserData = { ...primary, type: 'applicant', allApps: allUserApps };
-                                }else if(allUserApps.length){
-                                    currentUserData = { ...allUserApps[0], type: 'applicant', allApps: allUserApps };
-                                }else if(appData){
-                                    currentUserData = { ...appData, type: 'applicant', allApps: [appData] };
-                                }else{
-                                    currentUserData = { type: 'needs-profile' };
-                                }
-                                getAllAdminUids();
-                                loadChats().then(()=>{subscribeChats();restoreLastRoute();fixAdminChatNames();});
-                                renderNavbar();renderCurrentView();
-                            }).catch(()=>{
-                                if(appData){
-                                    currentUserData={...appData,type:'applicant',allApps:[appData]};
-                                }else{
-                                    currentUserData={type:'needs-profile'};
-                                }
-                                getAllAdminUids();
-                                loadChats().then(()=>{subscribeChats();restoreLastRoute();fixAdminChatNames();});
-                                renderNavbar();renderCurrentView();
-                            });
-                        });
+                        try {
+                            const snap = await getDocs(query(collection(db,"applications"),where("uid","==",user.uid)));
+                            const allUserApps=[];
+                            snap.forEach(d=>allUserApps.push({id:d.id,...d.data()}));
+                            const primary=allUserApps.find(a=>a.id===user.uid);
+                            if(primary) currentUserData = { ...primary, type: 'applicant', allApps: allUserApps };
+                            else if(allUserApps.length) currentUserData = { ...allUserApps[0], type: 'applicant', allApps: allUserApps };
+                            else currentUserData = { type: 'needs-profile' };
+                        } catch(e) {
+                            currentUserData = { type: 'needs-profile' };
+                        }
+                        if (currentUserData?.blocked) { signOut(auth); toast("Your account has been blocked.","err"); return; }
+                        getAllAdminUids().catch(()=>{});
+                        const chatsReady = loadChats().then(() => subscribeChats());
+                        fixAdminChatNames().finally(() => loadChats());
+                        await chatsReady;
+                        restoreLastRoute();
+                        if (ROUTE.view === 'login') navigate("applicant-dashboard");
+                        renderNavbar();renderCurrentView();
                     }
                 } else {
                     currentUserData = null;
@@ -2364,7 +2360,7 @@
                         const acts = [];
                         if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                         if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
-                        else if(st==='changes_requested') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload New</button>`);
+                        else if(st==='changes_requested'||st==='upload_again'||st==='rejected') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload New</button>`);
                         else acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Replace</button>`);
                         return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                     }).join("")}
@@ -2427,7 +2423,7 @@
                     const uid = app.uid || currentUser?.uid;
                     if (!uid) return;
                     const curSt = app.documentStatus?.[docKey] || 'not_uploaded';
-                    const newSt = curSt === 'changes_requested' ? 'reuploaded' : 'pending_review';
+                    const newSt = (curSt === 'changes_requested' || curSt === 'upload_again' || curSt === 'rejected') ? 'reuploaded' : 'pending_review';
                     await setDoc(doc(db, "applications", uid), { [field]: url, [`documentStatus.${docKey}`]: newSt, updatedAt: serverTimestamp() }, { merge: true });
                     app[field] = url;
                     if(!app.documentStatus) app.documentStatus = {};
@@ -2625,12 +2621,20 @@
                     const hasUrl=!!d.url;
                     const acts=[];
                     if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                    if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm idxDocMarkReceived" data-dockey="${d.key}">Mark Received</button>`);
+                    if(st==='received') acts.push(`<button class="btn btn-outline btn-sm idxDocStartReview" data-dockey="${d.key}">Start Review</button>`);
                     if(st==='pending_review'||st==='reuploaded'){
                       acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                      acts.push(`<button class="btn btn-outline btn-sm idxDocRequestChange" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
-                    }else if(st==='verified'){
-                      acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
-                    }else if(st==='changes_requested'){
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocProcess" data-dockey="${d.key}">Processing</button>`);
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                    }
+                    if(st==='processing'){
+                      acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                    }
+                    if(st==='verified') acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                    if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm idxDocAllowReupload" data-dockey="${d.key}">Allow Re-upload</button>`);
+                    if(st==='changes_requested'||st==='upload_again'){
                       acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
                       acts.push(`<button class="btn btn-outline btn-sm idxDocCancelRequest" data-dockey="${d.key}">Cancel Request</button>`);
                     }
@@ -2750,6 +2754,41 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 toast(`Change request cancelled for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocMarkReceived').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'received'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`📄 Document "${key.toUpperCase()}" has been received and is under review.`);
+                toast(`"${key}" marked as received.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocStartReview').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`🔍 Document "${key.toUpperCase()}" is now under review.`);
+                toast(`"${key}" moved to review.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocProcess').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'processing'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`⚙️ Document "${key.toUpperCase()}" is being processed.`);
+                toast(`"${key}" set to processing.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocReject').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'rejected'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please contact support for details.`);
+                toast(`"${key}" rejected.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocAllowReupload').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'upload_again'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`📤 Document "${key.toUpperCase()}": You may now upload a new version.`);
+                toast(`Re-upload allowed for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
             }));
             // Status chip click
             let selectedStatus=null;
@@ -3247,12 +3286,16 @@ function wireMessagesChat() {
     const sendBtn = document.getElementById('msgSendBtn');
     const fileBtn = document.getElementById('msgFileBtn');
 
-    function doSend() {
+    async function doSend() {
         const text = input.value.trim();
-        if (text) {
-            sendMessage(chatId, text, '', '');
-            input.value = '';
-            input.style.height = 'auto';
+        if (text && !sendBtn.disabled) {
+            sendBtn.disabled = true; sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                await sendMessage(chatId, text, '', '');
+                input.value = ''; input.style.height = 'auto';
+            } finally {
+                sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            }
         }
     }
 
