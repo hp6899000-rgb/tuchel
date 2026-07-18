@@ -64,21 +64,22 @@
         }
         * { box-sizing: border-box; margin: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: var(--font-body); background: var(--bg); color: var(--slate-900); -webkit-font-smoothing: antialiased; line-height: 1.6; }
+        body { font-family: var(--font-body); background: var(--bg); color: var(--slate-900); -webkit-font-smoothing: antialiased; line-height: 1.6; overflow-wrap: break-word; word-break: break-word; }
         h1, h2, h3, h4, .font-head { font-family: var(--font-head); letter-spacing: -0.01em; }
         a { color: inherit; text-decoration: none; }
         button { font-family: inherit; cursor: pointer; border: none; background: none; }
-        img, svg { display: block; }
+        img { max-width: 100%; height: auto; display: block; }
+        svg { display: block; max-width: 100%; }
         ::selection { background: var(--maroon-400); color: #fff; }
         :focus-visible { outline: 2px solid var(--maroon-500); outline-offset: 2px; }
-        .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; box-sizing: border-box; }
         .grid { display: grid; gap: 24px; }
         .card { background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius); box-shadow: var(--shadow-sm); transition: var(--transition); }
         .card:hover { box-shadow: var(--shadow-md); }
         .card-glow { border-color: var(--maroon-400); }
         .pad { padding: 28px 30px; }
         .pad-sm { padding: 18px 20px; }
-        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1.5px solid transparent; transition: var(--transition); white-space: nowrap; line-height: 1.2; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1.5px solid transparent; transition: var(--transition); white-space: nowrap; line-height: 1.2; max-width: 100%; }
         .btn-primary { background: var(--blue-800); color: #fff; border-color: var(--blue-800); }
         .btn-primary:hover { background: var(--blue-700); border-color: var(--blue-700); transform: translateY(-1px); box-shadow: var(--shadow-md); }
         .btn-maroon { background: var(--maroon-600); color: #fff; border-color: var(--maroon-600); }
@@ -99,7 +100,7 @@
         label { display: block; font-size: 12.5px; font-weight: 600; color: var(--slate-700); margin-bottom: 5px; }
         .req { color: var(--maroon-500); }
         input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
-            width: 100%; padding: 11px 14px; border: 1.5px solid var(--slate-200); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: var(--slate-900); transition: var(--transition);
+            width: 100%; max-width: 100%; padding: 11px 14px; border: 1.5px solid var(--slate-200); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: var(--slate-900); transition: var(--transition);
         }
         input:focus, select:focus, textarea:focus { border-color: var(--blue-500); outline: none; box-shadow: 0 0 0 3px rgba(46, 104, 184, .12); }
         textarea { resize: vertical; min-height: 90px; }
@@ -124,7 +125,7 @@
         th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--slate-500); padding: 12px 16px; border-bottom: 2px solid var(--slate-200); font-weight: 700; }
         td { padding: 14px 16px; border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
         tr:hover td { background: var(--slate-50); }
-        #navbar { position: sticky; top: 0; z-index: 500; background: rgba(255, 255, 255, .94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--slate-200); }
+        #navbar { position: sticky; top: 0; left: 0; right: 0; width: 100%; z-index: 500; background: rgba(255, 255, 255, .94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--slate-200); }
         .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
         .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 19px; color: var(--blue-900); }
         .brand-mark { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--blue-800), var(--maroon-600)); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px; box-shadow: var(--shadow-sm); flex-shrink: 0; }
@@ -178,6 +179,7 @@
         .section-head p { color: var(--slate-500); font-size: 15.5px; margin: 0; }
         .section-alt { background: var(--white); border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200); }
         .country-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .country-grid > *, .job-grid > *, .why-grid > *, .fee-grid > *, .process-grid > *, .stat-grid > *, .field-row > *, .field-row-3 > *, .foot-grid > * { min-width: 0; }
         .country-card { border-radius: var(--radius-lg); overflow: hidden; background: var(--white); border: 1px solid var(--slate-200); box-shadow: var(--shadow-sm); transition: var(--transition); }
         .country-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-4px); border-color: var(--maroon-400); }
         .country-flagbar { height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; color: #fff; font-family: var(--font-head); font-weight: 700; font-size: 18px; position: relative; background: linear-gradient(135deg, var(--blue-800), var(--blue-600)); }
@@ -199,7 +201,7 @@
         .job-foot { display: flex; justify-content: space-between; align-items: center; }
         .job-salary { font-weight: 700; color: var(--blue-800); font-size: 13.5px; }
         .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-        .chip { padding: 7px 18px; border-radius: 100px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 12.5px; font-weight: 600; color: var(--slate-700); transition: var(--transition); }
+        .chip { padding: 7px 18px; border-radius: 100px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 12.5px; font-weight: 600; color: var(--slate-700); transition: var(--transition); white-space: nowrap; }
         .chip:hover { border-color: var(--blue-500); color: var(--blue-800); }
         .chip.active { background: var(--blue-800); border-color: var(--blue-800); color: #fff; }
         .fee-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
@@ -262,6 +264,7 @@
         .dash-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px; }
         .dash-topbar h2 { margin: 0; font-size: 22px; color: var(--blue-900); }
         .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+        .stat-grid > * { min-width: 0; }
         .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px 18px; transition: var(--transition); }
         .stat-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-sm); }
         .stat-card .n { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--blue-900); line-height: 1.2; }
@@ -275,7 +278,7 @@
         .modal-head h3 { margin: 0; font-size: 17px; color: var(--blue-900); }
         .modal-close { background: var(--slate-100); border: none; width: 34px; height: 34px; border-radius: 8px; color: var(--slate-600); font-size: 16px; transition: var(--transition); }
         .modal-close:hover { background: var(--slate-200); }
-        .modal-body { padding: 24px 26px; max-height: 70vh; overflow: auto; }
+        .modal-body { padding: 24px 26px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         .modal-foot { padding: 16px 26px; border-top: 1px solid var(--slate-200); display: flex; justify-content: flex-end; gap: 10px; }
         .doc-row { display: flex; align-items: center; justify-content: space-between; background: var(--slate-50); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
         .doc-row .di { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--blue-800); }
@@ -295,7 +298,7 @@
         .tab-btn { flex: 1; text-align: center; padding: 9px 12px; border-radius: 7px; font-size: 13px; font-weight: 700; color: var(--slate-500); background: transparent; border: none; transition: var(--transition); }
         .tab-btn.active { background: #fff; color: var(--blue-900); box-shadow: var(--shadow-sm); }
         .tab-btn:hover:not(.active) { color: var(--slate-700); }
-        footer { background: var(--blue-950); color: #B9C8DC; padding: 56px 24px 28px; border-top: 1px solid rgba(255, 255, 255, .05); }
+        footer { width: 100%; background: var(--blue-950); color: #B9C8DC; padding: 56px 24px 28px; border-top: 1px solid rgba(255, 255, 255, .05); }
         .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; margin-bottom: 36px; }
         .foot-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 800; font-size: 19px; color: #fff; margin-bottom: 12px; }
         footer h5 { color: #fff; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 14px; font-weight: 700; }
@@ -331,8 +334,8 @@
         .cs-option .cs-sublabel { margin-left: auto; font-size: 12px; color: var(--slate-400); }
         .cs-option.selected { background: var(--blue-50); font-weight: 600; }
         .cs-no-results { padding: 24px 14px; text-align: center; color: var(--slate-400); font-size: 13px; }
-        .msg-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 72px); }
-        .msg-list-panel { background: #fff; border-right: 1px solid var(--slate-200); overflow-y: auto; max-height: calc(100vh - 72px); }
+        .msg-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 72px); max-width: 100%; }
+        .msg-list-panel { background: #fff; border-right: 1px solid var(--slate-200); overflow-y: auto; max-height: calc(100vh - 72px); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         .msg-list-panel .msg-list-header { padding: 18px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; color: var(--blue-900); font-family: var(--font-head); position: sticky; top: 0; background: #fff; z-index: 5; }
         .msg-list-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--slate-100); cursor: pointer; transition: var(--transition); }
         .msg-list-item:hover { background: var(--slate-50); }
@@ -347,7 +350,7 @@
         .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); }
         .msg-chat-header { padding: 14px 20px; border-bottom: 1px solid var(--slate-200); background: #fff; display: flex; align-items: center; gap: 12px; font-weight: 600; }
         .msg-chat-header .msg-avatar { cursor: pointer; }
-        .msg-chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; max-width: 800px; margin: 0 auto; width: 100%; }
+        .msg-chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; max-width: 800px; margin: 0 auto; width: 100%; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         .msg-chat-input { padding: 12px 20px; border-top: 1px solid var(--slate-200); background: #fff; display: flex; gap: 10px; align-items: flex-end; }
         .msg-bubble { max-width: 75%; padding: 10px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; word-wrap: break-word; }
         .msg-bubble.sent { align-self: flex-end; background: var(--msg-sent); border-bottom-right-radius: 4px; }
@@ -355,7 +358,6 @@
         .msg-bubble .msg-time { font-size: 10px; color: var(--slate-400); margin-top: 4px; text-align: right; }
         .msg-bubble .msg-file { display: flex; align-items: center; gap: 8px; background: var(--slate-100); padding: 8px 12px; border-radius: 8px; margin-top: 6px; }
         .msg-bubble .msg-file a { color: var(--blue-700); font-weight: 600; font-size: 12px; }
-        .msg-chat-input { padding: 12px 20px; border-top: 1px solid var(--slate-200); background: #fff; display: flex; gap: 10px; align-items: flex-end; }
         .msg-chat-input textarea { flex: 1; resize: none; min-height: 20px; max-height: 120px; padding: 10px 14px; border-radius: 20px; }
         .msg-chat-input .btn { border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .msg-empty { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--slate-400); text-align: center; padding: 40px; }
@@ -364,7 +366,7 @@
         .fee-row .amt { font-weight: 700; font-size: 15px; color: var(--blue-900); min-width: 90px; }
         .fee-row .lbl { flex: 1; font-size: 13px; color: var(--slate-700); }
         .fee-row .status { font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .progress-stages { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+        .progress-stages { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; overscroll-behavior: contain; }
         .progress-stages .stage { flex: 1; min-width: 80px; text-align: center; padding: 8px 4px; font-size: 10px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); border-right: 2px solid #fff; position: relative; }
         .progress-stages .stage:last-child { border-right: none; }
         .progress-stages .stage.done { background: var(--emerald-50); color: var(--emerald-600); }
@@ -394,7 +396,7 @@
             .hero-stat b { font-size: 22px; }
             .form-shell { grid-template-columns: 1fr; }
             .dash-shell { grid-template-columns: 1fr; }
-            .dash-side { display: flex; overflow: auto; gap: 4px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--slate-200); }
+            .dash-side { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--slate-200); overscroll-behavior: contain; }
             .dash-side .side-title { display: none; }
             .side-link { padding: 8px 14px; font-size: 12.5px; white-space: nowrap; flex-shrink: 0; color: var(--slate-700); }
             .side-link:hover { background: var(--slate-100); color: var(--blue-900); }
@@ -486,8 +488,8 @@
             .chip { padding: 5px 12px; font-size: 11px; }
             .job-cat-icon { width: 36px; height: 36px; font-size: 14px; }
             .job-salary { font-size: 12px; }
-            .btn { padding: 10px 18px; font-size: 13px; }
-            .btn-sm { padding: 7px 14px; font-size: 12px; }
+            .btn { padding: 10px 18px; font-size: 13px; white-space: normal; }
+            .btn-sm { padding: 7px 14px; font-size: 12px; white-space: normal; }
             .msg-count { font-size: 9px; padding: 1px 5px; min-width: 16px; }
             .progress-stages .stage { min-width: 50px; font-size: 8px; padding: 4px 2px; }
             .progress-stages .stage .stage-icon { font-size: 11px; }
@@ -501,6 +503,46 @@
             .hero-stats { flex-direction: column; gap: 12px; }
             .hero-stat { display: flex; align-items: center; gap: 8px; }
             .hero-stat b { font-size: 18px; min-width: 48px; }
+            .side-link { padding: 10px 14px; min-height: 44px; }
+            .nav-link { min-height: 44px; }
+            .msg-list-item { min-height: 56px; }
+            .btn { min-height: 44px; }
+            .btn-sm { min-height: 36px; }
+            .country-card { margin-bottom: 4px; }
+            .dash-side .side-link { min-height: 44px; }
+            .stamp-panel .btn-block { white-space: normal; }
+        }
+        @media (max-width: 360px) {
+            .brand { font-size: 12px; }
+            .brand-mark { width: 24px; height: 24px; font-size: 10px; }
+            .nav-inner { height: 52px; }
+            .wrap { padding: 0 8px; }
+            .dash-main { padding: 12px 8px; }
+            .section { padding: 24px 8px; }
+            .hero-inner { padding: 24px 12px 20px; }
+            .hero h1 { font-size: 20px; }
+            .hero .lead { font-size: 12.5px; }
+            .modal { margin: 4px; border-radius: 8px; }
+            .modal-body { padding: 10px; }
+            .modal-head { padding: 10px 12px; }
+            .modal-head h3 { font-size: 13px; }
+            .modal-foot { padding: 10px 12px; }
+            .btn { padding: 8px 14px; font-size: 12px; min-height: 40px; }
+            .btn-sm { padding: 6px 10px; font-size: 11px; min-height: 32px; }
+            .chip { padding: 4px 10px; font-size: 10px; }
+            table { font-size: 11px; }
+            th, td { padding: 6px 6px; }
+            .msg-list-panel.show { inset: 52px 0 0; }
+            .msg-list-item { padding: 10px 10px; min-height: 48px; }
+            .msg-avatar { width: 30px; height: 30px; font-size: 12px; }
+            .msg-chat-body { padding: 8px; }
+            .msg-chat-input { padding: 8px 10px; }
+            .msg-bubble { max-width: 92%; font-size: 12px; }
+            footer { padding: 28px 12px 20px; }
+            .foot-grid { gap: 14px; }
+            .stat-card { padding: 10px 12px; }
+            .stat-card .n { font-size: 20px; }
+            .dash-topbar h2 { font-size: 15px; }
         }
         .msg-anim { animation: msgFadeIn .2s ease; }
         @keyframes msgFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -1342,7 +1384,33 @@
             });
         }
 
+        history.scrollRestoration = 'manual';
         let ROUTE = { view: "home", params: {} };
+        function saveScrollPos() {
+            try { sessionStorage.setItem('scrollPos_' + ROUTE.view, String(window.scrollY)); } catch(e) {}
+        }
+        function restoreScrollPos() {
+            try {
+                const saved = sessionStorage.getItem('scrollPos_' + ROUTE.view);
+                if (saved) { const sy = parseInt(saved, 10); if (!isNaN(sy)) requestAnimationFrame(() => window.scrollTo({ top: sy })); }
+            } catch(e) {}
+        }
+        function saveAdminFilters() {
+            try { sessionStorage.setItem('adminFilters', JSON.stringify(adminFilters)); } catch(e) {}
+        }
+        function restoreAdminFilters() {
+            try {
+                const saved = sessionStorage.getItem('adminFilters');
+                if (saved) { const f = JSON.parse(saved); if (f && typeof f === 'object') Object.assign(adminFilters, f); }
+            } catch(e) {}
+        }
+        function saveRouteState() {
+            try {
+                sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+                saveScrollPos();
+                saveAdminFilters();
+            } catch(e) {}
+        }
         function initHistoryState() {
             if (!history.state || !history.state.view) {
                 history.replaceState({ ...ROUTE, scrollY: 0 }, '');
@@ -1351,11 +1419,12 @@
         function restoreLastRoute() {
             initHistoryState();
             const saved = sessionStorage.getItem('lastRoute');
-            if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
+            if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { ROUTE = r; renderCurrentView(); restoreScrollPos(); return; } } catch(e) {} }
             if (ROUTE.view === 'login') navigate("applicant-dashboard");
         }
         function navigate(view, params = {}) {
             if (view === ROUTE.view && JSON.stringify(params) === JSON.stringify(ROUTE.params)) return;
+            saveRouteState();
             const appEl = document.getElementById('app');
             if (history.state && history.state.view) {
                 history.replaceState({ ...history.state, scrollY: window.scrollY }, '');
@@ -1367,13 +1436,20 @@
                 renderCurrentView();
                 const nl = document.getElementById('navLinks');
                 if (nl) nl.classList.remove('open');
-                sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+                saveRouteState();
                 history.pushState({ ...ROUTE, scrollY: 0 }, '');
-                requestAnimationFrame(() => { appEl.classList.remove('fade-out'); });
+                requestAnimationFrame(() => {
+                    appEl.classList.remove('fade-out');
+                    restoreScrollPos();
+                });
             });
         }
+        const _throttleResize = (() => { let t; return (fn, ms) => { clearTimeout(t); t = setTimeout(fn, ms); }; })();
+        window.addEventListener('resize', () => { _throttleResize(() => { saveRouteState(); }, 300); });
+        window.addEventListener('beforeunload', () => { saveRouteState(); });
         window.addEventListener('popstate', (e) => {
             if (e.state && e.state.view && e.state.view !== ROUTE.view) {
+                saveRouteState();
                 ROUTE = e.state;
                 const appEl = document.getElementById('app');
                 appEl.classList.add('fade-out');
@@ -1387,6 +1463,7 @@
                 });
             }
         });
+        restoreAdminFilters();
 
         // Admin access is granted ONLY via Firestore admins/{uid} documents (secure, server-side).
         // To add an admin, create a document in the "admins" collection with their Firebase Auth UID.
@@ -1508,7 +1585,7 @@
                     const view = el.getAttribute('data-nav');
                     const jobid = el.getAttribute('data-jobid');
                     const country = el.getAttribute('data-country');
-                    if (view === 'jobs' && country) { jobFilter = { country, category: "All" }; }
+                    if (view === 'jobs' && country) { jobFilter = { country, category: "All" }; saveJobFilter(); }
                     navigate(view, jobid ? { jobid } : {});
                 });
             });
@@ -1725,10 +1802,13 @@
             </div>`;
         }
 
+        function saveJobFilter() { try { sessionStorage.setItem('jobFilter', JSON.stringify(jobFilter)); } catch(e) {} }
+        function restoreJobFilter() { try { const s = sessionStorage.getItem('jobFilter'); if (s) { const f = JSON.parse(s); if (f && typeof f === 'object') Object.assign(jobFilter, f); } } catch(e) {} }
         function wireJobsFilters() {
-            document.querySelectorAll('[data-country]').forEach(b => b.addEventListener('click', () => { jobFilter.country = b.getAttribute('data-country'); renderCurrentView(); }));
-            document.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { jobFilter.category = b.getAttribute('data-cat'); renderCurrentView(); }));
+            document.querySelectorAll('[data-country]').forEach(b => b.addEventListener('click', () => { jobFilter.country = b.getAttribute('data-country'); saveJobFilter(); renderCurrentView(); }));
+            document.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { jobFilter.category = b.getAttribute('data-cat'); saveJobFilter(); renderCurrentView(); }));
         }
+        restoreJobFilter();
 
         function viewApply() {
             if (currentUserData?.type === 'admin') {
@@ -2663,11 +2743,11 @@
         }
 
         function wireAdminDashboard() {
-            document.getElementById('idxShowBlockedCb')?.addEventListener('change',function(){adminFilters.showBlocked=this.checked;renderCurrentView();});
+            document.getElementById('idxShowBlockedCb')?.addEventListener('change',function(){adminFilters.showBlocked=this.checked;saveAdminFilters();renderCurrentView();});
             const s = document.getElementById('adminSearch');
-            if (s) s.addEventListener('input', () => { adminFilters.search = s.value; renderList(); });
-            document.querySelectorAll('[data-afcountry]').forEach(b => b.addEventListener('click', () => { adminFilters.country = b.getAttribute('data-afcountry'); renderCurrentView(); }));
-            document.querySelectorAll('[data-afstatus]').forEach(b => b.addEventListener('click', () => { adminFilters.status = b.getAttribute('data-afstatus'); renderCurrentView(); }));
+            if (s) s.addEventListener('input', () => { adminFilters.search = s.value; saveAdminFilters(); renderList(); });
+            document.querySelectorAll('[data-afcountry]').forEach(b => b.addEventListener('click', () => { adminFilters.country = b.getAttribute('data-afcountry'); saveAdminFilters(); renderCurrentView(); }));
+            document.querySelectorAll('[data-afstatus]').forEach(b => b.addEventListener('click', () => { adminFilters.status = b.getAttribute('data-afstatus'); saveAdminFilters(); renderCurrentView(); }));
             document.querySelectorAll('[data-openapp]').forEach(b => b.addEventListener('click', () => openAdminAppModal(b.getAttribute('data-openapp'))));
             document.querySelectorAll('[data-action="seed-jobs"]').forEach(b => b.addEventListener('click', async () => {
                 if (usingFallbackJobs) { toast("Firestore is not available — cannot seed jobs.", "err"); return; }
@@ -3610,6 +3690,11 @@ function showChatUserDetails(userName, chatId) {
         } catch (e) { console.warn("Initial data load issue:", e.message); }
         subscribeToRealtime();
         subscribeChats();
+        // Restore public route (non-auth pages like jobs, fees, faq)
+        try {
+            const saved = sessionStorage.getItem('lastRoute');
+            if (saved) { const r = JSON.parse(saved); if (r.view && !['login','applicant-dashboard','admin-dashboard','admin-jobs','admin-fees','messages','messages-chat','confirmation'].includes(r.view)) { ROUTE = r; } }
+        } catch(e) {}
         renderNavbar();
         renderCurrentView();
         setTimeout(autoSeedJobsIfEmpty, 300);
