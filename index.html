@@ -697,6 +697,7 @@
         ];
         const JOBS_SEED = COUNTRIES.flatMap(c => JOB_ROLES.map((r, i) => ({ ...r, country: c, id: "fallback_" + i + "_" + c })));
         allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
+        let countryJobCounts = {};
         computeCountryCounts();
 
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
@@ -923,7 +924,6 @@
             }
         }
 
-        let countryJobCounts = {};
         function computeCountryCounts() {
             const c = {};
             COUNTRIES.forEach(cn => c[cn] = 0);
