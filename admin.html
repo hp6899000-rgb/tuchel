@@ -1340,7 +1340,7 @@
         document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
             e.stopPropagation();
             const id=this.getAttribute('data-delchat');
-            if(id)await deleteChat(id);
+            if(id){const ch=allChats.find(x=>x.id===id);await toggleChatHidden(id,!!ch?.hidden?.[currentUser?.uid]);}
         }));
         document.getElementById('archiveToggleBtn')?.addEventListener('click',function(){
             _showArchived=!_showArchived;
@@ -1416,7 +1416,7 @@
         document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
             e.stopPropagation();
             const id=this.getAttribute('data-delchat');
-            if(id)await deleteChat(id);
+            if(id){const ch=allChats.find(x=>x.id===id);await toggleChatHidden(id,!!ch?.hidden?.[currentUser?.uid]);}
         }));
         document.getElementById('archiveToggleBtn')?.addEventListener('click',function(){
             _showArchived=!_showArchived;
@@ -1527,9 +1527,13 @@
         allMessagesSub=onSnapshot(q,(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
     }
 
-    async function deleteChat(chatId) {
-        if(!currentUser||!confirm('Delete this conversation? It can be restored from Archived.'))return;
-        try{await updateDoc(doc(db,"chats",chatId),{[`hidden.${currentUser.uid}`]:serverTimestamp()});toast('Conversation archived.','ok');}catch(e){toast('Failed to archive.','err');}
+    async function toggleChatHidden(chatId,isHidden) {
+        if(!currentUser)return;
+        if(!isHidden&&!confirm('Archive this conversation?'))return;
+        try{
+            await updateDoc(doc(db,"chats",chatId),{[`hidden.${currentUser.uid}`]:isHidden?null:serverTimestamp()});
+            toast(isHidden?'Conversation restored.':'Conversation archived.','ok');
+        }catch(e){toast('Failed.','err');}
     }
 
     function subscribeMessages(chatId) {
