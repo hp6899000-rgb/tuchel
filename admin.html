@@ -252,7 +252,7 @@
 <script type="module">
     import { initializeApp } from "firebase/app";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, setPersistence, browserSessionPersistence } from "firebase/auth";
-    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit, limitToLast, startAfter } from "firebase/firestore";
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, limit, limitToLast, startAfter } from "firebase/firestore";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCAKCZJTAq_NeLmo5toNjYVHFqZFSQxNzE",
@@ -284,6 +284,7 @@
 
     let currentUser = null;
     let currentUserData = null;
+    let cachedAdminUids = null;
     let allApps = [];
     let allJobs = [];
     let allFees = [];
@@ -1073,10 +1074,8 @@
         if(!chat)return;
         const mr=doc(collection(db,"chats",chat.id,"messages"));
         await setDoc(mr,{senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
-        const cr=doc(db,"chats",chat.id),cs=await getDoc(cr),cd=cs.data();
-        const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
-        un[ou]=(un[ou]||0)+1;
-        await updateDoc(cr,{lastMessage:msgText,lastTimestamp:serverTimestamp(),unread:un});
+        const cr=doc(db,"chats",chat.id);
+        await updateDoc(cr,{[`unread.${uid}`]:increment(1),lastMessage:msgText,lastTimestamp:serverTimestamp()});
     }
 
     async function sendServiceStatusNotification(uid,name,svcLabel,oldStatus,newStatus){
@@ -1442,7 +1441,7 @@
     }
 
     async function markChatRead(chatId) {
-        try{const r=doc(db,"chats",chatId),s=await getDoc(r);if(s.exists()){const d=s.data(),u=d.unread||{};const adminUids=await getAllAdminUids();let changed=false;adminUids.forEach(uid=>{if(u[uid]){u[uid]=0;changed=true;}});if(changed)await updateDoc(r,{unread:u});}}catch(e){}
+        try{const adminUids=await getAllAdminUids();const zeroed={};adminUids.forEach(uid=>{zeroed[`unread.${uid}`]=0;});await updateDoc(doc(db,"chats",chatId),zeroed);}catch(e){}
     }
 
     function getUnreadCount() {
@@ -1450,9 +1449,11 @@
         return allChats.reduce((s,c)=>s+((c.unread?.[currentUser.uid])||0),0);
     }
 
-    async function getAllAdminUids() {
+    async function getAllAdminUids(forceRefresh) {
+        if(cachedAdminUids&&!forceRefresh)return cachedAdminUids;
         const snap=await getDocs(collection(db,"admins"));
         const uids=[];snap.forEach(d=>uids.push(d.id));
+        cachedAdminUids=uids;
         return uids;
     }
     async function getOrCreateChat(otherUid,otherName) {
@@ -1475,9 +1476,8 @@
         const msg={senderId:currentUser.uid,senderName:'Admin',text:text||'',type:fileUrl?'file':'text',fileUrl:fileUrl||'',fileName:fileName||'',read:false,timestamp:serverTimestamp()};
         await setDoc(r,msg);
         const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
-        const ou=cd.participants.find(p=>p!==currentUser.uid),un=cd.unread||{};
-        un[ou]=(un[ou]||0)+1;
-        await updateDoc(cr,{lastMessage:text||(fileUrl?`📎 ${fileName||'File'}`:''),lastTimestamp:serverTimestamp(),lastSender:currentUser.uid,unread:un});
+        const ou=cd.participants.find(p=>p!==currentUser.uid);
+        await updateDoc(cr,{[`unread.${ou}`]:increment(1),lastMessage:text||(fileUrl?`📎 ${fileName||'File'}`:''),lastTimestamp:serverTimestamp(),lastSender:currentUser.uid});
         await loadChats();
     }
 
@@ -1491,6 +1491,7 @@
                     currentUserData={...fsAdmin,type:'admin'};
                     document.getElementById('topbarUser').textContent=user.email;
                     await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
+                    getAllAdminUids();
                     subscribeChats();
                     fixAdminChatNames();
                     subscribeApps();
