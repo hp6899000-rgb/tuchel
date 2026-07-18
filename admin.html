@@ -201,6 +201,12 @@
         .msg-chat-body { scroll-behavior: smooth; }
         .msg-chat-header { position: sticky; top: 0; z-index: 10; }
         #msgBackBtn { margin-right: 4px; flex-shrink: 0; }
+        #app { transition: opacity .12s ease; will-change: opacity; }
+        #app.fade-out { opacity: 0; }
+        #app.fade-in { opacity: 1; }
+        .loading-overlay { position: fixed; inset: 0; z-index: 9998; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.6); backdrop-filter: blur(2px); pointer-events: none; }
+        .loading-overlay .spinner { width: 32px; height: 32px; border: 3px solid var(--slate-200); border-top-color: var(--maroon-500); border-radius: 50%; animation: spin .6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 900px) {
             .dash-shell { grid-template-columns: 1fr; }
             .dash-side { display: flex; overflow: auto; gap: 4px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--slate-200); }
@@ -463,18 +469,62 @@
     }
 
     // Admin email grant — dev override
+    let _loadingCount = 0;
+    function showLoading() {
+        _loadingCount++;
+        if (_loadingCount === 1) {
+            let ov = document.getElementById('loadingOverlay');
+            if (!ov) {
+                ov = document.createElement('div');
+                ov.id = 'loadingOverlay';
+                ov.className = 'loading-overlay';
+                ov.innerHTML = '<div class="spinner"></div>';
+                document.body.appendChild(ov);
+            }
+            ov.style.display = 'flex';
+        }
+    }
+    function hideLoading() {
+        _loadingCount = Math.max(0, _loadingCount - 1);
+        if (_loadingCount === 0) {
+            const ov = document.getElementById('loadingOverlay');
+            if (ov) ov.style.display = 'none';
+        }
+    }
+    function initHistoryState() {
+        if (!history.state || !history.state.view) {
+            history.replaceState({ ...ROUTE, scrollY: 0 }, '');
+        }
+    }
     function navigate(v,p={}) {
+        if (v === ROUTE.view && JSON.stringify(p) === JSON.stringify(ROUTE.params)) return;
+        if (history.state && history.state.view) {
+            history.replaceState({ ...history.state, scrollY: window.scrollY }, '');
+        }
         ROUTE={view:v,params:p};
-        window.scrollTo({top:0,behavior:'instant'});
-        render();
-        sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
-        history.pushState(ROUTE, '');
+        const appEl = document.getElementById('app');
+        appEl.classList.add('fade-out');
+        requestAnimationFrame(() => {
+            window.scrollTo({top:0});
+            render();
+            sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+            history.pushState({ ...ROUTE, scrollY: 0 }, '');
+            requestAnimationFrame(() => { appEl.classList.remove('fade-out'); });
+        });
     }
     window.addEventListener('popstate',(e)=>{
         if(e.state&&e.state.view&&e.state.view!==ROUTE.view){
             ROUTE=e.state;
-            window.scrollTo({top:0,behavior:'instant'});
-            render();
+            const appEl = document.getElementById('app');
+            appEl.classList.add('fade-out');
+            requestAnimationFrame(() => {
+                render();
+                requestAnimationFrame(() => {
+                    appEl.classList.remove('fade-out');
+                    const sy = e.state.scrollY || 0;
+                    requestAnimationFrame(() => window.scrollTo({ top: sy }));
+                });
+            });
         }
     });
     function render() {
@@ -1737,6 +1787,7 @@
     });
 
     // Boot
+    initHistoryState();
     try{await Promise.all([loadJobs(),loadFees()]);}catch(e){}
     // Network stability monitor
     let wasOffline = false;

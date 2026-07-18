@@ -513,6 +513,12 @@
             .msg-chat-panel.show { z-index: 150; position: relative; }
             #msgBackBtn { display: inline-flex !important; }
         }
+        #app { transition: opacity .12s ease; will-change: opacity; }
+        #app.fade-out { opacity: 0; }
+        #app.fade-in { opacity: 1; }
+        .loading-overlay { position: fixed; inset: 0; z-index: 9998; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.6); backdrop-filter: blur(2px); pointer-events: none; }
+        .loading-overlay .spinner { width: 32px; height: 32px; border: 3px solid var(--slate-200); border-top-color: var(--maroon-500); border-radius: 50%; animation: spin .6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .text-center { text-align: center; }
         .mt-8 { margin-top: 8px; }
         .mt-16 { margin-top: 16px; }
@@ -1336,26 +1342,48 @@
         }
 
         let ROUTE = { view: "home", params: {} };
+        function initHistoryState() {
+            if (!history.state || !history.state.view) {
+                history.replaceState({ ...ROUTE, scrollY: 0 }, '');
+            }
+        }
         function restoreLastRoute() {
+            initHistoryState();
             const saved = sessionStorage.getItem('lastRoute');
             if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
             if (ROUTE.view === 'login') navigate("applicant-dashboard");
         }
         function navigate(view, params = {}) {
-            const prev = ROUTE;
+            if (view === ROUTE.view && JSON.stringify(params) === JSON.stringify(ROUTE.params)) return;
+            const appEl = document.getElementById('app');
+            if (history.state && history.state.view) {
+                history.replaceState({ ...history.state, scrollY: window.scrollY }, '');
+            }
             ROUTE = { view, params };
-            window.scrollTo({ top: 0, behavior: "instant" });
-            renderCurrentView();
-            const nl = document.getElementById('navLinks');
-            if (nl) nl.classList.remove('open');
-            sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
-            history.pushState(ROUTE, '');
+            appEl.classList.add('fade-out');
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: 0 });
+                renderCurrentView();
+                const nl = document.getElementById('navLinks');
+                if (nl) nl.classList.remove('open');
+                sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+                history.pushState({ ...ROUTE, scrollY: 0 }, '');
+                requestAnimationFrame(() => { appEl.classList.remove('fade-out'); });
+            });
         }
         window.addEventListener('popstate', (e) => {
             if (e.state && e.state.view && e.state.view !== ROUTE.view) {
                 ROUTE = e.state;
-                window.scrollTo({ top: 0, behavior: "instant" });
-                renderCurrentView();
+                const appEl = document.getElementById('app');
+                appEl.classList.add('fade-out');
+                requestAnimationFrame(() => {
+                    renderCurrentView();
+                    requestAnimationFrame(() => {
+                        appEl.classList.remove('fade-out');
+                        const sy = e.state.scrollY || 0;
+                        requestAnimationFrame(() => window.scrollTo({ top: sy }));
+                    });
+                });
             }
         });
 
@@ -1363,6 +1391,28 @@
         // To add an admin, create a document in the "admins" collection with their Firebase Auth UID.
         async function isAdminEmail(email) { return false; }
 
+        let _loadingCount = 0;
+        function showLoading() {
+            _loadingCount++;
+            if (_loadingCount === 1) {
+                let ov = document.getElementById('loadingOverlay');
+                if (!ov) {
+                    ov = document.createElement('div');
+                    ov.id = 'loadingOverlay';
+                    ov.className = 'loading-overlay';
+                    ov.innerHTML = '<div class="spinner"></div>';
+                    document.body.appendChild(ov);
+                }
+                ov.style.display = 'flex';
+            }
+        }
+        function hideLoading() {
+            _loadingCount = Math.max(0, _loadingCount - 1);
+            if (_loadingCount === 0) {
+                const ov = document.getElementById('loadingOverlay');
+                if (ov) ov.style.display = 'none';
+            }
+        }
         function renderNavbar() {
             const nav = document.getElementById('navbar');
             const links = [
@@ -1372,16 +1422,24 @@
                 { v: "fees", label: "Fees" },
                 { v: "faq", label: "FAQ" }
             ];
+            const activeView = ROUTE.view;
+            const isActive = (v) => {
+                if (activeView === v) return true;
+                if (v === 'home' && activeView === '') return true;
+                if (v === 'applicant-dashboard' && ['applicant-dashboard', 'confirmation', 'messages', 'messages-chat'].includes(activeView)) return true;
+                if (v === 'admin-dashboard' && activeView.startsWith('admin-')) return true;
+                return false;
+            };
             let rightHtml = "";
             if (currentUser && currentUserData) {
                 const unread = getUnreadCount();
                 const msgBadge = unread ? `<span class="msg-count">${unread}</span>` : '';
                 if (currentUserData.type === 'applicant' || currentUserData.type === 'needs-profile') {
-                    rightHtml = `<a class="nav-link" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
+                    rightHtml = `<a class="nav-link ${isActive('applicant-dashboard') ? 'active' : ''}" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
                 <button class="btn btn-outline btn-sm" data-action="logout">Log out</button>`;
                 } else if (currentUserData.type === 'admin') {
-                    rightHtml = `<a class="nav-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
-                <a class="nav-link" data-nav="admin-dashboard"><i class="fa-solid fa-shield-halved"></i> Admin</a>
+                    rightHtml = `<a class="nav-link ${isActive('messages') ? 'active' : ''}" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
+                <a class="nav-link ${isActive('admin-dashboard') ? 'active' : ''}" data-nav="admin-dashboard"><i class="fa-solid fa-shield-halved"></i> Admin</a>
                 <button class="btn btn-outline btn-sm" data-action="logout">Log out</button>`;
                 }
             } else {
