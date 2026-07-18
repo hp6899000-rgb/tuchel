@@ -811,10 +811,10 @@
             try {
                 if (!currentUser) return;
                 const adminsSnap = await getDocs(collection(db, "admins"));
-                let adminUid = null, adminName = "Admin";
-                adminsSnap.forEach(d => { adminUid = d.id; if (d.data().displayName) adminName = d.data().displayName; });
+                let adminUid = null;
+                adminsSnap.forEach(d => { adminUid = d.id; });
                 if (!adminUid) return;
-                const chat = await getOrCreateChat(adminUid, adminName);
+                const chat = await getOrCreateChat(adminUid, "Admin");
                 if (!chat) return;
                 const mr = doc(collection(db, "messages"));
                 await setDoc(mr, { chatId: chat.id, senderId: currentUser.uid, senderName: currentUserData?.fullName || 'Applicant', text: msgText, fileUrl: '', fileName: '', timestamp: serverTimestamp(), read: false });
@@ -826,6 +826,25 @@
                 un[ou] = (un[ou] || 0) + 1;
                 await updateDoc(cr, { lastMessage: msgText, lastTimestamp: serverTimestamp(), lastSender: currentUser.uid, unread: un });
             } catch (e) { console.warn("notifyAdmin error:", e); }
+        }
+        async function fixAdminChatNames() {
+            try {
+                const adminsSnap = await getDocs(collection(db, "admins"));
+                let adminUid = null;
+                adminsSnap.forEach(d => { adminUid = d.id; });
+                if (!adminUid) return;
+                const q = query(collection(db, "chats"), where("participants", "array-contains", adminUid));
+                const snap = await getDocs(q);
+                let fixed = 0;
+                for (const d of snap.docs) {
+                    const data = d.data();
+                    if (data.participantNames?.[adminUid] && data.participantNames[adminUid] !== "Admin") {
+                        await updateDoc(d.ref, { [`participantNames.${adminUid}`]: "Admin" });
+                        fixed++;
+                    }
+                }
+                if (fixed) console.log(`Fixed ${fixed} chat participant names to "Admin".`);
+            } catch (e) { console.warn("fixAdminChatNames error:", e); }
         }
         function fmtDate(ts) {
             if (!ts) return "—";
@@ -1107,7 +1126,8 @@
                 markChatRead(chatId);
             }, (error) => {
                 console.error("Messages subscription error:", error);
-                toast("Error loading messages. " + (error.code === 'failed-precondition' ? 'A Firestore composite index is required.' : 'Please try again.'), "err");
+                const idxMsg = error.code === 'failed-precondition' ? '. Create composite index: Firestore console → Indexes → Add: collection messages, fields chatId↑ timestamp↑' : 'Please try again.';
+                toast("Error loading messages" + idxMsg, "err");
             });
         }
 
@@ -1174,7 +1194,7 @@
                                 }else{
                                     currentUserData = { type: 'needs-profile' };
                                 }
-                                loadChats().then(()=>subscribeChats());
+                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();});
                                 if(ROUTE.view==='login')navigate("applicant-dashboard");
                                 renderNavbar();renderCurrentView();
                             }).catch(()=>{
@@ -1183,7 +1203,7 @@
                                 }else{
                                     currentUserData={type:'needs-profile'};
                                 }
-                                loadChats().then(()=>subscribeChats());
+                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();});
                                 if(ROUTE.view==='login')navigate("applicant-dashboard");
                                 renderNavbar();renderCurrentView();
                             });
@@ -3085,11 +3105,11 @@
         async function startChatWithAdmin() {
             try {
                 const adminsSnap = await getDocs(collection(db, "admins"));
-                let adminUid = null, adminName = "Support Team";
-                adminsSnap.forEach(d => { adminUid = d.id; if (d.data().displayName) adminName = d.data().displayName; });
+                let adminUid = null;
+                adminsSnap.forEach(d => { adminUid = d.id; });
                 if (!adminUid) { toast("No support team available right now.", "err"); return; }
-                const chat = await getOrCreateChat(adminUid, adminName);
-                if (chat) navigate("messages-chat", { chatId: chat.id, otherName: adminName });
+                const chat = await getOrCreateChat(adminUid, "Admin");
+                if (chat) navigate("messages-chat", { chatId: chat.id, otherName: "Admin" });
             } catch (e) {
                 console.error("Start chat error:", e);
                 toast("Could not start chat. Check your connection.", "err");

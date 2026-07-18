@@ -1082,6 +1082,23 @@
             await sendSystemNotification(uid,name,msgText);
         }catch(e){console.warn("Status notification send failed:",e);}
     }
+    async function fixAdminChatNames() {
+        try {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            const q = query(collection(db, "chats"), where("participants", "array-contains", uid));
+            const snap = await getDocs(q);
+            let fixed = 0;
+            for (const d of snap.docs) {
+                const data = d.data();
+                if (data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
+                    await updateDoc(d.ref, { [`participantNames.${uid}`]: "Admin" });
+                    fixed++;
+                }
+            }
+            if (fixed) console.log(`Fixed ${fixed} chat participant names to "Admin".`);
+        } catch (e) { console.warn("fixAdminChatNames error:", e); }
+    }
 
     function renderTimeline(app) {
         const timeline=app.timeline||[];
@@ -1397,7 +1414,7 @@
     function subscribeMessages(chatId) {
         olderMessages=[];msgEarliestTimestamp=null;msgHasMore=false;
         const q=query(collection(db,"messages"),where("chatId","==",chatId),orderBy("timestamp","asc"),limitToLast(PAGE_SIZE));
-        return onSnapshot(q,(s)=>{const msgs=[];s.forEach(d=>msgs.push({id:d.id,...d.data()}));if(olderMessages.length===0){if(msgs.length===PAGE_SIZE)msgEarliestTimestamp=msgs[0].timestamp;msgHasMore=msgs.length===PAGE_SIZE;}renderMessagesChat(chatId,[...olderMessages,...msgs]);markChatRead(chatId);},(error)=>{console.error("Messages subscription error:",error);toast("Error loading messages. "+(error.code==='failed-precondition'?'A Firestore composite index is required.':'Please try again.'),"err");});
+        return onSnapshot(q,(s)=>{const msgs=[];s.forEach(d=>msgs.push({id:d.id,...d.data()}));if(olderMessages.length===0){if(msgs.length===PAGE_SIZE)msgEarliestTimestamp=msgs[0].timestamp;msgHasMore=msgs.length===PAGE_SIZE;}renderMessagesChat(chatId,[...olderMessages,...msgs]);markChatRead(chatId);},(error)=>{console.error("Messages subscription error:",error);const idxMsg=error.code==='failed-precondition'?'. Create composite index: Firestore console → Indexes → Add: collection messages, fields chatId↑ timestamp↑':'Please try again.';toast("Error loading messages"+idxMsg,"err");});
     }
 
     async function loadOlderMessages(chatId) {
@@ -1427,7 +1444,7 @@
         const uid=currentUser.uid,chatId=[uid,otherUid].sort().join('_'),chatRef=doc(db,"chats",chatId);
         const existing=await getDoc(chatRef);
         if(existing.exists())return{id:existing.id,...existing.data()};
-        const data={participants:[uid,otherUid],participantNames:{[uid]:currentUser.displayName||'Admin',[otherUid]:otherName},unread:{[uid]:0,[otherUid]:0},lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
+        const data={participants:[uid,otherUid],participantNames:{[uid]:'Admin',[otherUid]:otherName},unread:{[uid]:0,[otherUid]:0},lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
         await setDoc(chatRef,data);
         return {id:chatRef.id,...data};
     }
@@ -1454,6 +1471,7 @@
                     document.getElementById('topbarUser').textContent=user.email;
                     await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
                     subscribeChats();
+                    fixAdminChatNames();
                     subscribeApps();
                     navigate("dashboard");
                 }else{
