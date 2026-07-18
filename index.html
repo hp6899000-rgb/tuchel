@@ -801,49 +801,42 @@
                 const cr = doc(db, "chats", chat.id);
                 const cs = await getDoc(cr);
                 const cd = cs.data();
-                const ou = cd.participants.find(p => p !== currentUser.uid);
                 const un = cd.unread || {};
-                un[ou] = (un[ou] || 0) + 1;
+                un[uid] = (un[uid] || 0) + 1;
                 await updateDoc(cr, { lastMessage: msgText, lastTimestamp: serverTimestamp(), lastSender: currentUser.uid, unread: un });
             } catch (e) { console.warn("notifyApplicant error:", e); }
         }
         async function notifyAdmin(msgText) {
             try {
                 if (!currentUser) return;
-                const adminsSnap = await getDocs(collection(db, "admins"));
-                let adminUid = null;
-                adminsSnap.forEach(d => { adminUid = d.id; });
-                if (!adminUid) return;
-                const chat = await getOrCreateChat(adminUid, "Admin");
+                const chat = await getOrCreateChat();
                 if (!chat) return;
                 const mr = doc(collection(db, "chats", chat.id, "messages"));
                 await setDoc(mr, { senderId: currentUser.uid, senderName: currentUserData?.fullName || 'Applicant', text: msgText, fileUrl: '', fileName: '', timestamp: serverTimestamp(), read: false });
                 const cr = doc(db, "chats", chat.id);
                 const cs = await getDoc(cr);
                 const cd = cs.data();
-                const ou = cd.participants.find(p => p !== currentUser.uid);
                 const un = cd.unread || {};
-                un[ou] = (un[ou] || 0) + 1;
+                cd.participants.forEach(p => { if (p !== currentUser.uid) un[p] = (un[p] || 0) + 1; });
                 await updateDoc(cr, { lastMessage: msgText, lastTimestamp: serverTimestamp(), lastSender: currentUser.uid, unread: un });
             } catch (e) { console.warn("notifyAdmin error:", e); }
         }
         async function fixAdminChatNames() {
             try {
-                const adminsSnap = await getDocs(collection(db, "admins"));
-                let adminUid = null;
-                adminsSnap.forEach(d => { adminUid = d.id; });
-                if (!adminUid) return;
-                const q = query(collection(db, "chats"), where("participants", "array-contains", adminUid));
-                const snap = await getDocs(q);
+                const adminUids = await getAllAdminUids();
+                if (!adminUids.length) return;
+                const snap = await getDocs(collection(db, "chats"));
                 let fixed = 0;
                 for (const d of snap.docs) {
                     const data = d.data();
-                    if (data.participantNames?.[adminUid] && data.participantNames[adminUid] !== "Admin") {
-                        await updateDoc(d.ref, { [`participantNames.${adminUid}`]: "Admin" });
-                        fixed++;
+                    for (const uid of adminUids) {
+                        if (data.participants?.includes(uid) && data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
+                            await updateDoc(d.ref, { [`participantNames.${uid}`]: "Admin" });
+                            fixed++;
+                        }
                     }
                 }
-                if (fixed) console.log(`Fixed ${fixed} chat participant names to "Admin".`);
+                if (fixed) console.log(`Fixed ${fixed} admin participant names to "Admin".`);
             } catch (e) { console.warn("fixAdminChatNames error:", e); }
         }
         function fmtDate(ts) {
@@ -1014,23 +1007,26 @@
         }
 
         // --- MESSAGING SYSTEM (WhatsApp-like multi-device) ---
-        async function getOrCreateChat(otherUid, otherName) {
+        async function getAllAdminUids() {
+            const snap = await getDocs(collection(db, "admins"));
+            const uids = [];
+            snap.forEach(d => uids.push(d.id));
+            return uids;
+        }
+        async function getOrCreateChat(applicantUid, applicantName) {
             if (!currentUser) return null;
-            const uid = currentUser.uid;
-            const chatId = [uid, otherUid].sort().join('_');
+            const uid = applicantUid || currentUser.uid;
+            const chatId = `client_${uid}`;
             const chatRef = doc(db, "chats", chatId);
             const existing = await getDoc(chatRef);
             if (existing.exists()) return { id: existing.id, ...existing.data() };
-            const myName = currentUserData?.fullName || currentUser?.displayName || currentUser?.email || "User";
-            const chatData = {
-                participants: [uid, otherUid],
-                participantNames: { [uid]: myName, [otherUid]: otherName },
-                createdAt: serverTimestamp(),
-                lastMessage: "",
-                lastTimestamp: serverTimestamp(),
-                lastSender: uid,
-                unread: { [uid]: 0, [otherUid]: 0 }
-            };
+            const adminUids = await getAllAdminUids();
+            const allParticipants = [uid, ...adminUids];
+            const participantNames = { [uid]: applicantName || currentUserData?.fullName || currentUser?.displayName || currentUser?.email || "User" };
+            adminUids.forEach(auid => { participantNames[auid] = 'Admin'; });
+            const unread = {};
+            allParticipants.forEach(p => { unread[p] = 0; });
+            const chatData = { participants: allParticipants, participantNames, unread, lastMessage: '', lastTimestamp: serverTimestamp(), lastSender: currentUser.uid, createdAt: serverTimestamp() };
             await setDoc(chatRef, chatData);
             return { id: chatRef.id, ...chatData };
         }
@@ -1052,9 +1048,8 @@
             const chatRef = doc(db, "chats", chatId);
             const chatSnap = await getDoc(chatRef);
             const chatData = chatSnap.data();
-            const otherUid = chatData.participants.find(p => p !== currentUser.uid);
             const unread = chatData.unread || {};
-            unread[otherUid] = (unread[otherUid] || 0) + 1;
+            chatData.participants.forEach(p => { if (p !== currentUser.uid) unread[p] = (unread[p] || 0) + 1; });
             await updateDoc(chatRef, {
                 lastMessage: text || (fileUrl ? `📎 ${fileName || 'File'}` : ""),
                 lastTimestamp: serverTimestamp(),
@@ -1072,7 +1067,7 @@
                 snap.forEach(d => {
                     const data = d.data();
                     const otherUid = data.participants?.find(p => p !== currentUser.uid);
-                    const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
+                    const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Admin Team";
                     allChats.push({ id: d.id, ...data, otherUid, otherName });
                 });
                 allChats.sort((a, b) => {
@@ -1173,6 +1168,8 @@
                     if (adminRes) {
                         currentUserData = { ...adminRes, type: 'admin' };
                         loadApps();
+                        const saved = localStorage.getItem('lastRoute');
+                        if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
                         if (ROUTE.view === 'login') { navigate("admin-dashboard"); return; }
                         renderNavbar(); renderCurrentView();
                     } else {
@@ -1192,8 +1189,7 @@
                                 }else{
                                     currentUserData = { type: 'needs-profile' };
                                 }
-                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();});
-                                if(ROUTE.view==='login')navigate("applicant-dashboard");
+                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();restoreLastRoute();});
                                 renderNavbar();renderCurrentView();
                             }).catch(()=>{
                                 if(appData){
@@ -1201,8 +1197,7 @@
                                 }else{
                                     currentUserData={type:'needs-profile'};
                                 }
-                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();});
-                                if(ROUTE.view==='login')navigate("applicant-dashboard");
+                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();restoreLastRoute();});
                                 renderNavbar();renderCurrentView();
                             });
                         });
@@ -1261,13 +1256,28 @@
         }
 
         let ROUTE = { view: "home", params: {} };
+        function restoreLastRoute() {
+            const saved = localStorage.getItem('lastRoute');
+            if (saved) { try { const r = JSON.parse(saved); if (r.view && r.view !== 'login') { navigate(r.view, r.params || {}); return; } } catch(e) {} }
+            if (ROUTE.view === 'login') navigate("applicant-dashboard");
+        }
         function navigate(view, params = {}) {
+            const prev = ROUTE;
             ROUTE = { view, params };
             window.scrollTo({ top: 0, behavior: "instant" });
             renderCurrentView();
             const nl = document.getElementById('navLinks');
             if (nl) nl.classList.remove('open');
+            localStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+            history.pushState(ROUTE, '');
         }
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.view && e.state.view !== ROUTE.view) {
+                ROUTE = e.state;
+                window.scrollTo({ top: 0, behavior: "instant" });
+                renderCurrentView();
+            }
+        });
 
         // Admin access is granted ONLY via Firestore admins/{uid} documents (secure, server-side).
         // To add an admin, create a document in the "admins" collection with their Firebase Auth UID.
@@ -3102,11 +3112,7 @@
 
         async function startChatWithAdmin() {
             try {
-                const adminsSnap = await getDocs(collection(db, "admins"));
-                let adminUid = null;
-                adminsSnap.forEach(d => { adminUid = d.id; });
-                if (!adminUid) { toast("No support team available right now.", "err"); return; }
-                const chat = await getOrCreateChat(adminUid, "Admin");
+                const chat = await getOrCreateChat();
                 if (chat) navigate("messages-chat", { chatId: chat.id, otherName: "Admin" });
             } catch (e) {
                 console.error("Start chat error:", e);
@@ -3475,8 +3481,8 @@ function showChatUserDetails(userName, chatId) {
     match /applications/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
-    match /messages/{doc} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.chatId;
+    match /chats/{chatId}/messages/{msgId} {
+      allow read: if request.auth != null;
       allow create: if request.auth != null;
       allow delete: if false;   // messages are never deletable — audit trail
       allow update: if false;   // messages are immutable — security & integrity

@@ -397,7 +397,20 @@
     }
 
     // Admin email grant — dev override
-    function navigate(v,p={}) { ROUTE={view:v,params:p}; window.scrollTo({top:0,behavior:'instant'}); render(); }
+    function navigate(v,p={}) {
+        ROUTE={view:v,params:p};
+        window.scrollTo({top:0,behavior:'instant'});
+        render();
+        localStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+        history.pushState(ROUTE, '');
+    }
+    window.addEventListener('popstate',(e)=>{
+        if(e.state&&e.state.view&&e.state.view!==ROUTE.view){
+            ROUTE=e.state;
+            window.scrollTo({top:0,behavior:'instant'});
+            render();
+        }
+    });
     function render() {
         let html="";
         switch(ROUTE.view) {
@@ -1084,19 +1097,20 @@
     }
     async function fixAdminChatNames() {
         try {
-            if (!currentUser) return;
-            const uid = currentUser.uid;
-            const q = query(collection(db, "chats"), where("participants", "array-contains", uid));
-            const snap = await getDocs(q);
+            const adminUids = await getAllAdminUids();
+            if (!adminUids.length) return;
+            const snap = await getDocs(collection(db, "chats"));
             let fixed = 0;
             for (const d of snap.docs) {
                 const data = d.data();
-                if (data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
-                    await updateDoc(d.ref, { [`participantNames.${uid}`]: "Admin" });
-                    fixed++;
+                for (const uid of adminUids) {
+                    if (data.participants?.includes(uid) && data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
+                        await updateDoc(d.ref, { [`participantNames.${uid}`]: "Admin" });
+                        fixed++;
+                    }
                 }
             }
-            if (fixed) console.log(`Fixed ${fixed} chat participant names to "Admin".`);
+            if (fixed) console.log(`Fixed ${fixed} admin participant names to "Admin".`);
         } catch (e) { console.warn("fixAdminChatNames error:", e); }
     }
 
@@ -1431,7 +1445,7 @@
     }
 
     async function markChatRead(chatId) {
-        try{const r=doc(db,"chats",chatId),s=await getDoc(r);if(s.exists()){const d=s.data(),u=d.unread||{};if(u[currentUser.uid]){u[currentUser.uid]=0;await updateDoc(r,{unread:u});}}}catch(e){}
+        try{const r=doc(db,"chats",chatId),s=await getDoc(r);if(s.exists()){const d=s.data(),u=d.unread||{};const adminUids=await getAllAdminUids();let changed=false;adminUids.forEach(uid=>{if(u[uid]){u[uid]=0;changed=true;}});if(changed)await updateDoc(r,{unread:u});}}catch(e){}
     }
 
     function getUnreadCount() {
@@ -1439,12 +1453,22 @@
         return allChats.reduce((s,c)=>s+((c.unread?.[currentUser.uid])||0),0);
     }
 
+    async function getAllAdminUids() {
+        const snap=await getDocs(collection(db,"admins"));
+        const uids=[];snap.forEach(d=>uids.push(d.id));
+        return uids;
+    }
     async function getOrCreateChat(otherUid,otherName) {
         if(!currentUser)return null;
-        const uid=currentUser.uid,chatId=[uid,otherUid].sort().join('_'),chatRef=doc(db,"chats",chatId);
+        const chatId=`client_${otherUid}`,chatRef=doc(db,"chats",chatId);
         const existing=await getDoc(chatRef);
         if(existing.exists())return{id:existing.id,...existing.data()};
-        const data={participants:[uid,otherUid],participantNames:{[uid]:'Admin',[otherUid]:otherName},unread:{[uid]:0,[otherUid]:0},lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
+        const adminUids=await getAllAdminUids();
+        const allParticipants=[otherUid,...adminUids];
+        const participantNames={[otherUid]:otherName};
+        adminUids.forEach(uid=>{participantNames[uid]='Admin';});
+        const unread={};allParticipants.forEach(p=>{unread[p]=0;});
+        const data={participants:allParticipants,participantNames,unread,lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
         await setDoc(chatRef,data);
         return {id:chatRef.id,...data};
     }
@@ -1473,6 +1497,8 @@
                     subscribeChats();
                     fixAdminChatNames();
                     subscribeApps();
+                    const saved=localStorage.getItem('lastRoute');
+                    if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){navigate(r.view,r.params||{});return;}}catch(e){}}
                     navigate("dashboard");
                 }else{
                     currentUser=null;currentUserData=null;
@@ -1504,7 +1530,7 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     // Messages are immutable — cannot be deleted or edited (audit trail)
-    match /messages/{doc} {
+    match /chats/{chatId}/messages/{msgId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
       allow delete: if false;
