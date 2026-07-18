@@ -1731,7 +1731,7 @@
             const passBox = document.getElementById('passBox');
             if (!cvBox) return;
 
-            const phoneOptions = NATIONALITIES.filter(n => n.dial !== "+0").map(n => ({ value: n.dial, label: n.dial, flag: n.flag, sublabel: n.name }));
+            const phoneOptions = NATIONALITIES.filter(n => n.dial !== "+0").map(n => ({ value: n.dial, label: n.code + " " + n.dial, flag: n.flag, sublabel: n.name }));
             const phoneSearch = new SearchableSelect({
                 container: document.getElementById('phoneCodeContainer'),
                 name: 'phoneCode',
