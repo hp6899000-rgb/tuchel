@@ -193,6 +193,14 @@
         .phone-wrapper { display: flex; gap: 8px; }
         .phone-wrapper select { width: 140px; flex-shrink: 0; }
 
+        .msg-anim { animation: msgFadeIn .2s ease; }
+        @keyframes msgFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-date-sep { display: flex; align-items: center; justify-content: center; padding: 12px 0 6px; }
+        .msg-date-sep span { font-size: 11.5px; font-weight: 600; color: var(--slate-500); background: var(--slate-100); padding: 4px 14px; border-radius: 100px; }
+        .msg-sender-name { font-size: 10px; font-weight: 700; color: var(--blue-700); margin-bottom: 2px; }
+        .msg-chat-body { scroll-behavior: smooth; }
+        .msg-chat-header { position: sticky; top: 0; z-index: 10; }
+        #msgBackBtn { margin-right: 4px; flex-shrink: 0; }
         @media (max-width: 900px) {
             .dash-shell { grid-template-columns: 1fr; }
             .dash-side { display: flex; overflow: auto; gap: 4px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--slate-200); }
@@ -202,9 +210,10 @@
             .side-link.active { background: var(--maroon-50); color: var(--maroon-600); }
             .msg-shell { grid-template-columns: 1fr; }
             .msg-list-panel { display: none; }
-            .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 100; background: #fff; }
+            .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 200; background: #fff; }
             .msg-chat-panel { display: none; }
-            .msg-chat-panel.show { display: flex; }
+            .msg-chat-panel.show { display: flex; z-index: 150; position: relative; }
+            #msgBackBtn { display: inline-flex !important; }
             .stat-grid { grid-template-columns: repeat(2,1fr); }
             .stat-grid .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
             .dash-main { padding: 16px 12px; }
@@ -1392,15 +1401,16 @@
         if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         const chatId=ROUTE.params.chatId,otherName=ROUTE.params.otherName||"Chat";
         const chats=_visibleChats(allChats);
+        const isMobile=window.innerWidth<=900;
         return `
         <div class="msg-shell">
-            <div class="msg-list-panel show" id="msgListPanel">
+            <div class="msg-list-panel ${isMobile?'':'show'}" id="msgListPanel">
                 <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages</div>
                 ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):''}
                 <div style="padding:10px 16px;border-top:1px solid var(--slate-100)"><button class="btn btn-xs btn-outline" id="archiveToggleBtn" style="font-size:11px;width:100%"><i class="fa-solid fa-box-archive"></i> <span id="archiveToggleText">${_showArchived?'Hide archived':'Show archived'}</span></button></div>
             </div>
             <div class="msg-chat-panel show">
-                <div class="msg-chat-header"><button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button><div class="msg-avatar" title="Click for user details">${esc(otherName.charAt(0).toUpperCase())}</div><div>${esc(otherName)}</div></div>
+                <div class="msg-chat-header"><button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button><div class="msg-avatar" title="Click for user details">${esc(otherName.charAt(0).toUpperCase())}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(otherName)}</div><div style="font-size:11px;color:var(--slate-400);font-weight:400" id="chatStatusText"></div></div></div>
                 <div class="msg-chat-body" id="msgChatBody"></div>
                 <div class="msg-chat-input"><textarea id="chatInput" rows="1" placeholder="Type a message..."></textarea><button class="btn btn-primary" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-outline" id="msgFileBtn"><i class="fa-solid fa-paperclip"></i></button><button class="btn btn-maroon btn-sm" id="sendServiceOfferBtn" title="Send Service Offer"><i class="fa-solid fa-handshake"></i></button></div>
             </div>
@@ -1411,16 +1421,20 @@
         const chatId=ROUTE.params.chatId;
         const otherName=ROUTE.params.otherName||"Chat";
         if(!chatId) return;
+        const isMobile=window.innerWidth<=900;
         const backBtn=document.getElementById('msgBackBtn');
-        if(backBtn&&window.innerWidth<=1024)backBtn.style.display='inline-flex';
+        if(backBtn&&isMobile)backBtn.style.display='inline-flex';
         if(backBtn)backBtn.addEventListener('click',()=>navigate("messages"));
+        const chatStatus=document.getElementById('chatStatusText');
+        if(chatStatus)chatStatus.textContent='Online';
         if(chatMessagesUnsub) chatMessagesUnsub();
         chatMessagesUnsub=subscribeMessages(chatId);
         markChatRead(chatId);
         const input=document.getElementById('chatInput');
         const sendBtn=document.getElementById('sendBtn');
         const fileBtn=document.getElementById('msgFileBtn');
-        async function send(){const t=input.value.trim();if(t&&!sendBtn.disabled){sendBtn.disabled=true;sendBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';try{await sendMessage(chatId,t);input.value='';input.style.height='auto';}finally{sendBtn.disabled=false;sendBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>';}}}
+        if(input)setTimeout(()=>{input.focus();},300);
+        async function send(){const t=input.value.trim();if(t&&!sendBtn.disabled){sendBtn.disabled=true;sendBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';try{await sendMessage(chatId,t);input.value='';input.style.height='auto';input.focus();}finally{sendBtn.disabled=false;sendBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>';}}}
         sendBtn.addEventListener('click',send);
         input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
         input.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'});
@@ -1503,15 +1517,35 @@
         if(openBtn)openBtn.addEventListener('click',()=>{root.innerHTML='';openAppModal(openBtn.getAttribute('data-openapp'));});
     }
 
+    function fmtMsgTime(ts) {
+        if(!ts)return "";if(ts.toDate)ts=ts.toDate();
+        return new Date(ts).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+    }
+    function formatMsgDate(ts) {
+        if(!ts)return "";if(ts.toDate)ts=ts.toDate();
+        const d=new Date(ts),n=new Date(),t=new Date(n.getFullYear(),n.getMonth(),n.getDate()),y=new Date(t);y.setDate(y.getDate()-1);
+        const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+        if(dd.getTime()===t.getTime())return"Today";if(dd.getTime()===y.getTime())return"Yesterday";
+        if(d.getFullYear()===n.getFullYear())return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+        return d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+    }
+    function shouldShowDateSeparator(msg,prevMsg) {
+        if(!prevMsg)return true;
+        const g=(ts)=>{if(!ts)return null;const d=ts.toDate?ts.toDate():new Date(ts);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();};
+        return g(msg.timestamp)!==g(prevMsg.timestamp);
+    }
     function renderMessagesChat(chatId,messages) {
         const body=document.getElementById('msgChatBody');
         if(!body)return;
         currentChatMessages=messages||[];
         const chatIdCapture=chatId;
-        body.innerHTML=currentChatMessages.length?(msgHasMore?`<div class="load-older-wrap" style="text-align:center;padding:8px 0"><button class="btn btn-outline btn-sm" id="loadOlderBtn"><i class="fa-solid fa-chevron-up"></i> Load older messages</button></div>`:'')+currentChatMessages.map(m=>{
+        body.innerHTML=currentChatMessages.length?(msgHasMore?`<div class="load-older-wrap" style="text-align:center;padding:10px 0"><button class="btn btn-outline btn-sm" id="loadOlderBtn"><i class="fa-solid fa-chevron-up"></i> Load older messages</button></div>`:'')+currentChatMessages.map((m,idx)=>{
             const sent=(m.senderId||m.sender)===currentUser?.uid;
             const senderDisplay=m.senderName||(sent?'Admin':(ROUTE.params.otherName||'User'));
-            return `<div class="msg-bubble ${sent?'sent':'rec'}">${sent?'':`<div style="font-size:10px;font-weight:700;color:var(--blue-700);margin-bottom:2px">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtDate(m.timestamp)}</div></div>`;
+            const prevMsg=idx>0?currentChatMessages[idx-1]:null;
+            const showDate=shouldShowDateSeparator(m,prevMsg);
+            const dateSep=showDate?`<div class="msg-date-sep"><span>${formatMsgDate(m.timestamp)}</span></div>`:'';
+            return `${dateSep}<div class="msg-bubble ${sent?'sent':'rec'} msg-anim">${sent?'':`<div class="msg-sender-name">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtMsgTime(m.timestamp)}</div></div>`;
         }).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>No messages yet. Start the conversation!</p></div></div>`;
         const loadBtn=document.getElementById('loadOlderBtn');
         if(loadBtn)loadBtn.addEventListener('click',()=>loadOlderMessages(chatIdCapture));

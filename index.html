@@ -500,6 +500,19 @@
             .hero-stat { display: flex; align-items: center; gap: 8px; }
             .hero-stat b { font-size: 18px; min-width: 48px; }
         }
+        .msg-anim { animation: msgFadeIn .2s ease; }
+        @keyframes msgFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-date-sep { display: flex; align-items: center; justify-content: center; padding: 12px 0 6px; }
+        .msg-date-sep span { font-size: 11.5px; font-weight: 600; color: var(--slate-500); background: var(--slate-100); padding: 4px 14px; border-radius: 100px; }
+        .msg-sender-name { font-size: 10px; font-weight: 700; color: var(--blue-700); margin-bottom: 2px; }
+        .msg-chat-body { scroll-behavior: smooth; }
+        .msg-chat-header { position: sticky; top: 0; z-index: 10; }
+        #msgBackBtn { margin-right: 4px; flex-shrink: 0; }
+        @media (max-width: 820px) {
+            .msg-list-panel.show { z-index: 200; }
+            .msg-chat-panel.show { z-index: 150; position: relative; }
+            #msgBackBtn { display: inline-flex !important; }
+        }
         .text-center { text-align: center; }
         .mt-8 { margin-top: 8px; }
         .mt-16 { margin-top: 16px; }
@@ -899,6 +912,32 @@
             if (diff < 1) return fmtTime(ts);
             if (diff < 7) return d.toLocaleDateString(undefined, { weekday: 'short' });
             return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+        function fmtMsgTime(ts) {
+            if (!ts) return "";
+            if (ts.toDate) ts = ts.toDate();
+            return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        function formatMsgDate(ts) {
+            if (!ts) return "";
+            if (ts.toDate) ts = ts.toDate();
+            const d = new Date(ts);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            if (dDate.getTime() === today.getTime()) return "Today";
+            if (dDate.getTime() === yesterday.getTime()) return "Yesterday";
+            if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        function shouldShowDateSeparator(msg, prevMsg) {
+            if (!prevMsg) return true;
+            const getDay = (ts) => { if (!ts) return null; const d = ts.toDate ? ts.toDate() : new Date(ts); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+            const currDay = getDay(msg.timestamp);
+            const prevDay = getDay(prevMsg.timestamp);
+            return currDay !== prevDay;
         }
         function genAppId() {
             const yr = new Date().getFullYear();
@@ -3223,9 +3262,10 @@
             const chatId = ROUTE.params.chatId;
             const otherName = ROUTE.params.otherName || "User";
             const chats = allChats;
+            const isMobile = window.innerWidth <= 820;
             return `
           <div class="msg-shell">
-            <div class="msg-list-panel show">
+            <div class="msg-list-panel ${isMobile ? '' : 'show'}">
               <div class="msg-list-header">
                 <i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages
               </div>
@@ -3250,7 +3290,10 @@
               <div class="msg-chat-header">
                 <button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button>
                 <div class="msg-avatar" style="width:36px;height:36px;font-size:14px;cursor:pointer" title="Click for contact details">${esc(otherName?.charAt(0)?.toUpperCase() || '?')}</div>
-                <span>${esc(otherName)}</span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(otherName)}</div>
+                  <div style="font-size:11px;color:var(--slate-400);font-weight:400" id="chatStatusText"></div>
+                </div>
               </div>
           <div class="msg-chat-body" id="msgChatBody">
             <div class="msg-empty" style="flex-direction:column;padding:20px">
@@ -3282,13 +3325,16 @@
             </div>`;
             return;
         }
-        const loadOlder = msgHasMore ? `<div class="load-older-wrap" style="text-align:center;padding:8px 0"><button class="btn btn-outline btn-sm" id="loadOlderBtn"><i class="fa-solid fa-chevron-up"></i> Load older messages</button></div>` : '';
-        body.innerHTML = loadOlder + messages.map(m => {
+        const loadOlder = msgHasMore ? `<div class="load-older-wrap" style="text-align:center;padding:10px 0"><button class="btn btn-outline btn-sm" id="loadOlderBtn"><i class="fa-solid fa-chevron-up"></i> Load older messages</button></div>` : '';
+        body.innerHTML = loadOlder + messages.map((m, idx) => {
             const isSent = (m.senderId || m.sender) === uid;
             const senderDisplay = m.senderName || (isSent ? 'You' : (ROUTE.params.otherName || 'User'));
-            const time = m.timestamp ? fmtTime(m.timestamp) : '';
+            const time = m.timestamp ? fmtMsgTime(m.timestamp) : '';
             const fileHtml = m.fileUrl ? `<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName || 'View File')}</a></div>` : '';
-            return `<div class="msg-bubble ${isSent ? 'sent' : 'rec'}">${isSent?'':`<div style="font-size:10px;font-weight:700;color:var(--blue-700);margin-bottom:2px">${esc(senderDisplay)}</div>`}<div>${esc(m.text)}</div>
+            const prevMsg = idx > 0 ? messages[idx - 1] : null;
+            const showDate = shouldShowDateSeparator(m, prevMsg);
+            const dateSep = showDate ? `<div class="msg-date-sep"><span>${formatMsgDate(m.timestamp)}</span></div>` : '';
+            return `${dateSep}<div class="msg-bubble ${isSent ? 'sent' : 'rec'} msg-anim">${isSent?'':`<div class="msg-sender-name">${esc(senderDisplay)}</div>`}<div>${esc(m.text)}</div>
               ${fileHtml}
               <div class="msg-time">${time}</div>
             </div>`;
@@ -3303,9 +3349,13 @@ function wireMessagesChat() {
     const otherName = ROUTE.params.otherName || "User";
     if (!chatId) { toast("Chat not found.", "err"); navigate("messages"); return; }
 
+    const isMobile = window.innerWidth <= 820;
     const backBtn = document.getElementById('msgBackBtn');
-    if (backBtn && window.innerWidth <= 1024) backBtn.style.display = 'inline-flex';
+    if (backBtn && isMobile) backBtn.style.display = 'inline-flex';
     if (backBtn) backBtn.addEventListener('click', () => navigate("messages"));
+
+    const chatStatus = document.getElementById('chatStatusText');
+    if (chatStatus) chatStatus.textContent = 'Online';
 
     document.querySelectorAll('[data-chatid]').forEach(el => {
         el.addEventListener('click', () => {
@@ -3321,6 +3371,8 @@ function wireMessagesChat() {
     const sendBtn = document.getElementById('msgSendBtn');
     const fileBtn = document.getElementById('msgFileBtn');
 
+    if (input) setTimeout(() => { input.focus(); }, 300);
+
     async function doSend() {
         const text = input.value.trim();
         if (text && !sendBtn.disabled) {
@@ -3328,6 +3380,7 @@ function wireMessagesChat() {
             try {
                 await sendMessage(chatId, text, '', '');
                 input.value = ''; input.style.height = 'auto';
+                input.focus();
             } finally {
                 sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
             }
