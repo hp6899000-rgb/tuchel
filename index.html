@@ -697,6 +697,7 @@
         ];
         const JOBS_SEED = COUNTRIES.flatMap(c => JOB_ROLES.map((r, i) => ({ ...r, country: c, id: "fallback_" + i + "_" + c })));
         allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
+        computeCountryCounts();
 
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
         function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -1077,6 +1078,21 @@
             await updateDoc(chatRef, updates);
         }
 
+        function deduplicateChats(arr) {
+            const seen = {};
+            return arr.filter(c => {
+                const key = c.otherName || c.otherUid || c.id;
+                if (seen[key]) {
+                    const existing = seen[key];
+                    const tNew = c.lastTimestamp ? new Date(c.lastTimestamp.seconds ? c.lastTimestamp.seconds * 1000 : c.lastTimestamp) : new Date(0);
+                    const tOld = existing.lastTimestamp ? new Date(existing.lastTimestamp.seconds ? existing.lastTimestamp.seconds * 1000 : existing.lastTimestamp) : new Date(0);
+                    if (tNew > tOld) Object.assign(existing, c);
+                    return false;
+                }
+                seen[key] = c;
+                return true;
+            });
+        }
         async function loadChats() {
             if (!currentUser) return;
             const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
@@ -1088,6 +1104,7 @@
                     const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
                     allChats.push({ id: d.id, ...data, otherUid, otherName });
                 });
+                allChats = deduplicateChats(allChats);
                 allChats.sort((a, b) => {
                     const ta = a.lastTimestamp ? new Date(a.lastTimestamp.seconds ? a.lastTimestamp.seconds * 1000 : a.lastTimestamp) : new Date(0);
                     const tb = b.lastTimestamp ? new Date(b.lastTimestamp.seconds ? b.lastTimestamp.seconds * 1000 : b.lastTimestamp) : new Date(0);
@@ -1109,6 +1126,7 @@
                     const otherName = otherUid ? (data.participantNames?.[otherUid] || otherUid) : "Unknown";
                     allChats.push({ id: d.id, ...data, otherUid, otherName });
                 });
+                allChats = deduplicateChats(allChats);
                 allChats.sort((a, b) => {
                     const ta = a.lastTimestamp ? new Date(a.lastTimestamp.seconds ? a.lastTimestamp.seconds * 1000 : a.lastTimestamp) : new Date(0);
                     const tb = b.lastTimestamp ? new Date(b.lastTimestamp.seconds ? b.lastTimestamp.seconds * 1000 : b.lastTimestamp) : new Date(0);
@@ -1161,15 +1179,7 @@
         async function markChatRead(chatId) {
             if (!currentUser) return;
             const chatRef = doc(db, "chats", chatId);
-            const chatSnap = await getDoc(chatRef);
-            if (chatSnap.exists()) {
-                const data = chatSnap.data();
-                const unread = data.unread || {};
-                if (unread[currentUser.uid] > 0) {
-                    unread[currentUser.uid] = 0;
-                    await updateDoc(chatRef, { unread });
-                }
-            }
+            await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 }).catch(() => {});
         }
 
         function getUnreadCount() {
@@ -1577,8 +1587,8 @@
         }
 
         function jobCard(j) {
-            const meta = COUNTRY_META[j.country];
-            const desc = j.desc.length > 120 ? j.desc.slice(0, 117) + '...' : j.desc;
+            const meta = COUNTRY_META[j.country] || {};
+            const desc = j.desc ? (j.desc.length > 120 ? j.desc.slice(0, 117) + '...' : j.desc) : '';
             return `
             <div class="job-card">
               <div class="job-cat-icon"><i class="${CATEGORY_ICON[j.category]}"></i></div>
@@ -1922,6 +1932,7 @@
                         `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${appId}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job ? job.title : ''}\nCountry: ${job ? job.country : ''}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                     currentUserData = { ...appData, type: 'applicant' };
                     toast(`Application submitted! Your ID: ${appId}`, 'ok');
+                    allApps.push({ id: appId, ...appData });
                     loadApps();
                     navigate("confirmation", { appId: appId });
                 } catch (error) {
@@ -1995,7 +2006,7 @@
             return `<div class="timeline">
             ${items.map((t,i) => {
               const isLast = i === items.length - 1;
-              const cls = TERMINAL_ALT.includes(t.status) && t.status === 'Rejected' ? 'rejected' : (isLast ? (isTerminalAlt ? '' : 'current') : 'done');
+              const cls = TERMINAL_ALT.includes(t.status) ? 'rejected' : (isLast ? (isTerminalAlt ? '' : 'current') : 'done');
               const iconDone = cls === 'done' ? '<i class="fa-solid fa-check"></i>' : cls === 'rejected' ? '<i class="fa-solid fa-xmark"></i>' : '';
               return `<div class="tl-item ${cls}">
                 <div class="tl-dot">${iconDone}</div>

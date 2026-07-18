@@ -1191,7 +1191,7 @@
         const items=timeline.slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
         return `<div class="timeline">${items.map((t,i)=>{
             const isLast=i===items.length-1;
-            const cls=TERMINAL_ALT.includes(t.status)&&t.status==='Rejected'?'rejected':(isLast?(isTerminalAlt?'':'current'):'done');
+            const cls=TERMINAL_ALT.includes(t.status)?'rejected':(isLast?(isTerminalAlt?'':'current'):'done');
             const iconDone=cls==='done'?'<i class="fa-solid fa-check"></i>':cls==='rejected'?'<i class="fa-solid fa-xmark"></i>':'';
             return `<div class="tl-item ${cls}"><div class="tl-dot">${iconDone}</div><div class="tl-title">${esc(t.status)}</div><div class="tl-date">${fmtDate(t.date)}</div>${t.note?`<div class="tl-note">${esc(t.note)}</div>`:''}</div>`;
         }).join("")}${!isTerminalAlt&&items.length<STATUS_STEPS.length?`<div class="tl-item"><div class="tl-dot"></div><div class="tl-title" style="color:var(--slate-400)">${esc(STATUS_STEPS[items.length]||"")}</div><div class="tl-date">Upcoming</div></div>`:""}</div>`;
@@ -1513,7 +1513,24 @@
         return {uid:uid||null,name:uid?(data.participantNames?.[uid]||uid):"Unknown"};
     }
     let _showArchived=false;
-    function _visibleChats(arr){return arr.filter(c=>_showArchived||!c.hidden?.[currentUser?.uid]);}
+    function _deduplicateChats(arr) {
+        const seen = {};
+        return arr.filter(c => {
+            const key = c.otherName || c.otherUid || c.id;
+            if (seen[key]) {
+                const existing = seen[key];
+                const tNew = c.lastTimestamp ? new Date(c.lastTimestamp.seconds ? c.lastTimestamp.seconds * 1000 : c.lastTimestamp) : new Date(0);
+                const tOld = existing.lastTimestamp ? new Date(existing.lastTimestamp.seconds ? existing.lastTimestamp.seconds * 1000 : existing.lastTimestamp) : new Date(0);
+                if (tNew > tOld) {
+                    Object.assign(existing, c);
+                }
+                return false;
+            }
+            seen[key] = c;
+            return true;
+        });
+    }
+    function _visibleChats(arr){return _deduplicateChats(arr.filter(c=>_showArchived||!c.hidden?.[currentUser?.uid]));}
     async function loadChats() {
         if(!currentUser)return;
         const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
@@ -1603,25 +1620,36 @@
     }
 
     // ============= AUTH =============
+    async function verifyAdminWithRetry(uid, attempts = 3) {
+        for (let i = 0; i < attempts; i++) {
+            const admin = await getAdminUser(uid);
+            if (admin) return admin;
+            if (i < attempts - 1) await new Promise(r => setTimeout(r, 800 * (i + 1)));
+        }
+        return null;
+    }
     onAuthStateChanged(auth,async(user)=>{
         try{
             currentUser=user;
             if(user){
-                const fsAdmin=await getAdminUser(user.uid);
+                const fsAdmin=await verifyAdminWithRetry(user.uid);
                 if(fsAdmin){
                     currentUserData={...fsAdmin,type:'admin'};
                     document.getElementById('topbarUser').textContent=user.email;
                     const saved=sessionStorage.getItem('lastRoute');
-                    if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){navigate(r.view,r.params||{});}}catch(e){}}
+                    if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){navigate(r.view,r.params||{});return;}}catch(e){}}
                     if(ROUTE.view==='login'||!ROUTE.view)navigate("dashboard");
                     getAllAdminUids().catch(()=>{});
                     loadApps();loadJobs();loadFees();
                     fixAdminChatNames().finally(()=>{loadChats();subscribeChats();});
                     subscribeApps();
                 }else{
-                    currentUser=null;currentUserData=null;
+                    currentUserData=null;allChats=[];currentChatMessages=[];
+                    if(allMessagesSub){allMessagesSub();allMessagesSub=null;}
+                    if(chatMessagesUnsub){chatMessagesUnsub();chatMessagesUnsub=null;}
+                    if(unsubscribeApps){unsubscribeApps();unsubscribeApps=null;}
+                    toast("Admin account not found. Contact support.","err");
                     await signOut(auth);
-                    toast("Not an admin. Access denied.","err");
                     navigate("login");
                 }
             }else{
