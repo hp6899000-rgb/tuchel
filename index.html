@@ -307,11 +307,28 @@
         .empty-state { text-align: center; padding: 48px 20px; color: var(--slate-500); }
         .empty-state i { font-size: 32px; color: var(--slate-300); margin-bottom: 12px; }
         .phone-wrapper { display: flex; gap: 8px; }
-        .phone-wrapper select { flex: 0 0 auto; max-width: 160px; }
+        .phone-wrapper .cs-wrapper { flex: 0 0 auto; max-width: 170px; }
         .phone-wrapper input { flex: 1; }
-        .country-select-wrapper { position: relative; }
-        .country-select-wrapper select { padding-left: 36px; }
-        .country-flag-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 20px; height: 15px; border-radius: 2px; pointer-events: none; }
+        .cs-wrapper { position: relative; width: 100%; }
+        .cs-button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 14px; border: 1.5px solid var(--slate-200); border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff; color: var(--slate-900); cursor: pointer; transition: var(--transition); text-align: left; }
+        .cs-button:hover { border-color: var(--slate-300); }
+        .cs-button:focus, .cs-open .cs-button { border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(46, 104, 184, .12); outline: none; }
+        .cs-button .cs-flag { width: 20px; height: 15px; border-radius: 2px; flex-shrink: 0; object-fit: cover; }
+        .cs-button .cs-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cs-button .cs-placeholder { color: var(--slate-400); }
+        .cs-button .cs-arrow { margin-left: auto; font-size: 12px; color: var(--slate-400); transition: transform .2s; }
+        .cs-open .cs-button .cs-arrow { transform: rotate(180deg); }
+        .cs-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1.5px solid var(--slate-200); border-radius: 10px; box-shadow: var(--shadow-lg); z-index: 1000; max-height: 320px; overflow: hidden; }
+        .cs-open .cs-dropdown { display: flex; flex-direction: column; }
+        .cs-filter-input { width: 100%; padding: 10px 14px; border: none; border-bottom: 1px solid var(--slate-200); font-size: 14px; font-family: inherit; outline: none; background: transparent; }
+        .cs-filter-input:focus { border-bottom-color: var(--blue-500); }
+        .cs-options { overflow-y: auto; flex: 1; }
+        .cs-option { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; transition: background .1s; font-size: 14px; }
+        .cs-option:hover, .cs-option.highlighted { background: var(--slate-50); }
+        .cs-option .cs-flag { width: 20px; height: 15px; border-radius: 2px; flex-shrink: 0; object-fit: cover; }
+        .cs-option .cs-sublabel { margin-left: auto; font-size: 12px; color: var(--slate-400); }
+        .cs-option.selected { background: var(--blue-50); font-weight: 600; }
+        .cs-no-results { padding: 24px 14px; text-align: center; color: var(--slate-400); font-size: 13px; }
         .msg-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 72px); }
         .msg-list-panel { background: #fff; border-right: 1px solid var(--slate-200); overflow: auto; }
         .msg-list-panel .msg-list-header { padding: 18px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; color: var(--blue-900); font-family: var(--font-head); }
@@ -413,7 +430,7 @@
             .modal-foot { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
             .search-input { max-width: 100%; }
             .phone-wrapper { flex-direction: column; }
-            .phone-wrapper select { max-width: 100%; }
+            .phone-wrapper .cs-wrapper { max-width: 100%; }
             .section { padding: 36px 12px; }
             .section-sm { padding: 28px 12px; }
             .section-head h2 { font-size: 22px; }
@@ -645,6 +662,10 @@
             { name: "Sao Tome & Principe", code: "ST", dial: "+239", flag: "st" },
             { name: "Djibouti", code: "DJ", dial: "+253", flag: "dj" },
             { name: "Eritrea", code: "ER", dial: "+291", flag: "er" },
+            { name: "South Sudan", code: "SS", dial: "+211", flag: "ss" },
+            { name: "Algeria", code: "DZ", dial: "+213", flag: "dz" },
+            { name: "Tunisia", code: "TN", dial: "+216", flag: "tn" },
+            { name: "Libya", code: "LY", dial: "+218", flag: "ly" },
             { name: "United Kingdom", code: "GB", dial: "+44", flag: "gb" },
             { name: "United States", code: "US", dial: "+1", flag: "us" },
             { name: "Canada", code: "CA", dial: "+1", flag: "ca" },
@@ -679,6 +700,69 @@
 
         function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
         function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        class SearchableSelect {
+            constructor({ container, name, options, value, placeholder, onChange }){
+                this.opts=options; this.onChange=onChange; this.sel=value||'';
+                this.ph=placeholder||'Select...';
+                this.w=document.createElement('div'); this.w.className='cs-wrapper';
+                this.b=document.createElement('button'); this.b.type='button'; this.b.className='cs-button';
+                this.fi=document.createElement('img'); this.fi.className='cs-flag'; this.fi.alt='';
+                this.l=document.createElement('span'); this.l.className='cs-label';
+                this.a=document.createElement('span'); this.a.className='cs-arrow'; this.a.textContent='▾';
+                this.b.append(this.fi,this.l,this.a);
+                this.d=document.createElement('div'); this.d.className='cs-dropdown';
+                this.si=document.createElement('input'); this.si.type='text'; this.si.className='cs-filter-input'; this.si.placeholder='Type to filter...';
+                this.oc=document.createElement('div'); this.oc.className='cs-options';
+                this.d.append(this.si,this.oc); this.w.append(this.b,this.d);
+                this.hi=document.createElement('input'); this.hi.type='hidden'; this.hi.name=name;
+                this.w.append(this.hi);
+                container.appendChild(this.w);
+                this._render(); this._upd(); this._evt();
+            }
+            _render(f){
+                this.oc.innerHTML='';
+                const items=f?this.opts.filter(o=>o.label.toLowerCase().includes(f.toLowerCase())):this.opts;
+                if(!items.length){this.oc.innerHTML='<div class="cs-no-results">No matches found</div>';return;}
+                items.forEach(o=>{
+                    const d=document.createElement('div'); d.className='cs-option'+(o.value===this.sel?' selected':'');
+                    d.dataset.value=o.value;
+                    const i=document.createElement('img'); i.className='cs-flag'; i.src=flagUrl(o.flag);
+                    const s=document.createElement('span'); s.textContent=o.label;
+                    d.append(i,s);
+                    if(o.sublabel){const x=document.createElement('span'); x.className='cs-sublabel'; x.textContent=o.sublabel; d.append(x);}
+                    d.addEventListener('click',()=>this._sel(o.value));
+                    d.addEventListener('mouseenter',()=>{this.oc.querySelectorAll('.highlighted').forEach(e=>e.classList.remove('highlighted')); d.classList.add('highlighted');});
+                    this.oc.append(d);
+                });
+            }
+            _upd(){
+                const o=this.opts.find(x=>x.value===this.sel);
+                if(o){this.fi.src=flagUrl(o.flag);this.fi.style.display='';this.l.textContent=o.label;this.l.className='cs-label';}
+                else{this.fi.style.display='none';this.l.textContent=this.ph;this.l.className='cs-label cs-placeholder';}
+            }
+            _sel(v){this.sel=v;this.hi.value=v;this._upd();this._cls();if(this.onChange)this.onChange(v);}
+            _opn(){this.w.classList.add('cs-open');this.si.value='';this._render();this.si.focus();}
+            _cls(){this.w.classList.remove('cs-open');}
+            _evt(){
+                this.b.addEventListener('click',e=>{e.stopPropagation();this.w.classList.contains('cs-open')?this._cls():this._opn();});
+                this.si.addEventListener('input',()=>this._render(this.si.value));
+                document.addEventListener('click',e=>{if(!this.w.contains(e.target))this._cls();});
+                this.si.addEventListener('keydown',e=>{
+                    if(e.key==='Escape'){this._cls();this.b.focus();}
+                    if(e.key==='Enter'){const h=this.oc.querySelector('.highlighted');if(h)this._sel(h.dataset.value);}
+                    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const items=this.oc.querySelectorAll('.cs-option');if(!items.length)return;
+                        let idx=-1;const curr=this.oc.querySelector('.highlighted');if(curr)idx=Array.from(items).indexOf(curr);
+                        idx=e.key==='ArrowDown'?Math.min(idx+1,items.length-1):Math.max(idx-1,0);
+                        items.forEach(el=>el.classList.remove('highlighted'));items[idx].classList.add('highlighted');items[idx].scrollIntoView({block:'nearest'});}
+                });
+                this.b.addEventListener('keydown',e=>{
+                    if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey){this._opn();this.si.value=e.key;this._render(e.key);this.si.setSelectionRange(1,1);}
+                });
+            }
+            getValue(){return this.sel;}
+            setValue(v){this.sel=v;this.hi.value=v;this._upd();}
+            destroy(){this.w.remove();}
+        }
         function displayId(a) { return a.appId || a.id || a.uid || ''; }
         function calcCompleteness(a) {
             const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
@@ -688,16 +772,60 @@
             const cert=!!(a.certificatesUrl);
             const ref=!!(a.referenceUrl);
             const med=!!(a.medicalUrl);
-            const cvV=!!(a.documentsVerified?.cv);
-            const passV=!!(a.documentsVerified?.passport);
-            const certV=!!(a.documentsVerified?.certificates);
-            const refV=!!(a.documentsVerified?.reference);
-            const medV=!!(a.documentsVerified?.medical);
+            const _v=k=>a.documentStatus?.[k]==='verified'||!!a.documentsVerified?.[k];
+            const cvV=_v('cv'),passV=_v('passport'),certV=_v('certificates'),refV=_v('reference'),medV=_v('medical');
             const total=17;
             let score=f;
             if(cv)score++; if(pass)score++; if(cert)score++; if(ref)score++; if(med)score++;
             if(cvV)score++; if(passV)score++; if(certV)score++; if(refV)score++; if(medV)score++;
             return Math.min(100,Math.round((score/total)*100));
+        }
+        function docStatusBadge(st){
+            const m={
+                'not_uploaded':['badge-slate','Not Uploaded'],
+                'pending_review':['badge-amber','Pending Review'],
+                'changes_requested':['badge-rose','Changes Requested'],
+                'reuploaded':['badge-blue','Re-uploaded'],
+                'verified':['badge-green','Verified']
+            };
+            const b=m[st]||m['not_uploaded'];
+            return `<span class="badge ${b[0]}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${b[1]}</span>`;
+        }
+        async function notifyApplicant(uid, name, msgText) {
+            try {
+                if (!currentUser) return;
+                const chat = await getOrCreateChat(uid, name);
+                if (!chat) return;
+                const mr = doc(collection(db, "messages"));
+                await setDoc(mr, { chatId: chat.id, senderId: currentUser.uid, senderName: 'Admin', text: msgText, fileUrl: '', fileName: '', timestamp: serverTimestamp(), read: false });
+                const cr = doc(db, "chats", chat.id);
+                const cs = await getDoc(cr);
+                const cd = cs.data();
+                const ou = cd.participants.find(p => p !== currentUser.uid);
+                const un = cd.unread || {};
+                un[ou] = (un[ou] || 0) + 1;
+                await updateDoc(cr, { lastMessage: msgText, lastTimestamp: serverTimestamp(), lastSender: currentUser.uid, unread: un });
+            } catch (e) { console.warn("notifyApplicant error:", e); }
+        }
+        async function notifyAdmin(msgText) {
+            try {
+                if (!currentUser) return;
+                const adminsSnap = await getDocs(collection(db, "admins"));
+                let adminUid = null, adminName = "Admin";
+                adminsSnap.forEach(d => { adminUid = d.id; if (d.data().displayName) adminName = d.data().displayName; });
+                if (!adminUid) return;
+                const chat = await getOrCreateChat(adminUid, adminName);
+                if (!chat) return;
+                const mr = doc(collection(db, "messages"));
+                await setDoc(mr, { chatId: chat.id, senderId: currentUser.uid, senderName: currentUserData?.fullName || 'Applicant', text: msgText, fileUrl: '', fileName: '', timestamp: serverTimestamp(), read: false });
+                const cr = doc(db, "chats", chat.id);
+                const cs = await getDoc(cr);
+                const cd = cs.data();
+                const ou = cd.participants.find(p => p !== currentUser.uid);
+                const un = cd.unread || {};
+                un[ou] = (un[ou] || 0) + 1;
+                await updateDoc(cr, { lastMessage: msgText, lastTimestamp: serverTimestamp(), lastSender: currentUser.uid, unread: un });
+            } catch (e) { console.warn("notifyAdmin error:", e); }
         }
         function fmtDate(ts) {
             if (!ts) return "—";
@@ -829,7 +957,7 @@
                 createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 status: appData.status || "Application Received",
-                documentsVerified: appData.documentsVerified || { cv: false, passport: false, certificates: false, reference: false, medical: false }
+                documentStatus: appData.documentStatus || { cv: "not_uploaded", passport: "not_uploaded", certificates: "not_uploaded", reference: "not_uploaded", medical: "not_uploaded" }
             };
             await setDoc(ref, newApp, { merge: true });
             await loadApps();
@@ -1461,19 +1589,12 @@
                     <div class="field-row">
                       <div class="field">
                         <label>Nationality <span class="req">*</span></label>
-                        <div class="country-select-wrapper">
-                          <select name="nationality" id="nationalitySelect" required>
-                            <option value="">Select Nationality</option>
-                            ${NATIONALITIES.map(n => `<option value="${n.code}" data-flag="${n.flag}" data-dial="${n.dial}">${n.name}</option>`).join("")}
-                          </select>
-                        </div>
+                        <div id="natSelectContainer"></div>
                       </div>
                       <div class="field">
                         <label>Phone Number <span class="req">*</span></label>
                         <div class="phone-wrapper">
-                          <select name="phoneCode" id="phoneCode">
-                            ${NATIONALITIES.filter(n => n.dial !== "+0").map(n => `<option value="${n.dial}" data-flag="${n.flag}">${n.flag.toUpperCase()} ${n.dial}</option>`).join("")}
-                          </select>
+                          <div id="phoneCodeContainer"></div>
                           <input type="tel" name="phone" placeholder="712 345 678" required>
                         </div>
                       </div>
@@ -1608,24 +1729,28 @@
             }
             const cvBox = document.getElementById('cvBox');
             const passBox = document.getElementById('passBox');
-            const natSelect = document.getElementById('nationalitySelect');
-            const phoneCode = document.getElementById('phoneCode');
             if (!cvBox) return;
 
-            if (natSelect && phoneCode) {
-                natSelect.addEventListener('change', () => {
-                    const selected = natSelect.options[natSelect.selectedIndex];
-                    const dial = selected.getAttribute('data-dial');
-                    if (dial && dial !== '+0') {
-                        for (let i = 0; i < phoneCode.options.length; i++) {
-                            if (phoneCode.options[i].value === dial) {
-                                phoneCode.selectedIndex = i;
-                                break;
-                            }
-                        }
+            const phoneOptions = NATIONALITIES.filter(n => n.dial !== "+0").map(n => ({ value: n.dial, label: n.dial, flag: n.flag, sublabel: n.name }));
+            const phoneSearch = new SearchableSelect({
+                container: document.getElementById('phoneCodeContainer'),
+                name: 'phoneCode',
+                options: phoneOptions,
+                placeholder: 'Code'
+            });
+            const natOptions = NATIONALITIES.map(n => ({ value: n.code, label: n.name, flag: n.flag }));
+            const natSearch = new SearchableSelect({
+                container: document.getElementById('natSelectContainer'),
+                name: 'nationality',
+                options: natOptions,
+                placeholder: 'Select Nationality',
+                onChange(val) {
+                    const nat = NATIONALITIES.find(n => n.code === val);
+                    if (nat && nat.dial && nat.dial !== '+0') {
+                        phoneSearch.setValue(nat.dial);
                     }
-                });
-            }
+                }
+            });
 
             cvBox.addEventListener('click', () => {
                 const dialog = uploadcare.openDialog(null, {
@@ -1737,7 +1862,7 @@
                         jobTitle: job ? job.title : '', coverLetter: cover, cvUrl, passportUrl,
                         passportNumber, country: job ? job.country : '',
                         status: "Application Received",
-                        documentsVerified: { cv: true, passport: true, certificates: false, reference: false, medical: false },
+                        documentStatus: { cv: "pending_review", passport: "pending_review", certificates: "not_uploaded", reference: "not_uploaded", medical: "not_uploaded" },
                         certificatesUrl: certificatesUrl || '',
                         referenceUrl: referenceUrl || '',
                         medicalUrl: medicalUrl || '',
@@ -2040,8 +2165,6 @@
                 return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications found.</p><a class="btn btn-primary" data-nav="jobs">Browse Jobs</a></div></div></div>`;
             }
             const unread = getUnreadCount();
-            const cvOk = app.cvUrl && app.documentsVerified?.cv;
-            const passOk = app.passportUrl && app.documentsVerified?.passport;
             const fields = ['fullName','dob','nationality','phone','email','address','city','education','jobId','passportNumber'];
             const filled = fields.filter(f => app[f]).length;
             const pct = Math.round((filled / fields.length) * 100);
@@ -2188,12 +2311,24 @@
                   </div>
                   <div class="card pad">
                     <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Documents</h4>
-                    <div class="doc-row"><div class="di"><i class="fa-solid fa-file-lines"></i> CV / Resume</div><div style="display:flex;gap:8px;align-items:center">${cvOk ? '<span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Verified</span>' : (app.cvUrl ? '<span class="badge badge-amber">Pending Verification</span>' : '<span class="badge badge-slate">Not Uploaded</span>')}<button class="btn btn-outline btn-sm" data-action="upload-cv">${app.cvUrl ? 'Replace' : 'Upload'}</button></div></div>
-                    <div class="doc-row"><div class="di"><i class="fa-solid fa-passport"></i> Passport Copy</div><div style="display:flex;gap:8px;align-items:center">${passOk ? '<span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Verified</span>' : (app.passportUrl ? '<span class="badge badge-amber">Pending Verification</span>' : '<span class="badge badge-slate">Not Uploaded</span>')}<button class="btn btn-outline btn-sm" data-action="upload-passport">${app.passportUrl ? 'Replace' : 'Upload'}</button></div></div>
-                    ${app.certificatesUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-certificate"></i> Certificates</div><div><a href="${app.certificatesUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
-                    ${app.referenceUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-envelope"></i> Reference Letter</div><div><a href="${app.referenceUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
-                    ${app.medicalUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-heart-pulse"></i> Medical Report</div><div><a href="${app.medicalUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
-                    ${app.contractUrl ? `<div class="doc-row"><div class="di"><i class="fa-solid fa-file-signature"></i> Contract</div><div><a href="${app.contractUrl}" target="_blank" class="btn btn-outline btn-sm">View</a></div></div>` : ''}
+                    ${[
+                        {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
+                        {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
+                        {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl,opt:true},
+                        {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl,opt:true},
+                        {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl,opt:true},
+                        {key:'contract',label:'Contract',icon:'fa-file-signature',url:app.contractUrl,opt:true}
+                    ].map(d=>{
+                        const st = app.documentStatus?.[d.key] || 'not_uploaded';
+                        const hasUrl = !!d.url;
+                        if(d.opt && !hasUrl) return '';
+                        const acts = [];
+                        if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                        if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
+                        else if(st==='changes_requested') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload New</button>`);
+                        else acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Replace</button>`);
+                        return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                    }).join("")}
                   </div>
                 </div>
               </div>
@@ -2227,15 +2362,19 @@
         }
         function wireApplicantDashboard() {
             document.getElementById('deleteAccountLink')?.addEventListener('click', deleteMyAccount);
-            document.querySelectorAll('[data-action="upload-cv"]').forEach(b => b.addEventListener('click', () => uploadDoc('cvUrl', 'CV')));
-            document.querySelectorAll('[data-action="upload-passport"]').forEach(b => b.addEventListener('click', () => uploadDoc('passportUrl', 'Passport')));
+            document.querySelectorAll('[data-action^="upload-"]').forEach(b => b.addEventListener('click', function(){
+                const key = this.getAttribute('data-action').replace('upload-','');
+                const field = key === 'cv' ? 'cvUrl' : key === 'passport' ? 'passportUrl' : key + 'Url';
+                const labelMap = {cv:'CV',passport:'Passport',certificates:'Certificates',reference:'Reference Letter',medical:'Medical Report',contract:'Contract'};
+                uploadDoc(field, labelMap[key]||key, key);
+            }));
             document.querySelectorAll('[data-action="chat-admin"]').forEach(b => b.addEventListener('click', startChatWithAdmin));
             document.querySelectorAll('[data-switchapp]').forEach(b => b.addEventListener('click', function(){
                 navigate("applicant-dashboard", { appId: this.getAttribute('data-switchapp') });
             }));
         }
 
-        function uploadDoc(field, label) {
+        function uploadDoc(field, label, docKey) {
             const dialog = uploadcare.openDialog(null, {
                 publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
                 accept: field === 'cvUrl' ? 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'image/jpeg,image/png'
@@ -2248,8 +2387,13 @@
                     if (!app || app.type !== 'applicant') return;
                     const uid = app.uid || currentUser?.uid;
                     if (!uid) return;
-                    await setDoc(doc(db, "applications", uid), { [field]: url, updatedAt: serverTimestamp() }, { merge: true });
+                    const curSt = app.documentStatus?.[docKey] || 'not_uploaded';
+                    const newSt = curSt === 'changes_requested' ? 'reuploaded' : 'pending_review';
+                    await setDoc(doc(db, "applications", uid), { [field]: url, [`documentStatus.${docKey}`]: newSt, updatedAt: serverTimestamp() }, { merge: true });
                     app[field] = url;
+                    if(!app.documentStatus) app.documentStatus = {};
+                    app.documentStatus[docKey] = newSt;
+                    notifyAdmin(`${label} re-uploaded by ${app.fullName||'Applicant'} — awaiting review.`);
                     toast(`${label} uploaded successfully!`, 'ok');
                     renderCurrentView();
                 } catch (e) {
@@ -2438,9 +2582,20 @@
                     {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
                     {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
                   ].map(d=>{
-                    const verified=app.documentsVerified?.[d.key];
+                    const st=app.documentStatus?.[d.key]||'not_uploaded';
                     const hasUrl=!!d.url;
-                    return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${hasUrl?`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`:'<span class="badge badge-slate">Not uploaded</span>'}<label style="font-size:12px;display:flex;align-items:center;gap:4px;font-weight:600;color:var(--slate-600)"><input type="checkbox" class="doc-verify" data-dockey="${d.key}" ${verified?'checked':''} ${!hasUrl?'disabled':''}> Verified</label></div></div>`;
+                    const acts=[];
+                    if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                    if(st==='pending_review'||st==='reuploaded'){
+                      acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocRequestChange" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
+                    }else if(st==='verified'){
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                    }else if(st==='changes_requested'){
+                      acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocCancelRequest" data-dockey="${d.key}">Cancel Request</button>`);
+                    }
+                    return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                   }).join("")}
                 </div>
                 <!-- Services Section -->
@@ -2477,10 +2632,9 @@
                 ${(()=>{
                   const curIdx=STATUS_STEPS.indexOf(app.status);
                   if(curIdx>=0&&curIdx<STATUS_STEPS.length-1&&!TERMINAL_ALT.includes(app.status)){
-                    const reqs=[['fullName','email','phone','nationality','dob','passportNumber','education','jobTitle','country'],['cvUrl','passportUrl']].flat();
-                    const allFields=reqs.every(f=>app[f]);
-                    const allVerified=app.documentsVerified?.cv&&app.documentsVerified?.passport;
-                    if(allFields&&allVerified){
+                    const _dv=k=>app.documentStatus?.[k]==='verified'||!!app.documentsVerified?.[k];
+                    const allVerified=_dv('cv')&&_dv('passport');
+                    if(allVerified){
                       return `<div style="background:var(--emerald-50);border:1px solid #bfe6cc;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><span style="font-size:13px;font-weight:600;color:#065F46"><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> All requirements met</span><button class="btn btn-success btn-sm" id="indexAutoAdvance">Advance to "${esc(STATUS_STEPS[curIdx+1])}"</button></div>`;
                     }
                   }
@@ -2488,9 +2642,24 @@
                 })()}
                 <div style="margin-bottom:14px">
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700">Update Status</div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                    ${(()=>{
+                      const curIdx=STATUS_STEPS.indexOf(app.status);
+                      const chips=[];
+                      STATUS_STEPS.forEach((s,i)=>{
+                        if(i<curIdx) chips.push(`<span class="chip done" style="opacity:.5;pointer-events:none;background:var(--emerald-100);color:var(--emerald-700)"><i class="fa-solid fa-check"></i> ${esc(s)}</span>`);
+                        else if(i===curIdx) chips.push(`<span class="chip active" style="background:var(--maroon-500);color:#fff">${esc(s)}</span>`);
+                        else chips.push(`<span class="chip" style="cursor:pointer;border:1.5px dashed var(--slate-300)" data-setstatus="${esc(s)}">${esc(s)}</span>`);
+                      });
+                      TERMINAL_ALT.forEach(s=>{
+                        const isActive=s===app.status;
+                        chips.push(`<span class="chip ${isActive?'active':''}" style="${isActive?'background:var(--rose-600);color:#fff':'border:1.5px dashed var(--rose-300);color:var(--rose-700);cursor:pointer'}" data-setstatus="${esc(s)}">${esc(s)}</span>`);
+                      });
+                      return chips.join(' ');
+                    })()}
+                  </div>
                   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-                    <select id="statusSelect" style="max-width:280px">${ALL_STATUSES.map(s => `<option value="${esc(s)}" ${s === app.status ? 'selected' : ''}>${s}</option>`).join("")}</select>
-                    <input type="text" id="statusNote" placeholder="Optional note..." style="flex:1;min-width:180px">
+                    <input type="text" id="statusNote" placeholder="Optional note for this status change..." style="flex:1;min-width:180px">
                     <button class="btn btn-primary btn-sm" id="applyStatusBtn"><i class="fa-solid fa-arrows-rotate"></i> Update</button>
                   </div>
                 </div>
@@ -2515,15 +2684,40 @@
             document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') closeModal(); });
             const appIdKey = displayId(app);
 
-            document.querySelectorAll('.doc-verify').forEach(cb => {
-                cb.addEventListener('change', async (e) => {
-                    const key = e.target.getAttribute('data-dockey');
-                    const updates = { documentsVerified: { ...app.documentsVerified, [key]: e.target.checked } };
-                    await updateApp(appIdKey, updates);
-                    toast(`Document verification: ${key} ${e.target.checked ? 'verified' : 'unverified'}.`, "ok");
-                    await loadApps(); closeModal(); renderCurrentView();
-                });
-            });
+            // Document action handlers
+            document.querySelectorAll('.idxDocVerify').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'verified'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`✅ Document "${key.toUpperCase()}" has been verified.`);
+                toast(`"${key}" verified.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocRequestChange').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'changes_requested'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`📝 Document "${key.toUpperCase()}": Changes requested. Please upload a revised version.`);
+                toast(`Changes requested for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocRevoke').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`🔄 Document "${key.toUpperCase()}" verification has been revoked.`);
+                toast(`Verification revoked for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            document.querySelectorAll('.idxDocCancelRequest').forEach(b=>b.addEventListener('click',async function(){
+                const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
+                const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
+                await updateApp(appIdKey,{documentStatus:ds});
+                toast(`Change request cancelled for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+            }));
+            // Status chip click
+            let selectedStatus=null;
+            document.querySelectorAll('[data-setstatus]').forEach(b=>b.addEventListener('click',function(){
+                document.querySelectorAll('[data-setstatus]').forEach(x=>x.classList.remove('active'));
+                this.classList.add('active'); selectedStatus=this.getAttribute('data-setstatus');
+            }));
             // Services wire
             document.querySelectorAll('.idxSvcStatus').forEach(sel=>sel.addEventListener('change',async function(){
                 const svcId=this.getAttribute('data-svcid'); const newStatus=this.value;
@@ -2557,17 +2751,24 @@
                 if (!next) { toast("Already at final stage.", "err"); return; }
                 const timeline = [...(app.timeline || []), { status: next, date: new Date().toISOString(), note: `Auto-advanced: all requirements met for "${app.status}".` }];
                 await updateApp(appIdKey, { status: next, timeline });
+                notifyApplicant(app.uid,app.fullName,`📋 Status update: ${next} — All requirements for the previous stage were verified.`);
                 simulateEmail(app.email, `Application Status Update – ${next}`,
                     `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${next}.\n\nAll requirements for the previous stage were verified.\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                 toast(`Auto-advanced to "${next}".`, "ok"); await loadApps(); closeModal(); renderCurrentView();
             });
             document.getElementById('applyStatusBtn').addEventListener('click', async () => {
-                const newStatus = document.getElementById('statusSelect').value;
+                const chip=document.querySelector('[data-setstatus].active');
+                const newStatus=chip?chip.getAttribute('data-setstatus'):null;
+                if(!newStatus||newStatus===app.status){toast("Select a different status first.","err");return;}
+                const curIdx=STATUS_STEPS.indexOf(app.status);
+                const newIdx=STATUS_STEPS.indexOf(newStatus);
+                if(newIdx>=0&&newIdx<curIdx){toast("Cannot go back to a previous step.","err");return;}
                 const note = document.getElementById('statusNote').value.trim();
                 const fresh = await getApp(appIdKey);
                 const timeline = [...(fresh?.timeline || []), { status: newStatus, date: new Date().toISOString(), note: note || undefined }];
                 await updateApp(appIdKey, { status: newStatus, timeline });
                 try{addAuditLog(`Status → ${newStatus}`,`${app.fullName} (${displayId(app)})`,appIdKey);}catch(e){}
+                notifyApplicant(app.uid,app.fullName,`📋 Status update: ${newStatus}${note?` — ${note}`:''}`);
                 simulateEmail(app.email, `Application Status Update – ${newStatus}`,
                     `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${newStatus}.\n\n${note ? 'Note: ' + note : ''}\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                 toast(`Status updated to "${newStatus}".`, "ok"); await loadApps(); closeModal(); renderCurrentView();
