@@ -741,6 +741,7 @@
             return "maroon";
         }
         function statusBadge(status) {
+            if (!status) return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`;
             const tone = statusTone(status);
             const cls = tone === 'green' ? 'badge-green' : tone === 'rose' ? 'badge-rose' : tone === 'amber' ? 'badge-amber' : 'badge-maroon';
             const icon = tone === 'green' ? 'fa-circle-check' : tone === 'rose' ? 'fa-circle-xmark' : tone === 'amber' ? 'fa-triangle-exclamation' : 'fa-circle';
@@ -2329,8 +2330,8 @@
                       const cmp=calcCompleteness(a);
                       const cls=cmp>=80?'var(--emerald-500)':cmp>=40?'var(--amber-500)':'var(--maroon-500)';
                       return `<tr>
-                        <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${displayId(a)}</span>${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
-                        <td>${esc(a.jobTitle)}<br><span style="font-size:12px;color:var(--slate-500)">${esc(a.country)}</span>${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
+                        <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${displayId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
+                        <td>${esc(a.jobTitle)||'—'}<br>${a.country?`<span style="font-size:12px;color:var(--slate-500)"><img src="${flagUrl((COUNTRY_META[a.country]||{}).flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}</span>`:'<span style="font-size:12px;color:var(--slate-400)">—</span>'}</td>
                         <td>${statusBadge(a.status)}</td>
                         <td style="white-space:nowrap;font-size:11px">
                           <div style="height:5px;background:var(--slate-100);border-radius:99px;overflow:hidden;min-width:50px">
@@ -2338,7 +2339,7 @@
                           </div>
                           ${cmp}%
                         </td>
-                        <td style="font-size:12px;color:var(--slate-500)">${fmtDate(a.updatedAt)}</td>
+                        <td style="font-size:12px;color:var(--slate-500);white-space:nowrap">${fmtDate(a.updatedAt)}</td>
                         <td><button class="btn btn-outline btn-sm" data-openapp="${displayId(a)}">Review <i class="fa-solid fa-chevron-right"></i></button></td>
                       </tr>`;
                     }).join("") : `<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match these filters.</p></div></td></tr>`}
@@ -2377,7 +2378,7 @@
         }
 
         async function openAdminAppModal(appId) {
-            let app = allApps.find(a => a.id === appId || a.uid === appId);
+            let app = allApps.find(a => a.id === appId || a.uid === appId || a.appId === appId);
             if (!app) { try { const docSnap = await getDoc(doc(db, "applications", appId)); if (docSnap.exists()) app = { id: docSnap.id, ...docSnap.data() }; } catch (e) {} }
             if (!app) { toast("Application not found.", "err"); return; }
             const root = document.getElementById('modal-root');
@@ -2503,6 +2504,7 @@
                 <button class="btn ${app.blocked?'btn-success':'btn-danger'} btn-sm" id="indexBlockBtn"><i class="fa-solid ${app.blocked?'fa-unlock':'fa-ban'}"></i> ${app.blocked?'Unblock':'Block'} Account</button>
                 <button class="btn btn-primary btn-sm" data-startchat="${app.uid}" data-chatname="${app.fullName}"><i class="fa-solid fa-comment-dots"></i> Chat</button>
                 <button class="btn btn-outline" id="archiveBtn"><i class="fa-solid fa-box-archive"></i> Archive</button>
+                <button class="btn btn-danger btn-sm" id="indexDeleteAppBtn"><i class="fa-solid fa-trash-can"></i> Delete</button>
                 <button class="btn btn-outline" id="modalCloseBtn2">Close</button>
               </div>
             </div>
@@ -2597,6 +2599,23 @@
                     toast(`🔇 ${name} blocked.`, "ok");
                 }
                 await loadApps(); closeModal(); renderCurrentView();
+            });
+            document.getElementById('indexDeleteAppBtn')?.addEventListener('click', async () => {
+                if (!confirm(`⚠️ DELETE application for ${app.fullName || 'this user'} (${displayId(app)})? This permanently removes ALL data including documents, chats, and messages. Cannot be undone.`)) return;
+                if (!confirm(`FINAL CONFIRMATION: Delete ${app.fullName || 'this user'}'s application forever?`)) return;
+                try {
+                    const id = app.id || app.uid;
+                    if (id) await deleteDoc(doc(db, "applications", id)).catch(() => {});
+                    const chatsSnap = await getDocs(query(collection(db,"chats"), where("participants","array-contains",app.uid)));
+                    for (const chatDoc of chatsSnap.docs) {
+                        const msgsSnap = await getDocs(query(collection(db,"messages"), where("chatId","==",chatDoc.id)));
+                        msgsSnap.forEach(m => m.ref.delete().catch(()=>{}));
+                        chatDoc.ref.delete().catch(()=>{});
+                    }
+                    try{addAuditLog(`Deleted application`,`${app.fullName} (${displayId(app)})`);}catch(e){}
+                    toast("Application permanently deleted.","ok");
+                    await loadApps(); closeModal(); renderCurrentView();
+                } catch(e) { toast("Delete error: "+e.message,"err"); }
             });
             document.querySelectorAll('[data-startchat]').forEach(el => {
                 el.addEventListener('click', async () => {

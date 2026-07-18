@@ -271,6 +271,18 @@
     });
     const googleProvider = new GoogleAuthProvider();
     const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
+    const COUNTRY_META = {
+        "Germany": { flag: "de", dial: "+49", currency: "EUR" },
+        "United Kingdom": { flag: "gb", dial: "+44", currency: "GBP" },
+        "Netherlands": { flag: "nl", dial: "+31", currency: "EUR" },
+        "Sweden": { flag: "se", dial: "+46", currency: "SEK" },
+        "Ireland": { flag: "ie", dial: "+353", currency: "EUR" },
+        "Luxembourg": { flag: "lu", dial: "+352", currency: "EUR" },
+        "France": { flag: "fr", dial: "+33", currency: "EUR" },
+        "Poland": { flag: "pl", dial: "+48", currency: "PLN" }
+    };
+    const FLAG_BASE = "https://flagcdn.com/";
+    function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
 
     let currentUser = null;
     let currentUserData = null;
@@ -322,7 +334,7 @@
     function fmtDateShort(ts) { if (!ts) return ""; if (ts.toDate) ts=ts.toDate(); const d=new Date(ts),n=new Date(),diff=(n-d)/(864e5); if(diff<1) return d.toLocaleTimeString(void 0,{hour:'2-digit',minute:'2-digit'}); if(diff<7) return d.toLocaleDateString(void 0,{weekday:'short'}); return d.toLocaleDateString(void 0,{month:'short',day:'numeric'}); }
     function toast(msg,type) { const w=document.getElementById('toast-wrap'),el=document.createElement('div'); el.className='toast'+(type?' '+type:''); el.innerHTML=`<i class="fa-solid ${type==='err'?'fa-circle-exclamation':type==='ok'?'fa-circle-check':'fa-bell'}"></i><span>${esc(msg)}</span>`; w.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3600); }
     function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
-    function statusBadge(s) { const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
+    function statusBadge(s) { if(!s)return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`; const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
     function appId(a) { return a.appId || a.id || a.uid || ''; }
     async function addAuditLog(action,details,targetId=''){try{await addDoc(collection(db,"auditLog"),{action,details,targetId,adminEmail:currentUserData?.email||currentUser?.email||'unknown',timestamp:serverTimestamp()});}catch(e){}}
     function calcCompleteness(a) {
@@ -488,7 +500,7 @@
                             return `<tr>
                                 <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:11px;color:var(--slate-500)">${appId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}</td>
                                 <td style="font-size:12px;color:var(--slate-600)">${esc(a.phone||'—')}</td>
-                                <td>${esc(a.jobTitle)}<br><span style="font-size:12px;color:var(--slate-500)">${esc(a.country)}</span>${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
+                                <td>${esc(a.jobTitle)||'—'}<br>${a.country?`<span style="font-size:12px;color:var(--slate-500)"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}</span>`:'<span style="font-size:12px;color:var(--slate-400)">—</span>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                                 <td>${statusBadge(a.status)}</td>
                                 <td style="white-space:nowrap">${completenessBar(cmp)}</td>
                                 <td style="font-size:11px;white-space:nowrap"><span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span> / <span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></td>
@@ -514,8 +526,8 @@
                             <div class="ac-meta">
                                 <span><i class="fa-solid fa-envelope"></i> ${esc(a.email||'—')}</span>
                                 <span><i class="fa-solid fa-phone"></i> ${esc(a.phone||'—')}</span>
-                                <span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)}${a.blocked?' <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>':''}</span>
-                                <span><i class="fa-solid fa-location-dot"></i> ${esc(a.country)}</span>
+                                <span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)||'—'}${a.blocked?' <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>':''}</span>
+                                <span><i class="fa-solid fa-location-dot"></i> ${a.country?`<img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}`:'—'}</span>
                                 <span><i class="fa-solid fa-file"></i> ${completenessBar(cmp)}</span>
                                 <span><i class="fa-solid fa-coins"></i> <span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span>/<span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></span>
                                 <span><i class="fa-regular fa-clock"></i> ${fmtDate(a.updatedAt)}</span>
@@ -539,7 +551,7 @@
     }
 
     async function openAppModal(appId) {
-        let app=allApps.find(a=>a.id===appId||a.uid===appId);
+        let app=allApps.find(a=>a.id===appId||a.uid===appId||a.appId===appId);
         if(!app){try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())app={id:d.id,...d.data()};}catch(e){}}
         if(!app){toast("Application not found.","err");return;}
         const root=document.getElementById('modal-root');
@@ -729,6 +741,7 @@
                     <button class="btn ${app.blocked?'btn-success':'btn-danger'} btn-sm" id="deleteAccountBtn"><i class="fa-solid ${app.blocked?'fa-unlock':'fa-ban'}"></i> ${app.blocked?'Unblock':'Block'} Account</button>
                     <button class="btn btn-primary btn-sm" id="startChatBtn" data-startchat="${app.uid}" data-chatname="${app.fullName}"><i class="fa-solid fa-comment-dots"></i> Chat</button>
                     <button class="btn btn-maroon btn-sm" id="saveModalBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                    <button class="btn btn-danger btn-sm" id="deleteAppBtn"><i class="fa-solid fa-trash-can"></i> Delete</button>
                 </div>
             </div>
         </div>`;
@@ -768,6 +781,25 @@
                 toast(`🔇 ${name} has been blocked.`,"ok");
             }
             root.innerHTML='';await loadApps();
+        });
+
+        // Delete application permanently
+        document.getElementById('deleteAppBtn').addEventListener('click',async()=>{
+            if(!confirm(`⚠️ DELETE application for ${app.fullName||'this user'} (${appId(app)})? This permanently removes ALL data including chats and messages. Cannot be undone.`))return;
+            if(!confirm(`FINAL CONFIRMATION: Delete ${app.fullName||'this user'}'s application forever?`))return;
+            try{
+                const id=app.id||app.uid;
+                if(id)await deleteDoc(doc(db,"applications",id)).catch(()=>{});
+                const chatsSnap=await getDocs(query(collection(db,"chats"),where("participants","array-contains",app.uid)));
+                for(const chatDoc of chatsSnap.docs){
+                    const msgsSnap=await getDocs(query(collection(db,"messages"),where("chatId","==",chatDoc.id)));
+                    msgsSnap.forEach(m=>m.ref.delete().catch(()=>{}));
+                    chatDoc.ref.delete().catch(()=>{});
+                }
+                try{addAuditLog(`Deleted application`,`${app.fullName} (${appId(app)})`);}catch(e){}
+                toast("Application permanently deleted.","ok");
+                root.innerHTML='';await loadApps();
+            }catch(e){toast("Delete error: "+e.message,"err");}
         });
 
         // Chat
@@ -1252,6 +1284,11 @@
     async function loadApps() {
         getDocs(collection(db,"applications")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allApps=l;if(ROUTE.view==="dashboard")render();}).catch(()=>{});
     }
+    let unsubscribeApps=null;
+    function subscribeApps() {
+        if(unsubscribeApps)unsubscribeApps();
+        unsubscribeApps=onSnapshot(collection(db,"applications"),(snapshot)=>{allApps=[];snapshot.forEach(d=>allApps.push({id:d.id,...d.data()}));if(ROUTE.view==="dashboard")render();});
+    }
 
     async function loadJobs() {
         if(!allJobs.length){allJobs=[];computeCountryCounts();}
@@ -1342,6 +1379,7 @@
                     document.getElementById('topbarUser').textContent=user.email;
                     await Promise.all([loadApps(),loadJobs(),loadFees(),loadChats()]);
                     subscribeChats();
+                    subscribeApps();
                     navigate("dashboard");
                 }else{
                     currentUser=null;currentUserData=null;
@@ -1354,6 +1392,7 @@
                 document.getElementById('topbarUser').textContent='';
                 if(allMessagesSub){allMessagesSub();allMessagesSub=null;}
                 if(chatMessagesUnsub){chatMessagesUnsub();chatMessagesUnsub=null;}
+                if(unsubscribeApps){unsubscribeApps();unsubscribeApps=null;}
                 navigate("login");
             }
         }catch(e){console.error("Auth error:",e);}
