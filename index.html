@@ -826,14 +826,24 @@
                 let fixed = 0;
                 for (const d of snap.docs) {
                     const data = d.data();
+                    const missingAdmins = adminUids.filter(uid => !data.participants?.includes(uid));
+                    if (missingAdmins.length) {
+                        const updates = { participants: arrayUnion(...missingAdmins) };
+                        missingAdmins.forEach(uid => {
+                            updates[`participantNames.${uid}`] = 'Admin';
+                            updates[`unread.${uid}`] = 0;
+                        });
+                        await updateDoc(d.ref, updates);
+                        fixed += missingAdmins.length;
+                    }
                     for (const uid of adminUids) {
-                        if (data.participants?.includes(uid) && data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
+                        if (data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
                             await updateDoc(d.ref, { [`participantNames.${uid}`]: "Admin" });
                             fixed++;
                         }
                     }
                 }
-                if (fixed) console.log(`Fixed ${fixed} admin participant names to "Admin".`);
+                if (fixed) console.log(`Fixed ${fixed} admin entries across chats.`);
             } catch (e) { console.warn("fixAdminChatNames error:", e); }
         }
         function fmtDate(ts) {
@@ -1189,7 +1199,7 @@
                                     currentUserData = { type: 'needs-profile' };
                                 }
                                 getAllAdminUids();
-                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();restoreLastRoute();});
+                                loadChats().then(()=>{subscribeChats();restoreLastRoute();fixAdminChatNames();});
                                 renderNavbar();renderCurrentView();
                             }).catch(()=>{
                                 if(appData){
@@ -1198,7 +1208,7 @@
                                     currentUserData={type:'needs-profile'};
                                 }
                                 getAllAdminUids();
-                                loadChats().then(()=>{subscribeChats();fixAdminChatNames();restoreLastRoute();});
+                                loadChats().then(()=>{subscribeChats();restoreLastRoute();fixAdminChatNames();});
                                 renderNavbar();renderCurrentView();
                             });
                         });
