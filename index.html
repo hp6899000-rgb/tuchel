@@ -2157,7 +2157,7 @@
                         jobTitle: job ? job.title : '', coverLetter: cover, cvUrl, passportUrl,
                         passportNumber, country: job ? job.country : '',
                         status: "Application Received",
-                        documentStatus: { cv: "pending_review", passport: "pending_review", certificates: "not_uploaded", reference: "not_uploaded", medical: "not_uploaded" },
+                        documentStatus: { cv: cvUrl ? "pending_review" : "not_uploaded", passport: passportUrl ? "pending_review" : "not_uploaded", certificates: certificatesUrl ? "pending_review" : "not_uploaded", reference: referenceUrl ? "pending_review" : "not_uploaded", medical: medicalUrl ? "pending_review" : "not_uploaded" },
                         certificatesUrl: certificatesUrl || '',
                         referenceUrl: referenceUrl || '',
                         medicalUrl: medicalUrl || '',
