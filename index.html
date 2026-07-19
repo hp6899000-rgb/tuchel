@@ -2895,12 +2895,12 @@
                     if(st==='received') acts.push(`<button class="btn btn-outline btn-sm idxDocStartReview" data-dockey="${d.key}">Start Review</button>`);
                     if(st==='pending_review'||st==='reuploaded'){
                       acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                      acts.push(`<button class="btn btn-outline btn-sm idxDocProcess" data-dockey="${d.key}">Processing</button>`);
-                      acts.push(`<button class="btn btn-outline btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                      acts.push(`<button class="btn btn-primary btn-sm idxDocProcess" data-dockey="${d.key}">Processing</button>`);
+                      acts.push(`<button class="btn btn-danger btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                     }
                     if(st==='processing'){
                       acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                      acts.push(`<button class="btn btn-outline btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                      acts.push(`<button class="btn btn-danger btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                     }
                     if(st==='verified') acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
                     if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm idxDocAllowReupload" data-dockey="${d.key}">Allow Re-upload</button>`);
@@ -3050,7 +3050,7 @@
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'rejected'};
                 await updateApp(appIdKey,{documentStatus:ds});
-                notifyApplicant(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please contact support for details.`);
+                notifyApplicant(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please upload a new version from your portal.`);
                 toast(`"${key}" rejected.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
             }));
             document.querySelectorAll('.idxDocAllowReupload').forEach(b=>b.addEventListener('click',async function(){
@@ -3176,6 +3176,8 @@
                     if (chat) navigate("messages-chat", { chatId: chat.id, otherName });
                 });
             });
+            // Disable action buttons on click to prevent double-submit
+            document.querySelectorAll('[class*="Btn"],[class*="btn"]').forEach(b=>b.addEventListener('click',function(){if(!this.disabled)setTimeout(()=>this.disabled=true)}));
         }
 
         function closeModal() { document.getElementById('modal-root').innerHTML = ""; }

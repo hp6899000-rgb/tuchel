@@ -839,12 +839,12 @@
                             if(st==='received') acts.push(`<button class="btn btn-outline btn-sm docStartReviewBtn" data-dockey="${d.key}">Start Review</button>`);
                             if(st==='pending_review'||st==='reuploaded'){
                                 acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                                acts.push(`<button class="btn btn-outline btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
-                                acts.push(`<button class="btn btn-outline btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                                acts.push(`<button class="btn btn-primary btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
+                                acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                             }
                             if(st==='processing'){
                                 acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                                acts.push(`<button class="btn btn-outline btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                                acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                             }
                             if(st==='verified') acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
                             if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm docAllowReuploadBtn" data-dockey="${d.key}">Allow Re-upload</button>`);
@@ -1158,7 +1158,7 @@
             const key=this.getAttribute('data-dockey'); const id=appId(app);
             const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'rejected'};
             await updateDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()});
-            try{sendSystemNotification(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please contact support for details.`);}catch(e){}
+            try{sendSystemNotification(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please upload a new version from your portal.`);}catch(e){}
             toast(`"${key}" rejected.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docAllowReuploadBtn').forEach(b=>b.addEventListener('click',async function(){
@@ -1314,6 +1314,8 @@
             toast(`Service "${label}" added.`,"ok");
             root.innerHTML='';openAppModal(appId);
         });
+        // Disable action buttons on click to prevent double-submit
+        root.querySelectorAll('[class*="Btn"],[class*="btn"]').forEach(b=>b.addEventListener('click',function(){if(!this.disabled)setTimeout(()=>this.disabled=true)}));
     }
 
     async function sendSystemNotification(uid,name,msgText){
