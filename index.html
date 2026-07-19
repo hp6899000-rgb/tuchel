@@ -2881,6 +2881,7 @@
                   ].map(d=>{
                     const hasUrl=!!d.url;
                     const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
+                    const bc=st==='verified'?'var(--emerald-500)':st==='processing'?'var(--indigo-500)':st==='pending_review'||st==='reuploaded'?'var(--amber-500)':st==='rejected'||st==='changes_requested'||st==='upload_again'?'var(--rose-500)':st==='received'?'var(--blue-500)':'var(--slate-300)';
                     const acts=[];
                     if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                     if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm idxDocMarkReceived" data-dockey="${d.key}">Mark Received</button>`);
@@ -2891,16 +2892,21 @@
                       acts.push(`<button class="btn btn-danger btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                     }
                     if(st==='processing'){
+                      acts.push(`<span class="badge badge-indigo" style="font-size:11px">⏳ Processing</span>`);
                       acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
                       acts.push(`<button class="btn btn-danger btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                     }
-                    if(st==='verified') acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                    if(st==='verified'){
+                      acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified</span>`);
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                    }
                     if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm idxDocAllowReupload" data-dockey="${d.key}">Allow Re-upload</button>`);
                     if(st==='changes_requested'||st==='upload_again'){
                       acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
                       acts.push(`<button class="btn btn-outline btn-sm idxDocCancelRequest" data-dockey="${d.key}">Cancel Request</button>`);
                     }
-                    return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                    const bg=st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'?'var(--rose-50)':'transparent';
+                    return `<div class="doc-row" style="border-left:3px solid ${bc};background:${bg};border-radius:6px;padding:8px 10px;margin-bottom:6px"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                   }).join("")}
                 </div>
                 <!-- Services Section -->
@@ -2995,62 +3001,62 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'verified'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`✅ Document "${key.toUpperCase()}" has been verified.`);
-                toast(`"${key}" verified.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`"${key}" verified.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocRequestChange').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'changes_requested'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`📝 Document "${key.toUpperCase()}": Changes requested. Please upload a revised version.`);
-                toast(`Changes requested for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`Changes requested for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocRevoke').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`🔄 Document "${key.toUpperCase()}" verification has been revoked.`);
-                toast(`Verification revoked for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`Verification revoked for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocCancelRequest').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
-                toast(`Change request cancelled for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`Change request cancelled for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocMarkReceived').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'received'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`📄 Document "${key.toUpperCase()}" has been received and is under review.`);
-                toast(`"${key}" marked as received.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`"${key}" marked as received.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocStartReview').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`🔍 Document "${key.toUpperCase()}" is now under review.`);
-                toast(`"${key}" moved to review.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`"${key}" moved to review.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocProcess').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'processing'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`⚙️ Document "${key.toUpperCase()}" is being processed.`);
-                toast(`"${key}" set to processing.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`"${key}" set to processing.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocReject').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'rejected'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please upload a new version from your portal.`);
-                toast(`"${key}" rejected.`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`"${key}" rejected.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocAllowReupload').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'upload_again'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`📤 Document "${key.toUpperCase()}": You may now upload a new version.`);
-                toast(`Re-upload allowed for "${key}".`,"ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`Re-upload allowed for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             // Status chip click
             let selectedStatus=null;
@@ -3065,7 +3071,7 @@
                 const old=svcs[idx].status; svcs[idx].status=newStatus; svcs[idx].updatedAt=new Date().toISOString();
                 await updateApp(appIdKey,{clientServices:svcs});
                 try{addAuditLog(`Service status: "${svcs[idx].label}" → ${newStatus}`,`${app.fullName}`,appIdKey);}catch(e){}
-                toast(`"${svcs[idx].label}" → ${newStatus}.`,"ok"); await loadApps(); closeModal(); openAdminAppModal(appIdKey);
+                toast(`"${svcs[idx].label}" → ${newStatus}.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('[data-svcpaid]').forEach(b=>b.addEventListener('click',async function(){
                 const svcId=this.getAttribute('data-svcpaid');
@@ -3073,7 +3079,7 @@
                 svcs[idx].paid=!svcs[idx].paid; svcs[idx].paidDate=svcs[idx].paid?new Date().toISOString():null; svcs[idx].updatedAt=new Date().toISOString();
                 await updateApp(appIdKey,{clientServices:svcs});
                 try{addAuditLog(`Service payment ${svcs[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${svcs[idx].label}`,appIdKey);}catch(e){}
-                toast(`Payment ${svcs[idx].paid?'marked':'unmarked'}.`,"ok"); await loadApps(); closeModal(); openAdminAppModal(appIdKey);
+                toast(`Payment ${svcs[idx].paid?'marked':'unmarked'}.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.getElementById('idxAddSvcBtn')?.addEventListener('click',async()=>{
                 const type=document.getElementById('idxSvcType').value; if(!type){toast("Select a service type.","err");return;}
@@ -3083,7 +3089,7 @@
                 svcs.push({id:'svc_'+Date.now(),type,label,amount:amount||'',description:desc||'',status:'pending',paid:false,paidDate:null,progress:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
                 await updateApp(appIdKey,{clientServices:svcs});
                 try{addAuditLog(`Service added: "${label}"`,`${app.fullName}`,appIdKey);}catch(e){}
-                toast(`Service "${label}" added.`,"ok"); await loadApps(); closeModal(); openAdminAppModal(appIdKey);
+                toast(`Service "${label}" added.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('indexAutoAdvance')?.addEventListener('click', async () => {
                 const curIdx = STATUS_STEPS.indexOf(app.status);
@@ -3094,7 +3100,7 @@
                 notifyApplicant(app.uid,app.fullName,`📋 Status update: ${next} — All requirements for the previous stage were verified.`);
                 simulateEmail(app.email, `Application Status Update – ${next}`,
                     `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${next}.\n\nAll requirements for the previous stage were verified.\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
-                toast(`Auto-advanced to "${next}".`, "ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`Auto-advanced to "${next}".`, "ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('applyStatusBtn').addEventListener('click', async () => {
                 const chip=document.querySelector('[data-setstatus].active');
@@ -3113,7 +3119,7 @@
                 notifyApplicant(app.uid,app.fullName,`📋 Status update: ${newStatus}${note?` — ${note}`:''}`);
                 simulateEmail(app.email, `Application Status Update – ${newStatus}`,
                     `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${newStatus}.\n\n${note ? 'Note: ' + note : ''}\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
-                toast(`Status updated to "${newStatus}".`, "ok"); await loadApps(); closeModal(); renderCurrentView();
+                toast(`Status updated to "${newStatus}".`, "ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('addNoteBtn').addEventListener('click', async () => {
                 const val = document.getElementById('newNote').value.trim();
@@ -3121,10 +3127,10 @@
                 const fresh = await getApp(appIdKey);
                 const internalNotes = [...(fresh?.internalNotes || []), { date: new Date().toISOString(), author: currentUserData?.name || currentUser?.email || 'admin', note: val }];
                 await updateApp(appIdKey, { internalNotes });
-                toast("Internal note added.", "ok"); await loadApps(); closeModal(); openAdminAppModal(appIdKey);
+                toast("Internal note added.", "ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('archiveBtn').addEventListener('click', async () => {
-                if (confirm("Archive this application?")) { await updateApp(appIdKey, { archived: true }); toast("Application archived.", "ok"); await loadApps(); closeModal(); renderCurrentView(); }
+                if (confirm("Archive this application?")) { await updateApp(appIdKey, { archived: true }); toast("Application archived.", "ok"); loadApps(); closeModal(); }
             });
             document.getElementById('indexBlockBtn').addEventListener('click', async () => {
                 const email = app.email || '';
@@ -3141,7 +3147,7 @@
                     try{addAuditLog(`Blocked account`,`${name} (${email})`,appIdKey);}catch(e){}
                     toast(`🔇 ${name} blocked.`, "ok");
                 }
-                await loadApps(); closeModal(); renderCurrentView();
+                await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('indexDeleteAppBtn')?.addEventListener('click', async () => {
                 if (!confirm(`⚠️ DELETE application for ${app.fullName || 'this user'} (${displayId(app)})? This permanently removes ALL data including documents, chats, and messages. Cannot be undone.`)) return;
@@ -3157,7 +3163,7 @@
                     }
                     try{addAuditLog(`Deleted application`,`${app.fullName} (${displayId(app)})`);}catch(e){}
                     toast("Application permanently deleted.","ok");
-                    await loadApps(); closeModal(); renderCurrentView();
+                    loadApps(); closeModal();
                 } catch(e) { toast("Delete error: "+e.message,"err"); }
             });
             document.querySelectorAll('[data-startchat]').forEach(el => {

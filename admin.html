@@ -851,36 +851,51 @@
                     <!-- TAB: Documents -->
                     <div class="tab-panel" data-tab="docs">
                         <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Documents</h4>
-                        ${[
-                            {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
-                            {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
-                            {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
-                            {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
-                            {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
-                        ].map(d=>{
-                            const hasUrl=!!d.url;
-                            const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
-                            const acts=[];
-                            if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
-                            if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);
-                            if(st==='received') acts.push(`<button class="btn btn-outline btn-sm docStartReviewBtn" data-dockey="${d.key}">Start Review</button>`);
-                            if(st==='pending_review'||st==='reuploaded'){
-                                acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                                acts.push(`<button class="btn btn-primary btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
-                                acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
-                            }
-                            if(st==='processing'){
-                                acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
-                                acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
-                            }
-                            if(st==='verified') acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
-                            if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm docAllowReuploadBtn" data-dockey="${d.key}">Allow Re-upload</button>`);
-                            if(st==='changes_requested'||st==='upload_again'){
-                                acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
-                                acts.push(`<button class="btn btn-outline btn-sm docCancelReqBtn" data-dockey="${d.key}">Cancel Request</button>`);
-                            }
-                            return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
-                        }).join("")}
+                        ${(()=>{
+                            const borderColor=(st)=>{
+                                if(st==='verified') return 'var(--emerald-500)';
+                                if(st==='processing') return 'var(--indigo-500)';
+                                if(st==='pending_review'||st==='reuploaded') return 'var(--amber-500)';
+                                if(st==='rejected'||st==='changes_requested'||st==='upload_again') return 'var(--rose-500)';
+                                if(st==='received') return 'var(--blue-500)';
+                                return 'var(--slate-300)';
+                            };
+                            return [
+                                {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
+                                {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
+                                {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
+                                {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
+                                {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
+                            ].map(d=>{
+                                const hasUrl=!!d.url;
+                                const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
+                                const acts=[];
+                                if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                                if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);
+                                if(st==='received') acts.push(`<button class="btn btn-outline btn-sm docStartReviewBtn" data-dockey="${d.key}">Start Review</button>`);
+                                if(st==='pending_review'||st==='reuploaded'){
+                                    acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                                    acts.push(`<button class="btn btn-primary btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
+                                    acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                                }
+                                if(st==='processing'){
+                                    acts.push(`<span class="badge badge-indigo" style="font-size:11px">⏳ Processing</span>`);
+                                    acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                                    acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                                }
+                                if(st==='verified'){
+                                    acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified</span>`);
+                                    acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                                }
+                                if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm docAllowReuploadBtn" data-dockey="${d.key}">Allow Re-upload</button>`);
+                                if(st==='changes_requested'||st==='upload_again'){
+                                    acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
+                                    acts.push(`<button class="btn btn-outline btn-sm docCancelReqBtn" data-dockey="${d.key}">Cancel Request</button>`);
+                                }
+                                const bc=borderColor(st);
+                                return `<div class="doc-row" style="border-left:3px solid ${bc};background:${st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'?'var(--rose-50)':'transparent'};border-radius:6px;padding:8px 10px;margin-bottom:6px"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                            }).join('');
+                        })()}
                         <h4 style="margin:16px 0 12px;color:var(--blue-900);font-size:14px">Upload Document for Applicant</h4>
                         <div style="display:flex;gap:8px;flex-wrap:wrap">
                             <select id="adminDocType" style="width:auto;flex:1;min-width:140px">
@@ -1116,7 +1131,7 @@
             await setDoc(ref,updates,{merge:true});
             const changedStatus=selectedStatus&&selectedStatus.getAttribute('data-setstatus')!==app.status;
             try{addAuditLog(changedStatus?`Status → ${selectedStatus.getAttribute('data-setstatus')}`:'Documents verified',`${app.fullName} (${appId(app)})`,id);}catch(e){}
-            toast("Application updated.","ok");root.innerHTML='';await loadApps();
+            toast("Application updated.","ok");await loadApps();openAppModal(appId);
         });
 
         // Status chip toggle
@@ -1133,7 +1148,7 @@
             const ds={...(s.data().documentStatus||{}),[key]:'verified'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`✅ Document "${key.toUpperCase()}" has been verified.`);}catch(e){}
-            toast(`"${key}" verified.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`"${key}" verified.`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docRequestChangeBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
@@ -1142,7 +1157,7 @@
             const ds={...(s.data().documentStatus||{}),[key]:'changes_requested'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`📝 Document "${key.toUpperCase()}": Changes requested. Please upload a revised version.`);}catch(e){}
-            toast(`Changes requested for "${key}".`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`Changes requested for "${key}".`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docRevokeBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
@@ -1151,7 +1166,7 @@
             const ds={...(s.data().documentStatus||{}),[key]:'pending_review'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`🔄 Document "${key.toUpperCase()}" verification has been revoked.`);}catch(e){}
-            toast(`Verification revoked for "${key}".`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`Verification revoked for "${key}".`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docCancelReqBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
@@ -1159,42 +1174,42 @@
             if(!s.exists())return;
             const ds={...(s.data().documentStatus||{}),[key]:'pending_review'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
-            toast(`Change request cancelled for "${key}".`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`Change request cancelled for "${key}".`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docMarkReceivedBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
             const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'received'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`📄 Document "${key.toUpperCase()}" has been received and is under review.`);}catch(e){}
-            toast(`"${key}" marked as received.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`"${key}" marked as received.`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docStartReviewBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
             const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'pending_review'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`🔍 Document "${key.toUpperCase()}" is now under review.`);}catch(e){}
-            toast(`"${key}" moved to review.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`"${key}" moved to review.`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docProcessBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
             const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'processing'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`⚙️ Document "${key.toUpperCase()}" is being processed.`);}catch(e){}
-            toast(`"${key}" set to processing.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`"${key}" set to processing.`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docRejectBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
             const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'rejected'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please upload a new version from your portal.`);}catch(e){}
-            toast(`"${key}" rejected.`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`"${key}" rejected.`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docAllowReuploadBtn').forEach(b=>b.addEventListener('click',async function(){
             const key=this.getAttribute('data-dockey'); const id=appId(app);
             const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'upload_again'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`📤 Document "${key.toUpperCase()}": You may now upload a new version.`);}catch(e){}
-            toast(`Re-upload allowed for "${key}".`,"ok");root.innerHTML='';await loadApps();openAppModal(appId);
+            toast(`Re-upload allowed for "${key}".`,"ok");await loadApps();openAppModal(appId);
         }));
 
         // Auto-advance
@@ -1221,7 +1236,7 @@
             await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
             try{addAuditLog(`Fee ${fees[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${fees[idx].label} ${fees[idx].amount}`,id);}catch(e){}
             toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'}.`,"ok");
-            root.innerHTML='';openAppModal(appId);
+            openAppModal(appId);
         }));
 
         // Add fee to application
@@ -1238,7 +1253,7 @@
             await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
             try{addAuditLog(`Fee added: ${l} ${a}`,`${app.fullName}`,id);}catch(e){}
             toast("Fee added to application.","ok");
-            root.innerHTML='';openAppModal(appId);
+            openAppModal(appId);
         });
 
         // Add note
@@ -1253,7 +1268,7 @@
             notes.push({id:'n_'+Date.now(),text:t,author:currentUserData?.email||'Admin',createdAt:new Date().toISOString()});
             await setDoc(ref,{internalNotes:notes,updatedAt:serverTimestamp()},{merge:true});
             toast("Note added.","ok");
-            root.innerHTML='';openAppModal(appId);
+            openAppModal(appId);
         });
 
         // Admin upload document for applicant
@@ -1268,7 +1283,7 @@
                     const id=appId(app);
                     await setDoc(doc(db,"applications",id),{[field]:url,[`documentStatus.${docKey}`]:'pending_review',updatedAt:serverTimestamp()},{merge:true});
                     toast("Document uploaded to application.","ok");
-                    root.innerHTML='';openAppModal(appId);
+                    openAppModal(appId);
                 }catch(e){toast(e.message||"Upload failed.","err");}
             });
             dialog.fail(()=>toast('Upload cancelled.',"err"));
@@ -1299,7 +1314,7 @@
             try{sendServiceStatusNotification(app.uid,app.fullName,services[idx].label,oldStatus,newStatus);}catch(e){}
             try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${app.fullName}`,id);}catch(e){}
             toast(`Service "${services[idx].label}" → ${newStatus} — client notified.`,"ok");
-            root.innerHTML='';openAppModal(appId);
+            openAppModal(appId);
         }));
 
         // Service toggle paid
@@ -1318,7 +1333,7 @@
             try{sendSystemNotification(app.uid,app.fullName,`💰 Payment ${services[idx].paid?'received':'unmarked'} for service "${services[idx].label}".`);}catch(e){}
             try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${services[idx].label}`,id);}catch(e){}
             toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}" — client notified.`,"ok");
-            root.innerHTML='';openAppModal(appId);
+            openAppModal(appId);
         }));
 
         // Add service
@@ -1341,7 +1356,7 @@
             try{sendServiceStatusNotification(app.uid,app.fullName,label,'none','pending');}catch(e){}
             try{addAuditLog(`Service added: "${label}"`,`${app.fullName} — ${amount}`,id);}catch(e){}
             toast(`Service "${label}" added — client notified.`,"ok");
-            root.innerHTML='';openAppModal(appId);
+            openAppModal(appId);
         });
         // Disable action buttons on click to prevent double-submit
         root.querySelectorAll('[class*="Btn"],[class*="btn"]').forEach(b=>b.addEventListener('click',function(){if(!this.disabled)setTimeout(()=>this.disabled=true)}));
