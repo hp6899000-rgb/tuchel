@@ -109,6 +109,7 @@
         .stat-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 20px; }
         .stat-grid > * { min-width: 0; }
         .stat-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.stat-grid-5 { grid-template-columns: repeat(5, 1fr); }
         .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px 18px; transition: var(--transition); }
         .stat-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-sm); }
         .stat-card .n { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--blue-900); line-height: 1.2; }
@@ -236,6 +237,7 @@
             .stat-grid { grid-template-columns: repeat(2,1fr); }
             .stat-grid .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
             .stat-grid-3 { grid-template-columns: repeat(2,1fr); }
+            .stat-grid-5 { grid-template-columns: repeat(3,1fr); }
             .dash-main { padding: 16px 12px; }
             .chip { padding: 6px 14px; font-size: 11.5px; }
             .modal { margin: 12px; border-radius: 10px; }
@@ -279,6 +281,8 @@
             .stat-grid { grid-template-columns: 1fr; }
             .stat-grid-3 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x proximity; scroll-behavior: smooth; }
             .stat-grid-3 .stat-card { flex: 0 0 auto; min-width: 160px; scroll-snap-align: start; }
+            .stat-grid-5 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x proximity; scroll-behavior: smooth; }
+            .stat-grid-5 .stat-card { flex: 0 0 auto; min-width: 140px; scroll-snap-align: start; }
             .dash-main { padding: 12px 10px; }
             .dash-topbar { padding: 8px 0; }
             .dash-topbar h2 { font-size: 16px; }
@@ -463,12 +467,13 @@
     function calcCompleteness(a) {
         const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
         const f=fields.filter(Boolean).length;
-        const cv=!!a.cvUrl,pass=!!a.passportUrl,cert=!!a.certificatesUrl,ref=!!a.referenceUrl,med=!!a.medicalUrl;
+        const cv=!!a.cvUrl,pass=!!a.passportUrl;
         const _v=k=>{const s=a.documentStatus?.[k];return s==='verified'||!!a.documentsVerified?.[k];};
-        const cvV=_v('cv'),passV=_v('passport'),certV=_v('certificates'),refV=_v('reference'),medV=_v('medical');
-        let score=f; if(cv)score++; if(pass)score++; if(cert)score++; if(ref)score++; if(med)score++;
-        if(cvV)score++; if(passV)score++; if(certV)score++; if(refV)score++; if(medV)score++;
-        return Math.min(100,Math.round((Math.min(score,17)/17)*100));
+        const cvV=_v('cv'),passV=_v('passport');
+        let score=f; if(cv)score++; if(pass)score++;
+        if(cvV)score++; if(passV)score++;
+        const total=9+2+2;
+        return Math.min(100,Math.round((Math.min(score,total)/total)*100));
     }
     function completenessBar(pct) {
         const c=pct>=80?'green':pct>=40?'amber':'maroon';
@@ -701,6 +706,28 @@
                     <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:18px;color:var(--emerald-600)">€${esc(totalPaid.toFixed(0))}</div><div class="l">Total Collected</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:18px;color:var(--maroon-600)">€${esc((totalFees-totalPaid).toFixed(0))}</div><div class="l">Outstanding</div></div>
                 </div>
+                ${(()=>{
+                    const allSvcs=apps.flatMap(a=>(a.clientServices||[]).map(s=>({...s,applicant:a.fullName,appId:appId(a),uid:a.uid||a.id})));
+                    if(!allSvcs.length)return '';
+                    const pend=allSvcs.filter(s=>s.status==='pending').length;
+                    const ip=allSvcs.filter(s=>s.status==='in-progress').length;
+                    const done=allSvcs.filter(s=>s.status==='completed').length;
+                    const totPaid=allSvcs.filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                    return `<div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px">
+                        <div style="font-weight:700;font-size:13px;color:var(--blue-900);margin-bottom:10px"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Active Services (${allSvcs.length})</div>
+                        <div class="stat-grid stat-grid-5" style="margin-bottom:10px">
+                            <div class="stat-card" style="padding:10px"><div class="n" style="font-size:16px;color:var(--slate-700)">${allSvcs.length}</div><div class="l" style="font-size:10px">Total</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--amber-500)"><div class="n" style="font-size:16px;color:var(--amber-600)">${pend}</div><div class="l" style="font-size:10px">Pending</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--blue-500)"><div class="n" style="font-size:16px;color:var(--blue-600)">${ip}</div><div class="l" style="font-size:10px">In Progress</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:16px;color:var(--emerald-600)">${done}</div><div class="l" style="font-size:10px">Completed</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:16px;color:var(--maroon-600)">€${totPaid.toFixed(0)}</div><div class="l" style="font-size:10px">Collected</div></div>
+                        </div>
+                        <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th></tr></thead><tbody>${allSvcs.slice(0,10).map(s=>{
+                            const t=SERVICE_TYPES.find(st=>st.id===s.type);
+                            return `<tr><td><b style="font-size:12px">${esc(s.applicant)}</b></td><td>${esc(s.label)}</td><td>${esc(s.amount||'—')}</td><td><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td>${s.paid?'<span class="badge badge-green">Paid</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td></tr>`;
+                        }).join("")}</tbody></table></div>
+                    </div>`;
+                })()}
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
                     <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:var(--slate-600)"><input type="checkbox" id="showBlockedCb" ${adminFilters.showBlocked?'checked':''}> Show blocked accounts</label>
                 </div>
@@ -832,7 +859,7 @@
                             {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
                         ].map(d=>{
                             const hasUrl=!!d.url;
-                            const st=app.documentStatus?.[d.key]||(hasUrl?'pending_review':'not_uploaded');
+                            const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
                             const acts=[];
                             if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                             if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);

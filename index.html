@@ -2624,7 +2624,7 @@
                         {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
                     ].map(d=>{
                         const hasUrl = !!d.url;
-                        const st = app.documentStatus?.[d.key] || (hasUrl ? 'pending_review' : 'not_uploaded');
+                        const st = !hasUrl ? 'not_uploaded' : (app.documentStatus?.[d.key] || 'pending_review');
                         const acts = [];
                         if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                         if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
@@ -2888,7 +2888,7 @@
                     {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
                   ].map(d=>{
                     const hasUrl=!!d.url;
-                    const st=app.documentStatus?.[d.key]||(hasUrl?'pending_review':'not_uploaded');
+                    const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
                     const acts=[];
                     if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                     if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm idxDocMarkReceived" data-dockey="${d.key}">Mark Received</button>`);
