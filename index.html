@@ -416,7 +416,8 @@
             .hero-actions { flex-direction: column; }
             .hero-actions .btn { width: 100%; }
             .progress-stages .stage { min-width: 60px; font-size: 9px; padding: 6px 2px; }
-            .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+            .table-wrap table { min-width: 640px; }
             .modal { margin: 12px; }
             .modal-body { padding: 16px; }
             .modal-body .grid { grid-template-columns: 1fr; }
@@ -465,7 +466,8 @@
             .job-card { padding: 16px; }
             .job-title { font-size: 14px; }
             .job-desc { font-size: 12px; }
-            .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+            .table-wrap table { min-width: 640px; }
             table { font-size: 12px; }
             th, td { padding: 10px 10px; }
             .msg-bubble { max-width: 88%; font-size: 13px; }
