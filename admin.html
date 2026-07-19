@@ -831,8 +831,8 @@
                             {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
                             {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
                         ].map(d=>{
-                            const st=app.documentStatus?.[d.key]||'not_uploaded';
                             const hasUrl=!!d.url;
+                            const st=app.documentStatus?.[d.key]||(hasUrl?'pending_review':'not_uploaded');
                             const acts=[];
                             if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                             if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);

@@ -878,15 +878,12 @@
             const f=fields.filter(Boolean).length;
             const cv=!!(a.cvUrl);
             const pass=!!(a.passportUrl);
-            const cert=!!(a.certificatesUrl);
-            const ref=!!(a.referenceUrl);
-            const med=!!(a.medicalUrl);
             const _v=k=>a.documentStatus?.[k]==='verified'||!!a.documentsVerified?.[k];
-            const cvV=_v('cv'),passV=_v('passport'),certV=_v('certificates'),refV=_v('reference'),medV=_v('medical');
-            const total=17;
+            const cvV=_v('cv'),passV=_v('passport');
+            const total=9+2+2;
             let score=f;
-            if(cv)score++; if(pass)score++; if(cert)score++; if(ref)score++; if(med)score++;
-            if(cvV)score++; if(passV)score++; if(certV)score++; if(refV)score++; if(medV)score++;
+            if(cv)score++; if(pass)score++;
+            if(cvV)score++; if(passV)score++;
             return Math.min(100,Math.round((score/total)*100));
         }
         function docStatusBadge(st){
@@ -2536,6 +2533,15 @@
                 <div style="height:8px;background:var(--slate-100);border-radius:99px;overflow:hidden">
                   <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--emerald-500)' : pct > 50 ? 'var(--maroon-500)' : 'var(--amber-500)'};border-radius:99px;transition:width .5s"></div>
                 </div>
+                ${pct<100?(()=>{
+                  const missing=[];
+                  ['fullName','dob','nationality','phone','email','address','city','education','jobId','passportNumber'].forEach(f=>{if(!app[f])missing.push(f==='jobId'?'Job Interested In':f.charAt(0).toUpperCase()+f.slice(1));});
+                  const labels={fullName:'Full Name',dob:'Date of Birth',nationality:'Nationality',phone:'Phone',email:'Email',address:'Address',city:'City',education:'Education',jobId:'Job Interested In',passportNumber:'Passport Number'};
+                  if(!app.cvUrl)missing.push('CV / Resume');
+                  if(!app.passportUrl)missing.push('Passport Upload');
+                  if(!missing.length)return '';
+                  return `<div style="margin-top:8px;font-size:12px;color:var(--slate-500);background:var(--amber-50);border-radius:6px;padding:10px 14px"><b>Complete your application:</b><br>${missing.map(m=>`<span style="display:inline-block;margin:2px 6px 2px 0">• ${esc(m)}</span>`).join('')}</div>`;
+                })():''}
               </div>
 
               ${appFees.length ? `
