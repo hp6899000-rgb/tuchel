@@ -1124,7 +1124,7 @@
         }
         async function updateApp(appId, patch) {
             const ref = doc(db, "applications", appId);
-            await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() });
+            await setDoc(ref, { ...patch, updatedAt: serverTimestamp() }, { merge: true });
             await loadApps();
             return await getApp(appId);
         }
@@ -3105,7 +3105,9 @@
                 if(newIdx>=0&&newIdx<curIdx){toast("Cannot go back to a previous step.","err");return;}
                 const note = document.getElementById('statusNote').value.trim();
                 const fresh = await getApp(appIdKey);
-                const timeline = [...(fresh?.timeline || []), { status: newStatus, date: new Date().toISOString(), note: note || undefined }];
+                const entry = { status: newStatus, date: new Date().toISOString() };
+                if (note) entry.note = note;
+                const timeline = [...(fresh?.timeline || []), entry];
                 await updateApp(appIdKey, { status: newStatus, timeline });
                 try{addAuditLog(`Status → ${newStatus}`,`${app.fullName} (${displayId(app)})`,appIdKey);}catch(e){}
                 notifyApplicant(app.uid,app.fullName,`📋 Status update: ${newStatus}${note?` — ${note}`:''}`);
