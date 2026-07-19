@@ -267,6 +267,8 @@
         .dash-topbar h2 { margin: 0; font-size: 22px; color: var(--blue-900); }
         .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
         .stat-grid > * { min-width: 0; }
+        .stat-grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .dash-details-grid { grid-template-columns: 1.4fr .9fr; }
         .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px 18px; transition: var(--transition); }
         .stat-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-sm); }
         .stat-card .n { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--blue-900); line-height: 1.2; }
@@ -380,11 +382,13 @@
             .country-grid, .job-grid, .why-grid, .fee-grid { grid-template-columns: repeat(2, 1fr); }
             .process-grid { grid-template-columns: repeat(3, 1fr); }
             .stat-grid { grid-template-columns: repeat(3, 1fr); }
+            .stat-grid-4 { grid-template-columns: repeat(3, 1fr); }
             .msg-shell { grid-template-columns: 1fr; }
             .msg-list-panel { display: none; }
             .msg-list-panel.show { display: block; position: fixed; inset: 72px 0 0; z-index: 100; background: #fff; }
             .msg-chat-panel { display: none; }
             .msg-chat-panel.show { display: flex; }
+            .dash-details-grid { grid-template-columns: 1fr; }
             .hero-inner { grid-template-columns: 1fr; padding: 48px 24px 40px; gap: 32px; }
             .hero h1 { font-size: 34px; }
             .hero .lead { font-size: 15px; }
@@ -405,6 +409,7 @@
             .side-link.active { background: var(--maroon-50); color: var(--maroon-600); }
             .foot-grid { grid-template-columns: 1fr 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-grid-4 { grid-template-columns: repeat(2, 1fr); }
             .section { padding: 48px 16px; }
             .section-head { margin-bottom: 32px; }
             .section-head h2 { font-size: 24px; }
@@ -432,6 +437,8 @@
         }
         @media (max-width: 600px) {
             .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid, .stat-grid { grid-template-columns: 1fr; }
+            .stat-grid-4 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+            .stat-grid-4 .stat-card { flex: 0 0 auto; min-width: 160px; scroll-snap-align: start; }
             .hero { padding-top: 0; }
             .hero-inner { padding: 32px 16px 28px; }
             .hero h1 { font-size: 24px; }
@@ -2462,7 +2469,7 @@
                   return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
               }).join("")}</div>` : ''}
 
-              <div class="stat-grid" style="margin-bottom:20px;grid-template-columns:repeat(4,1fr)">
+              <div class="stat-grid stat-grid-4" style="margin-bottom:20px">
                 <div class="stat-card" style="cursor:pointer" data-action="chat-admin">
                   <div class="n" style="font-size:20px"><i class="fa-solid fa-comment-dots" style="color:var(--blue-500);margin-right:8px"></i></div>
                   <div class="l">Chat with Admin</div>
@@ -2534,7 +2541,7 @@
                 </div>
               </div>`:''}
 
-              <div class="grid" style="grid-template-columns:1.4fr .9fr">
+              <div class="grid dash-details-grid">
                 <div class="card pad">
                   <h4 style="margin:0 0 18px;color:var(--blue-900)"><i class="fa-solid fa-timeline" style="color:var(--maroon-500)"></i> Status Timeline</h4>
                   ${renderTimeline(app)}

@@ -106,6 +106,7 @@
         .dash-topbar h2 { margin: 0; font-size: 22px; color: var(--blue-900); }
         .stat-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 20px; }
         .stat-grid > * { min-width: 0; }
+        .stat-grid-3 { grid-template-columns: repeat(3, 1fr); }
         .stat-card { background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 16px 18px; transition: var(--transition); }
         .stat-card:hover { border-color: var(--blue-500); box-shadow: var(--shadow-sm); }
         .stat-card .n { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--blue-900); line-height: 1.2; }
@@ -224,6 +225,7 @@
             #msgBackBtn { display: inline-flex !important; }
             .stat-grid { grid-template-columns: repeat(2,1fr); }
             .stat-grid .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+            .stat-grid-3 { grid-template-columns: repeat(2,1fr); }
             .dash-main { padding: 16px 12px; }
             .chip { padding: 6px 14px; font-size: 11.5px; }
             .modal { margin: 12px; border-radius: 10px; }
@@ -265,6 +267,8 @@
             .app-card .ac-meta i { color: var(--slate-400); width: 14px; text-align: center; font-size: 11px; }
             .app-card .ac-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--slate-100); padding-top: 10px; }
             .stat-grid { grid-template-columns: 1fr; }
+            .stat-grid-3 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+            .stat-grid-3 .stat-card { flex: 0 0 auto; min-width: 160px; scroll-snap-align: start; }
             .dash-main { padding: 12px 10px; }
             .dash-topbar { padding: 8px 0; }
             .dash-topbar h2 { font-size: 16px; }
@@ -675,14 +679,14 @@
                     <h2>Applications Dashboard</h2>
                     <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search..." value="${esc(adminFilters.search)}"></div>
                 </div>
-                <div class="stat-grid" style="grid-template-columns:repeat(5,1fr)">
+                <div class="stat-grid">
                     <div class="stat-card"><div class="n">${stats.total}</div><div class="l">Total Applications</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--blue-500)"><div class="n">${stats.received}</div><div class="l">New</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--amber-600)"><div class="n">${stats.inProgress}</div><div class="l">In Progress</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n">${stats.placed}</div><div class="l">Placed</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--rose-500)"><div class="n">${stats.rejected}</div><div class="l">Rejected</div></div>
                 </div>
-                <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+                <div class="stat-grid stat-grid-3" style="margin-bottom:20px">
                     <div class="stat-card"><div class="n" style="font-size:18px;color:var(--blue-800)">€${esc(totalFees.toFixed(0))}</div><div class="l">Total Invoiced</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:18px;color:var(--emerald-600)">€${esc(totalPaid.toFixed(0))}</div><div class="l">Total Collected</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:18px;color:var(--maroon-600)">€${esc((totalFees-totalPaid).toFixed(0))}</div><div class="l">Outstanding</div></div>
