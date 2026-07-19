@@ -96,7 +96,7 @@
         .search-input input:focus { box-shadow: none; }
 
         .dash-shell { display: grid; grid-template-columns: 230px 1fr; gap: 0; min-height: calc(100vh - 72px); }
-        .dash-side { background: var(--blue-950); color: #fff; padding: 24px 16px; }
+        .dash-side { background: var(--blue-950); color: #fff; padding: 24px 16px; overscroll-behavior-x: contain; }
         .dash-side .side-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: #7C93B3; padding: 8px 12px 12px; font-weight: 700; }
         .side-link { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: #B9C8DC; transition: var(--transition); cursor: pointer; }
         .side-link:hover { background: rgba(255,255,255,.08); color: #fff; }
@@ -169,7 +169,7 @@
         .note-item { background: var(--slate-50); border-left: 3px solid var(--blue-500); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 8px; }
         .note-item .meta { font-size: 11px; color: var(--slate-400); margin-bottom: 4px; }
         .note-item .text { font-size: 13px; color: var(--slate-700); }
-        .progress-stages { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+        .progress-stages { display: flex; gap: 0; margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; overscroll-behavior: contain; }
         .stage { flex: 1; min-width: 90px; text-align: center; padding: 10px 6px; font-size: 11px; font-weight: 600; color: var(--slate-400); background: var(--slate-100); border-right: 2px solid #fff; position: relative; }
         .stage:last-child { border-right: none; }
         .stage.done { background: var(--emerald-50); color: var(--emerald-600); }
@@ -211,7 +211,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 900px) {
             .dash-shell { grid-template-columns: 1fr; }
-            .dash-side { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--slate-200); overscroll-behavior: contain; }
+            .dash-side { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--slate-200); overscroll-behavior-x: contain; overscroll-behavior: contain; }
             .dash-side .side-title { display: none; }
             .side-link { color: var(--slate-700); }
             .side-link:hover { background: var(--slate-100); color: var(--blue-900); }
@@ -234,7 +234,8 @@
             .modal-foot { padding: 14px 18px; flex-wrap: wrap; gap: 8px; }
             .search-input input { min-width: 120px; }
             .wrap { padding: 0 14px; }
-            .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+            .table-wrap table { min-width: 640px; }
             table { font-size: 12px; }
             th, td { padding: 10px 10px; }
             .modal-tab { overflow-x: auto; flex-wrap: nowrap; }
@@ -691,7 +692,8 @@
                 </div>
                 <div class="filter-bar">${["All","Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
                 <div class="filter-bar">${["All",...ALL_STATUSES].map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
-                <div class="card" style="overflow-x:auto">
+                <div class="card">
+                    <div class="table-wrap">
                     <table class="app-table">
                         <thead><tr><th>Applicant</th><th>Phone</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th></tr></thead>
                         <tbody>${filtered.length?filtered.map(a=>{
@@ -711,6 +713,7 @@
                             </tr>`;
                         }).join(""):`<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div></td></tr>`}</tbody>
                     </table>
+                    </div>
                     <!-- Mobile card layout -->
                     <div class="app-card-row">${filtered.length?filtered.map(a=>{
                         const cmp=calcCompleteness(a);
@@ -1391,11 +1394,13 @@
                         <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Job</button>
                     </form>
                 </div>
-                <div class="card" style="overflow-x:auto">
+                <div class="card">
+                    <div class="table-wrap">
                     <table>
                         <thead><tr><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th></tr></thead>
                         <tbody>${allJobs.length?allJobs.map(j=>`<tr><td><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td>${esc(j.country)}</td><td>${esc(j.category)}</td><td>${esc(j.salary||'—')}</td><td><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -1462,10 +1467,12 @@
                         <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Fee</button>
                     </form>
                 </div>
-                <div class="card" style="overflow-x:auto">
+                <div class="card">
+                    <div class="table-wrap">
                     <table><thead><tr><th>Label</th><th>Amount</th><th>Paid By</th><th></th></tr></thead>
                     <tbody>${allFees.length?allFees.map(f=>`<tr><td><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td>${esc(f.amount)}</td><td>${esc(f.paidBy)}</td><td><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>`;
