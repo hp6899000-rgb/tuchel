@@ -2613,14 +2613,12 @@
                     ${[
                         {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
                         {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
-                        {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl,opt:true},
-                        {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl,opt:true},
-                        {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl,opt:true},
-                        {key:'contract',label:'Contract',icon:'fa-file-signature',url:app.contractUrl,opt:true}
+                        {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
+                        {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
+                        {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
                     ].map(d=>{
                         const st = app.documentStatus?.[d.key] || 'not_uploaded';
                         const hasUrl = !!d.url;
-                        if(d.opt && !hasUrl) return '';
                         const acts = [];
                         if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                         if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
