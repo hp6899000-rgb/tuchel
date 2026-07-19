@@ -450,6 +450,7 @@
     function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
     function statusBadge(s) { if(!s)return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`; const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
     function appId(a) { return a.appId || a.id || a.uid || ''; }
+function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'; }
     function docStatusBadge(st){
         const m={
             'not_uploaded':['badge-slate','Not Uploaded'],
@@ -823,7 +824,7 @@
         root.innerHTML=`
         <div class="modal-overlay" id="modalOverlay">
             <div class="modal" style="max-width:900px">
-                <div class="modal-head"><h3>${esc(app.fullName)} — ${appId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-head">                <h3>${esc(app.fullName||appId(app))} — ${appId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
                 <div class="modal-body">
                     ${progressHTML()}
                     <div class="modal-tab">
@@ -1104,7 +1105,7 @@
                     msgsSnap.forEach(m=>m.ref.delete().catch(()=>{}));
                     chatDoc.ref.delete().catch(()=>{});
                 }
-                try{addAuditLog(`Deleted application`,`${app.fullName} (${appId(app)})`);}catch(e){}
+                try{addAuditLog(`Deleted application`,`${appName(app)} (${appId(app)})`);}catch(e){}
                 toast("Application permanently deleted.","ok");
                 root.innerHTML='';await loadApps();
             }catch(e){toast("Delete error: "+e.message,"err");}
@@ -1142,7 +1143,7 @@
             }
             await setDoc(ref,updates,{merge:true});
             const changedStatus=selectedStatus&&selectedStatus.getAttribute('data-setstatus')!==app.status;
-            try{addAuditLog(changedStatus?`Status → ${selectedStatus.getAttribute('data-setstatus')}`:'Documents verified',`${app.fullName} (${appId(app)})`,id);}catch(e){}
+            try{addAuditLog(changedStatus?`Status → ${selectedStatus.getAttribute('data-setstatus')}`:'Documents verified',`${appName(app)} (${appId(app)})`,id);}catch(e){}
             toast("Application updated.","ok");await loadApps();openAppModal(appId);
         });
 
@@ -1246,7 +1247,7 @@
             fees[idx].paid=!fees[idx].paid;
             fees[idx].paidDate=fees[idx].paid?new Date().toISOString():null;
             await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
-            try{addAuditLog(`Fee ${fees[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${fees[idx].label} ${fees[idx].amount}`,id);}catch(e){}
+            try{addAuditLog(`Fee ${fees[idx].paid?'paid':'unpaid'}`,`${appName(app)} — ${fees[idx].label} ${fees[idx].amount}`,id);}catch(e){}
             toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'}.`,"ok");
             openAppModal(appId);
         }));
@@ -1263,7 +1264,7 @@
             const data=s.data(),fees=[...(data.fees||[])];
             fees.push({id:'f_'+Date.now(),label:l,amount:a,paid:false,paidDate:null,addedAt:new Date().toISOString()});
             await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
-            try{addAuditLog(`Fee added: ${l} ${a}`,`${app.fullName}`,id);}catch(e){}
+            try{addAuditLog(`Fee added: ${l} ${a}`,`${appName(app)}`,id);}catch(e){}
             toast("Fee added to application.","ok");
             openAppModal(appId);
         });
@@ -1324,7 +1325,7 @@
             services[idx].updatedAt=new Date().toISOString();
             await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
             try{sendServiceStatusNotification(app.uid,app.fullName,services[idx].label,oldStatus,newStatus);}catch(e){}
-            try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${app.fullName}`,id);}catch(e){}
+            try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${appName(app)}`,id);}catch(e){}
             toast(`Service "${services[idx].label}" → ${newStatus} — client notified.`,"ok");
             openAppModal(appId);
         }));
@@ -1343,7 +1344,7 @@
             services[idx].updatedAt=new Date().toISOString();
             await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
             try{sendSystemNotification(app.uid,app.fullName,`💰 Payment ${services[idx].paid?'received':'unmarked'} for service "${services[idx].label}".`);}catch(e){}
-            try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${services[idx].label}`,id);}catch(e){}
+            try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${appName(app)} — ${services[idx].label}`,id);}catch(e){}
             toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}" — client notified.`,"ok");
             openAppModal(appId);
         }));
@@ -1366,7 +1367,7 @@
             services.push(svc);
             await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
             try{sendServiceStatusNotification(app.uid,app.fullName,label,'none','pending');}catch(e){}
-            try{addAuditLog(`Service added: "${label}"`,`${app.fullName} — ${amount}`,id);}catch(e){}
+            try{addAuditLog(`Service added: "${label}"`,`${appName(app)} — ${amount}`,id);}catch(e){}
             toast(`Service "${label}" added — client notified.`,"ok");
             openAppModal(appId);
         });
@@ -1375,7 +1376,7 @@
     }
 
     async function sendSystemNotification(uid,name,msgText){
-        if(!currentUser)return;
+        if(!currentUser||!uid)return;
         const chat=await getOrCreateChat(uid,name);
         if(!chat)return;
         await setDoc(doc(collection(db,"chats",chat.id,"messages")),{senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
@@ -1884,7 +1885,7 @@
         return uids;
     }
     async function getOrCreateChat(otherUid,otherName) {
-        if(!currentUser)return null;
+        if(!currentUser||!otherUid)return null;
         const chatId=`client_${otherUid}`,chatRef=doc(db,"chats",chatId);
         const existing=await getDoc(chatRef);
         if(existing.exists())return{id:existing.id,...existing.data()};
@@ -1893,7 +1894,7 @@
         if(!dup.empty)return{id:dup.docs[0].id,...dup.docs[0].data()};
         const adminUids=cachedAdminUids||await getAllAdminUids();
         const allParticipants=[otherUid,...adminUids];
-        const participantNames={[otherUid]:otherName};
+        const participantNames={[otherUid]:otherName||'User'};
         adminUids.forEach(uid=>{participantNames[uid]='Admin';});
         const unread={};allParticipants.forEach(p=>{unread[p]=0;});
         const data={participants:allParticipants,participantNames,unread,lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
@@ -1907,7 +1908,7 @@
         await setDoc(r,msg);
         const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
         const updates={};
-        cd.participants.forEach(p=>{if(p!==currentUser.uid)updates[`unread.${p}`]=increment(1);});
+        cd.participants.forEach(p=>{if(p&&p!==currentUser.uid)updates[`unread.${p}`]=increment(1);});
         updates.lastMessage=text||(fileUrl?`📎 ${fileName||'File'}`:'');
         updates.lastTimestamp=serverTimestamp();
         updates.lastSender=currentUser.uid;

@@ -885,6 +885,7 @@
             destroy(){this.w.remove();}
         }
         function displayId(a) { return a.appId || a.id || a.uid || ''; }
+        function displayName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'; }
         function calcCompleteness(a) {
             const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
             const f=fields.filter(Boolean).length;
@@ -915,7 +916,7 @@
         }
         async function notifyApplicant(uid, name, msgText) {
             try {
-                if (!currentUser) return;
+                if (!currentUser||!uid) return;
                 const chat = await getOrCreateChat(uid, name);
                 if (!chat) return;
                 const mr = doc(collection(db, "chats", chat.id, "messages"));
@@ -934,7 +935,7 @@
                 const cr = doc(db, "chats", chat.id);
                 const participants = chat.participants || [];
                 const updates = {};
-                participants.forEach(p => { if (p !== currentUser.uid) updates[`unread.${p}`] = increment(1); });
+            participants.forEach(p => { if (p && p !== currentUser.uid) updates[`unread.${p}`] = increment(1); });
                 updates.lastMessage = msgText;
                 updates.lastTimestamp = serverTimestamp();
                 updates.lastSender = currentUser.uid;
@@ -1177,6 +1178,7 @@
         async function getOrCreateChat(applicantUid, applicantName) {
             if (!currentUser) return null;
             const uid = applicantUid || currentUser.uid;
+            if (!uid) return null;
             const chatId = `client_${uid}`;
             const chatRef = doc(db, "chats", chatId);
             const existing = await getDoc(chatRef);
@@ -3121,7 +3123,7 @@
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])]; const idx=svcs.findIndex(s=>s.id===svcId); if(idx<0)return;
                 const old=svcs[idx].status; svcs[idx].status=newStatus; svcs[idx].updatedAt=new Date().toISOString();
                 await updateApp(appIdKey,{clientServices:svcs});
-                try{addAuditLog(`Service status: "${svcs[idx].label}" → ${newStatus}`,`${app.fullName}`,appIdKey);}catch(e){}
+                try{addAuditLog(`Service status: "${svcs[idx].label}" → ${newStatus}`,`${displayName(app)}`,appIdKey);}catch(e){}
                 toast(`"${svcs[idx].label}" → ${newStatus}.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('[data-svcpaid]').forEach(b=>b.addEventListener('click',async function(){
@@ -3129,7 +3131,7 @@
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])]; const idx=svcs.findIndex(s=>s.id===svcId); if(idx<0)return;
                 svcs[idx].paid=!svcs[idx].paid; svcs[idx].paidDate=svcs[idx].paid?new Date().toISOString():null; svcs[idx].updatedAt=new Date().toISOString();
                 await updateApp(appIdKey,{clientServices:svcs});
-                try{addAuditLog(`Service payment ${svcs[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${svcs[idx].label}`,appIdKey);}catch(e){}
+                try{addAuditLog(`Service payment ${svcs[idx].paid?'paid':'unpaid'}`,`${displayName(app)} — ${svcs[idx].label}`,appIdKey);}catch(e){}
                 toast(`Payment ${svcs[idx].paid?'marked':'unmarked'}.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.getElementById('idxAddSvcBtn')?.addEventListener('click',async()=>{
@@ -3139,7 +3141,7 @@
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])];
                 svcs.push({id:'svc_'+Date.now(),type,label,amount:amount||'',description:desc||'',status:'pending',paid:false,paidDate:null,progress:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
                 await updateApp(appIdKey,{clientServices:svcs});
-                try{addAuditLog(`Service added: "${label}"`,`${app.fullName}`,appIdKey);}catch(e){}
+                try{addAuditLog(`Service added: "${label}"`,`${displayName(app)}`,appIdKey);}catch(e){}
                 toast(`Service "${label}" added.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('indexAutoAdvance')?.addEventListener('click', async () => {
@@ -3166,7 +3168,7 @@
                 if (note) entry.note = note;
                 const timeline = [...(fresh?.timeline || []), entry];
                 await updateApp(appIdKey, { status: newStatus, timeline });
-                try{addAuditLog(`Status → ${newStatus}`,`${app.fullName} (${displayId(app)})`,appIdKey);}catch(e){}
+                try{addAuditLog(`Status → ${newStatus}`,`${displayName(app)} (${displayId(app)})`,appIdKey);}catch(e){}
                 notifyApplicant(app.uid,app.fullName,`📋 Status update: ${newStatus}${note?` — ${note}`:''}`);
                 simulateEmail(app.email, `Application Status Update – ${newStatus}`,
                     `Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${newStatus}.\n\n${note ? 'Note: ' + note : ''}\n\nLog in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);
@@ -3212,7 +3214,7 @@
                         msgsSnap.forEach(m => m.ref.delete().catch(()=>{}));
                         chatDoc.ref.delete().catch(()=>{});
                     }
-                    try{addAuditLog(`Deleted application`,`${app.fullName} (${displayId(app)})`);}catch(e){}
+                    try{addAuditLog(`Deleted application`,`${displayName(app)} (${displayId(app)})`);}catch(e){}
                     toast("Application permanently deleted.","ok");
                     loadApps(); closeModal();
                 } catch(e) { toast("Delete error: "+e.message,"err"); }
