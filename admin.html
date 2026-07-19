@@ -126,9 +126,11 @@
         .msg-shell { display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: calc(100vh - 72px); max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
         .msg-list-panel { background: #fff; border-right: 1px solid var(--slate-200); overflow-y: auto; max-height: calc(100vh - 72px); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         .msg-list-header { padding: 18px 16px; border-bottom: 1px solid var(--slate-200); font-weight: 700; color: var(--blue-900); font-family: var(--font-head); position: sticky; top: 0; background: #fff; z-index: 5; }
+        .msg-search { width: 100%; padding: 8px 12px; margin: 8px 0; border: 1px solid var(--slate-200); border-radius: 20px; font-size: 13px; background: var(--slate-50); outline: none; box-sizing: border-box; }
+        .msg-search:focus { border-color: var(--maroon-400); background: #fff; }
         .msg-list-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--slate-100); cursor: pointer; transition: var(--transition); }
         .msg-list-item:hover { background: var(--slate-50); }
-        .msg-list-item.active { background: var(--slate-100); border-left: 3px solid var(--maroon-500); }
+        .msg-list-item.active { background: #E8F4FD; border-left: 3px solid var(--maroon-500); }
         .msg-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,var(--blue-800),var(--maroon-600)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
         .msg-list-content { flex: 1; min-width: 0; }
         .msg-list-name { font-weight: 600; font-size: 13.5px; color: var(--slate-900); }
@@ -136,20 +138,24 @@
         .msg-list-time { font-size: 11px; color: var(--slate-400); white-space: nowrap; }
         .msg-list-meta { display: flex; align-items: center; gap: 8px; }
         .msg-unread { background: var(--maroon-500); color: #fff; font-size: 10px; min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700; padding: 0 4px; }
-        .chat-del { background:none;border:none;color:var(--slate-300);font-size:14px;cursor:pointer;display:none;padding:6px;border-radius:6px;transition:.15s;flex-shrink:0;margin-left:auto; }
-        .msg-list-item:hover .chat-del { display:flex; }
+        .chat-del { background:none;border:none;color:var(--slate-300);font-size:14px;cursor:pointer;padding:6px;border-radius:6px;transition:.15s;flex-shrink:0;margin-left:auto; }
         .chat-del:hover { color:var(--maroon-600);background:var(--maroon-50); }
+        .chat-header-del { background:none;border:none;color:var(--slate-400);font-size:16px;cursor:pointer;padding:8px;border-radius:8px;transition:.15s;flex-shrink:0; }
+        .chat-header-del:hover { color:var(--maroon-600);background:var(--maroon-50); }
         .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); }
         .msg-chat-header { padding: 14px 20px; border-bottom: 1px solid var(--slate-200); background: #fff; display: flex; align-items: center; gap: 12px; font-weight: 600; }
         .msg-chat-header .msg-avatar { cursor: pointer; }
-        .msg-chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; max-width: 800px; margin: 0 auto; width: 100%; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-        .msg-bubble { max-width: 75%; padding: 10px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; word-wrap: break-word; }
-        .msg-bubble.sent { align-self: flex-end; background: var(--msg-sent); border-bottom-right-radius: 4px; }
-        .msg-bubble.rec { align-self: flex-start; background: var(--msg-rec); border: 1px solid var(--slate-200); border-bottom-left-radius: 4px; }
-        .msg-bubble .msg-time { font-size: 10px; color: var(--slate-400); margin-top: 4px; text-align: right; }
-        .msg-chat-input { padding: 12px 20px; border-top: 1px solid var(--slate-200); background: #fff; display: flex; gap: 10px; align-items: flex-end; }
-        .msg-chat-input textarea { flex: 1; resize: none; min-height: 20px; max-height: 120px; padding: 10px 14px; border-radius: 20px; }
-        .msg-chat-input .btn { border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .msg-chat-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 6px; scroll-behavior: smooth; max-width: 800px; margin: 0 auto; width: 100%; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background: #e5ddd6; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" opacity="0.04"><path d="M100 0L200 100L100 200L0 100Z" fill="%23475569"/><circle cx="100" cy="100" r="40" fill="%2394a3b8"/></svg>'); background-size: 80px 80px; }
+        .msg-bubble { max-width: 75%; padding: 8px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; word-wrap: break-word; position: relative; }
+        .msg-bubble.sent { align-self: flex-end; background: #DCF8C6; border-bottom-right-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+        .msg-bubble.rec { align-self: flex-start; background: #fff; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; box-shadow: 0 1px 1px rgba(0,0,0,.05); }
+        .msg-bubble .msg-time { font-size: 10px; color: var(--slate-400); margin-top: 4px; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+        .msg-bubble.sent .msg-time { color: #82967a; }
+        .msg-read-check { font-size: 11px; color: #82967a; }
+        .msg-chat-input { padding: 10px 16px; border-top: 1px solid var(--slate-200); background: #fff; display: flex; gap: 10px; align-items: flex-end; }
+        .msg-chat-input textarea { flex: 1; resize: none; min-height: 20px; max-height: 120px; padding: 9px 14px; border-radius: 20px; border: 1px solid var(--slate-200); }
+        .msg-chat-input textarea:focus { border-color: var(--maroon-400); outline: none; }
+        .msg-chat-input .btn { border-radius: 50%; width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .msg-empty { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--slate-400); text-align: center; padding: 40px; }
         .msg-empty i { font-size: 48px; margin-bottom: 16px; color: var(--slate-300); }
 
@@ -1506,8 +1512,8 @@
         <div class="msg-shell">
             <div class="msg-list-panel show">
                 <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages <span style="font-size:12px;color:var(--slate-500);font-weight:400;margin-left:8px">${chats.length} conversation${chats.length!==1?'s':''}</span></div>
-                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0;return `<div class="msg-list-item ${ROUTE.params.chatId===c.id?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'No messages yet')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-slash"></i><p>No conversations yet.</p></div></div>`}
-                <div style="padding:10px 16px;border-top:1px solid var(--slate-100)"><button class="btn btn-xs btn-outline" id="archiveToggleBtn" style="font-size:11px;width:100%"><i class="fa-solid fa-box-archive"></i> <span id="archiveToggleText">${_showArchived?'Hide archived':'Show archived'}</span></button></div>
+                <input class="msg-search" id="msgSearchInput" type="text" placeholder="Search conversations..." autocomplete="off">
+                <div id="msgListWrap">${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0;return `<div class="msg-list-item ${ROUTE.params.chatId===c.id?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}" data-search="${esc((c.otherName||'')+' '+(c.lastMessage||'')).toLowerCase()}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'No messages yet')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-slash"></i><p>No conversations yet.</p></div></div>`}</div>
             </div>
             <div class="msg-chat-panel show"><div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>Select a conversation</p></div></div></div>
         </div>`;
@@ -1522,12 +1528,16 @@
         document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
             e.stopPropagation();
             const id=this.getAttribute('data-delchat');
-            if(id){const ch=allChats.find(x=>x.id===id);await toggleChatHidden(id,!!ch?.hidden?.[currentUser?.uid]);}
+            const name=this.getAttribute('data-chatname')||"Chat";
+            if(id)await deleteChatForever(id,name);
         }));
-        document.getElementById('archiveToggleBtn')?.addEventListener('click',function(){
-            _showArchived=!_showArchived;
-            this.querySelector('#archiveToggleText').textContent=_showArchived?'Hide archived':'Show archived';
-            render();
+        const searchInput=document.getElementById('msgSearchInput');
+        if(searchInput)searchInput.addEventListener('input',function(){
+            const q=this.value.toLowerCase().trim();
+            document.querySelectorAll('#msgListWrap .msg-list-item').forEach(el=>{
+                const hay=el.getAttribute('data-search')||'';
+                el.style.display=q&&!hay.includes(q)?'none':'flex';
+            });
         });
     }
 
@@ -1540,11 +1550,11 @@
         <div class="msg-shell">
             <div class="msg-list-panel ${isMobile?'':'show'}" id="msgListPanel">
                 <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages</div>
-                ${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):''}
-                <div style="padding:10px 16px;border-top:1px solid var(--slate-100)"><button class="btn btn-xs btn-outline" id="archiveToggleBtn" style="font-size:11px;width:100%"><i class="fa-solid fa-box-archive"></i> <span id="archiveToggleText">${_showArchived?'Hide archived':'Show archived'}</span></button></div>
+                <input class="msg-search" id="msgSearchInput" type="text" placeholder="Search conversations..." autocomplete="off">
+                <div id="msgListWrap">${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}" data-search="${esc((c.otherName||'')+' '+(c.lastMessage||'')).toLowerCase()}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):''}</div>
             </div>
             <div class="msg-chat-panel show">
-                <div class="msg-chat-header"><button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button><div class="msg-avatar" title="Click for user details">${esc(otherName.charAt(0).toUpperCase())}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(otherName)}</div><div style="font-size:11px;color:var(--slate-400);font-weight:400" id="chatStatusText"></div></div></div>
+                <div class="msg-chat-header"><button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button><div class="msg-avatar" title="Click for user details">${esc(otherName.charAt(0).toUpperCase())}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(otherName)}</div><div style="font-size:11px;color:var(--slate-400);font-weight:400" id="chatStatusText"></div></div><button class="chat-header-del" id="chatHeaderDelBtn" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>
                 <div class="msg-chat-body" id="msgChatBody"></div>
                 <div class="msg-chat-input"><textarea id="chatInput" rows="1" placeholder="Type a message..."></textarea><button class="btn btn-primary" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-outline" id="msgFileBtn"><i class="fa-solid fa-paperclip"></i></button><button class="btn btn-maroon btn-sm" id="sendServiceOfferBtn" title="Send Service Offer"><i class="fa-solid fa-handshake"></i></button></div>
             </div>
@@ -1567,7 +1577,7 @@
         const input=document.getElementById('chatInput');
         const sendBtn=document.getElementById('sendBtn');
         const fileBtn=document.getElementById('msgFileBtn');
-        if(input)setTimeout(()=>{input.focus();},300);
+        // Don't auto-focus on mobile — keyboard would obstruct messages
         async function send(){const t=input.value.trim();if(t&&!sendBtn.disabled){sendBtn.disabled=true;sendBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';try{await sendMessage(chatId,t);input.value='';input.style.height='auto';input.focus();}finally{sendBtn.disabled=false;sendBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>';}}}
         sendBtn.addEventListener('click',send);
         input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
@@ -1603,14 +1613,19 @@
         document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
             e.stopPropagation();
             const id=this.getAttribute('data-delchat');
-            if(id){const ch=allChats.find(x=>x.id===id);await toggleChatHidden(id,!!ch?.hidden?.[currentUser?.uid]);}
+            const name=this.getAttribute('data-chatname')||"Chat";
+            if(id)await deleteChatForever(id,name);
         }));
-        document.getElementById('archiveToggleBtn')?.addEventListener('click',function(){
-            _showArchived=!_showArchived;
-            const t=document.getElementById('archiveToggleText');
-            if(t)t.textContent=_showArchived?'Hide archived':'Show archived';
-            render();
+        const searchInput=document.getElementById('msgSearchInput');
+        if(searchInput)searchInput.addEventListener('input',function(){
+            const q=this.value.toLowerCase().trim();
+            (document.getElementById('msgListWrap')||document.querySelector('.msg-list-panel')).querySelectorAll('.msg-list-item').forEach(el=>{
+                const hay=el.getAttribute('data-search')||'';
+                el.style.display=q&&!hay.includes(q)?'none':'flex';
+            });
         });
+        // Header delete button
+        document.getElementById('chatHeaderDelBtn')?.addEventListener('click',()=>deleteChatForever(chatId,otherName));
         // Avatar click → show applicant details
         document.querySelector('.msg-chat-header .msg-avatar')?.addEventListener('click',()=>showUserDetails(otherName));
     }
@@ -1679,7 +1694,7 @@
             const prevMsg=idx>0?currentChatMessages[idx-1]:null;
             const showDate=shouldShowDateSeparator(m,prevMsg);
             const dateSep=showDate?`<div class="msg-date-sep"><span>${formatMsgDate(m.timestamp)}</span></div>`:'';
-            return `${dateSep}<div class="msg-bubble ${sent?'sent':'rec'} msg-anim">${sent?'':`<div class="msg-sender-name">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtMsgTime(m.timestamp)}</div></div>`;
+            return `${dateSep}<div class="msg-bubble ${sent?'sent':'rec'} msg-anim">${sent?'':`<div class="msg-sender-name">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtMsgTime(m.timestamp)}${sent?' <span class="msg-read-check"><i class="fa-solid fa-check"></i><i class="fa-solid fa-check" style="margin-left:-6px"></i></span>':''}</div></div>`;
         }).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>No messages yet. Start the conversation!</p></div></div>`;
         const loadBtn=document.getElementById('loadOlderBtn');
         if(loadBtn)loadBtn.addEventListener('click',()=>loadOlderMessages(chatIdCapture));
@@ -1716,10 +1731,15 @@
     function computeCountryCounts(){}
 
     function _otherFromChat(docId,data) {
-        const uid=docId.startsWith('client_')?docId.slice(7):data.participants?.find(p=>p!==currentUser?.uid);
+        if (!data.participants) return {uid:null,name:"Unknown"};
+        const allUids=data.participants;
+        if (!currentUser || !allUids.includes(currentUser.uid)) {
+            const nonAdmin=allUids.find(u=>data.participantNames?.[u]&&data.participantNames[u]!=='Admin')||allUids[0];
+            return {uid:nonAdmin,name:data.participantNames?.[nonAdmin]||nonAdmin};
+        }
+        const uid=allUids.find(p=>p!==currentUser?.uid)||allUids[0];
         return {uid:uid||null,name:uid?(data.participantNames?.[uid]||uid):"Unknown"};
     }
-    let _showArchived=false;
     function _deduplicateChats(arr) {
         const seen = {};
         return arr.filter(c => {
@@ -1737,27 +1757,36 @@
             return true;
         });
     }
-    function _visibleChats(arr){return _deduplicateChats(arr.filter(c=>_showArchived||!c.hidden?.[currentUser?.uid]));}
+    function _visibleChats(arr){return _deduplicateChats(arr);}
     async function loadChats() {
         if(!currentUser)return;
-        const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
-        return getDocs(q).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();return allChats;}).catch(()=>[]);
+        return getDocs(collection(db,"chats")).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();return allChats;}).catch(()=>[]);
     }
 
     function subscribeChats() {
         if(!currentUser)return;
-        const q=query(collection(db,"chats"),where("participants","array-contains",currentUser.uid));
         if(allMessagesSub)allMessagesSub();
-        allMessagesSub=onSnapshot(q,(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
+        allMessagesSub=onSnapshot(collection(db,"chats"),(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
     }
 
-    async function toggleChatHidden(chatId,isHidden) {
+    async function deleteChatForever(chatId,chatName) {
         if(!currentUser)return;
-        if(!isHidden&&!confirm('Archive this conversation?'))return;
+        if(!confirm(`Delete conversation with "${esc(chatName||'this user')}"? This will permanently remove the entire chat history for everyone. This cannot be undone.`))return;
+        if(!confirm(`⚠️ ARE YOU SURE? All messages in this conversation will be permanently deleted. Type "DELETE" to confirm.`))return;
         try{
-            await updateDoc(doc(db,"chats",chatId),{[`hidden.${currentUser.uid}`]:isHidden?null:serverTimestamp()});
-            toast(isHidden?'Conversation restored.':'Conversation archived.','ok');
-        }catch(e){toast('Failed.','err');}
+            const msgsSnap=await getDocs(collection(db,"chats",chatId,"messages"));
+            const batchSize=50;let deleted=0;
+            for(let i=0;i<msgsSnap.docs.length;i+=batchSize){
+                const chunk=msgsSnap.docs.slice(i,i+batchSize);
+                await Promise.allSettled(chunk.map(d=>d.ref.delete().catch(()=>{})));
+                deleted+=chunk.length;
+            }
+            await deleteDoc(doc(db,"chats",chatId)).catch(()=>{});
+            toast(`Conversation deleted (${deleted} messages removed).`,'ok');
+            allChats=allChats.filter(c=>c.id!==chatId);
+            if(ROUTE.view==='messages-chat'&&ROUTE.params.chatId===chatId)navigate("messages");
+            else render();
+        }catch(e){toast('Failed to delete: '+e.message,'err');}
     }
 
     function subscribeMessages(chatId) {
