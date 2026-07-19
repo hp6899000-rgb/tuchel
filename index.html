@@ -2164,18 +2164,20 @@
                         timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted via the Europe Sponsor Jobs website." }],
                         internalNotes: [], fees: [], archived: false
                     };
-                    const uniqueAppId = genAppId();
-                    appData.appId = uniqueAppId;
-                    if (isNewAccount) {
-                        appData.id = user.uid;
-                        appData.uid = user.uid;
-                        await setDoc(doc(db, "applications", user.uid), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-                        appId = user.uid;
-                    } else {
-                        appData.id = uniqueAppId;
-                        await setDoc(doc(db, "applications", uniqueAppId), { ...appData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-                        appId = uniqueAppId;
-                    }
+                    appData.appId = genAppId();
+                    appData.id = user.uid;
+                    appData.uid = user.uid;
+                    const appRef = doc(db, "applications", user.uid);
+                    const existingSnap = await getDoc(appRef);
+                    await setDoc(appRef, {
+                        ...appData,
+                        createdAt: existingSnap.exists() ? existingSnap.data().createdAt : serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        timeline: existingSnap.exists()
+                            ? [...(existingSnap.data().timeline || []), ...(appData.timeline || [])]
+                            : appData.timeline
+                    }, { merge: true });
+                    appId = user.uid;
                     simulateEmail(email, "Application Received – Europe Sponsor Jobs",
                         `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${appId}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job ? job.title : ''}\nCountry: ${job ? job.country : ''}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                     currentUserData = { ...appData, type: 'applicant' };
