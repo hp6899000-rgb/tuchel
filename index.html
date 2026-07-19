@@ -1649,7 +1649,7 @@
                     navigate(view, jobid ? { jobid } : {});
                 });
             });
-            document.querySelectorAll('[data-action="logout"]').forEach(el => el.addEventListener('click', () => signOut(auth)));
+            document.body.addEventListener('click', e => { const el = e.target.closest('[data-action="logout"]'); if (el) { e.preventDefault(); signOut(auth); } });
         }
 
         function renderFooter() {
