@@ -808,8 +808,10 @@
         const curStageIdx=STATUS_STEPS.indexOf(app.status);
 
         function progressHTML(){
+            if(curStageIdx<0){
+                return `<div class="progress-stages" style="justify-content:center;padding:8px 0"><span class="badge badge-slate" style="font-size:12px"><i class="fa-solid fa-circle"></i> ${esc(app.status||'No Status')}</span><span style="font-size:11px;color:var(--slate-500);margin-left:8px">— Select a status below to begin</span></div>`;
+            }
             return `<div class="progress-stages">${STATUS_STEPS.map((s,i)=>{
-                if(curStageIdx<0) return '';
                 const cls=i<curStageIdx?'done':i===curStageIdx?'active':'';
                 const ico=i<curStageIdx?'fa-check-circle':i===curStageIdx?'fa-circle':'fa-circle-regular';
                 return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
