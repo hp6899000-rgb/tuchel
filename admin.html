@@ -1297,7 +1297,7 @@
             await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
             try{sendServiceStatusNotification(app.uid,app.fullName,services[idx].label,oldStatus,newStatus);}catch(e){}
             try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${app.fullName}`,id);}catch(e){}
-            toast(`Service "${services[idx].label}" → ${newStatus}.`,"ok");
+            toast(`Service "${services[idx].label}" → ${newStatus} — client notified.`,"ok");
             root.innerHTML='';openAppModal(appId);
         }));
 
@@ -1314,8 +1314,9 @@
             services[idx].paidDate=services[idx].paid?new Date().toISOString():null;
             services[idx].updatedAt=new Date().toISOString();
             await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
+            try{sendSystemNotification(app.uid,app.fullName,`💰 Payment ${services[idx].paid?'received':'unmarked'} for service "${services[idx].label}".`);}catch(e){}
             try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${app.fullName} — ${services[idx].label}`,id);}catch(e){}
-            toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}".`,"ok");
+            toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}" — client notified.`,"ok");
             root.innerHTML='';openAppModal(appId);
         }));
 
@@ -1338,7 +1339,7 @@
             await updateDoc(ref,{clientServices:services,updatedAt:serverTimestamp()});
             try{sendServiceStatusNotification(app.uid,app.fullName,label,'none','pending');}catch(e){}
             try{addAuditLog(`Service added: "${label}"`,`${app.fullName} — ${amount}`,id);}catch(e){}
-            toast(`Service "${label}" added.`,"ok");
+            toast(`Service "${label}" added — client notified.`,"ok");
             root.innerHTML='';openAppModal(appId);
         });
         // Disable action buttons on click to prevent double-submit

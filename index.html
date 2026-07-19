@@ -2506,18 +2506,10 @@
                   return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
               }).join("")}</div>` : ''}
 
-              <div class="stat-grid stat-grid-4" style="margin-bottom:20px">
+              <div class="stat-grid" style="margin-bottom:20px;grid-template-columns:1fr 1fr">
                 <div class="stat-card" style="cursor:pointer" data-action="chat-admin">
                   <div class="n" style="font-size:20px"><i class="fa-solid fa-comment-dots" style="color:var(--blue-500);margin-right:8px"></i></div>
                   <div class="l">Chat with Admin</div>
-                </div>
-                <div class="stat-card" style="cursor:pointer" data-action="upload-cv">
-                  <div class="n" style="font-size:20px"><i class="fa-solid fa-file-lines" style="color:${app.cvUrl ? 'var(--emerald-600)' : 'var(--amber-600)'};margin-right:8px"></i></div>
-                  <div class="l">${app.cvUrl ? 'Uploaded' : 'Upload'} CV</div>
-                </div>
-                <div class="stat-card" style="cursor:pointer" data-action="upload-passport">
-                  <div class="n" style="font-size:20px"><i class="fa-solid fa-passport" style="color:${app.passportUrl ? 'var(--emerald-600)' : 'var(--amber-600)'};margin-right:8px"></i></div>
-                  <div class="l">${app.passportUrl ? 'Uploaded' : 'Upload'} Passport</div>
                 </div>
                 <div class="stat-card" style="cursor:pointer" data-nav="jobs">
                   <div class="n" style="font-size:20px"><i class="fa-solid fa-briefcase" style="color:var(--slate-500);margin-right:8px"></i></div>
