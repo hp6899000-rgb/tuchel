@@ -192,8 +192,9 @@
         .modal-tab button { padding: 10px 18px; font-size: 12.5px; font-weight: 600; color: var(--slate-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: var(--transition); }
         .modal-tab button.active { color: var(--blue-800); border-bottom-color: var(--blue-800); }
         .modal-tab button:hover { color: var(--blue-600); }
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
+        .tab-slider-body { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; scroll-snap-type: x mandatory; gap: 0; overscroll-behavior-x: contain; }
+        .tab-slider-body::-webkit-scrollbar { display: none; }
+        .tab-panel { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
 
         .admin-topbar { background: var(--blue-950); color: #fff; padding: 14px 0; position: sticky; top: 0; left: 0; right: 0; width: 100%; z-index: 100; }
         .admin-topbar .wrap { display: flex; justify-content: space-between; align-items: center; max-width: none; }
@@ -833,7 +834,7 @@
                         <button data-mtab="timeline"><i class="fa-solid fa-timeline"></i> Timeline</button>
                     </div>
 
-                    <!-- TAB: Details -->
+                    <div class="tab-slider-body">
                     <div class="tab-panel active" data-tab="details">
                         <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
                             <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Email</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.email)}</div>
@@ -1033,6 +1034,7 @@
                         <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Application Timeline</h4>
                         ${renderTimeline(app)}
                     </div>
+                    </div>
                 </div>
                 <div class="modal-foot" style="flex-wrap:wrap">
                     <button class="btn btn-outline btn-sm" id="archiveBtn"><i class="fa-solid fa-box-archive"></i> Archive</button>
@@ -1046,13 +1048,20 @@
         document.getElementById('modalCloseBtn').addEventListener('click',()=>root.innerHTML='');
         document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
 
-        // Tab switching
+        // Tab switching (slide)
+        const tabBody = document.querySelector('.tab-slider-body');
         document.querySelectorAll('[data-mtab]').forEach(b=>b.addEventListener('click',function(){
             document.querySelectorAll('[data-mtab]').forEach(x=>x.classList.remove('active'));
             this.classList.add('active');
-            document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-            document.querySelector(`.tab-panel[data-tab="${this.getAttribute('data-mtab')}"]`).classList.add('active');
+            const idx = Array.from(document.querySelectorAll('[data-mtab]')).indexOf(this);
+            if(tabBody) tabBody.scrollTo({ left: idx * tabBody.clientWidth, behavior: 'smooth' });
         }));
+        if(tabBody){
+            tabBody.addEventListener('scroll', ()=>{
+                const idx = Math.round(tabBody.scrollLeft / tabBody.clientWidth);
+                document.querySelectorAll('[data-mtab]').forEach((b,i)=>b.classList.toggle('active',i===idx));
+            });
+        }
 
         // Archive
         document.getElementById('archiveBtn').addEventListener('click',async()=>{

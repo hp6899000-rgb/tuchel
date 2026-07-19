@@ -389,6 +389,18 @@
         .progress-stages .stage.active { background: var(--blue-800); color: #fff; }
         .progress-stages .stage.rejected { background: var(--rose-50); color: var(--rose-600); }
         .progress-stages .stage .stage-icon { display: block; font-size: 14px; margin-bottom: 2px; }
+        /* Dashboard Slider */
+        .dash-slider-wrap { position: relative; user-select: none; }
+        .dash-slider { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; scroll-snap-type: x mandatory; gap: 20px; padding-bottom: 8px; overscroll-behavior-x: contain; }
+        .dash-slider::-webkit-scrollbar { display: none; }
+        .dash-slider > * { flex: 0 0 calc(100% - 4px); min-width: 0; scroll-snap-align: start; }
+        .dash-slider-arrows { display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 10px; }
+        .dash-slider-arrows button { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--slate-200); background:#fff; color:var(--slate-600); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; transition:var(--transition); }
+        .dash-slider-arrows button:hover { background:var(--blue-800); color:#fff; border-color:var(--blue-800); }
+        .dash-slider-dots { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+        .dash-slider-dots button { width: 8px; height: 8px; border-radius: 50%; border: none; background: var(--slate-300); cursor: pointer; padding: 0; transition: var(--transition); }
+        .dash-slider-dots button.active { background: var(--blue-800); width: 24px; border-radius: 4px; }
+        @media (max-width:600px){ .dash-slider > * { flex: 0 0 calc(100% - 8px); } .dash-slider-arrows { display: none; } }
         .app-fee-card { border: 1px solid var(--slate-200); border-radius: 10px; padding: 16px; background: #fff; }
         @media (max-width: 1024px) {
             .country-grid, .job-grid, .why-grid, .fee-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2508,130 +2520,142 @@
                   return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
               }).join("")}</div>` : ''}
 
-              <div class="stat-grid" style="margin-bottom:20px;grid-template-columns:1fr 1fr">
-                <div class="stat-card" style="cursor:pointer" data-action="chat-admin">
-                  <div class="n" style="font-size:20px"><i class="fa-solid fa-comment-dots" style="color:var(--blue-500);margin-right:8px"></i></div>
-                  <div class="l">Chat with Admin</div>
-                </div>
-                <div class="stat-card" style="cursor:pointer" data-nav="jobs">
-                  <div class="n" style="font-size:20px"><i class="fa-solid fa-briefcase" style="color:var(--slate-500);margin-right:8px"></i></div>
-                  <div class="l">Browse Jobs</div>
-                </div>
-              </div>
-
-              <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                  <span style="font-weight:600;font-size:13.5px;color:var(--blue-900)">Application Progress</span>
-                  <span style="font-size:12px;color:var(--slate-500)">${filled}/${fields.length}</span>
-                </div>
-                <div style="height:8px;background:var(--slate-100);border-radius:99px;overflow:hidden">
-                  <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--emerald-500)' : pct > 50 ? 'var(--maroon-500)' : 'var(--amber-500)'};border-radius:99px;transition:width .5s"></div>
-                </div>
-                ${pct<100?(()=>{
-                  const missing=[];
-                  ['fullName','dob','nationality','phone','email','address','city','education','jobId','passportNumber'].forEach(f=>{if(!app[f])missing.push(f==='jobId'?'Job Interested In':f.charAt(0).toUpperCase()+f.slice(1));});
-                  const labels={fullName:'Full Name',dob:'Date of Birth',nationality:'Nationality',phone:'Phone',email:'Email',address:'Address',city:'City',education:'Education',jobId:'Job Interested In',passportNumber:'Passport Number'};
-                  if(!app.cvUrl)missing.push('CV / Resume');
-                  if(!app.passportUrl)missing.push('Passport Upload');
-                  if(!missing.length)return '';
-                  return `<div style="margin-top:8px;font-size:12px;color:var(--slate-500);background:var(--amber-50);border-radius:6px;padding:10px 14px"><b>Complete your application:</b><br>${missing.map(m=>`<span style="display:inline-block;margin:2px 6px 2px 0">• ${esc(m)}</span>`).join('')}</div>`;
-                })():''}
-              </div>
-
-              ${appFees.length ? `
-              <div class="app-fee-card" style="margin-bottom:20px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                  <h4 style="margin:0;color:var(--blue-900);font-size:15px"><i class="fa-solid fa-coins" style="color:var(--maroon-500)"></i> Fee Status</h4>
-                  <div style="display:flex;gap:14px;font-size:12px">
-                    <span><b style="color:var(--emerald-600)">Paid:</b> ${esc(String(totalPaid))}</span>
-                    <span><b style="color:var(--maroon-600)">Outstanding:</b> ${esc(String(totalOwed - totalPaid))}</span>
-                  </div>
-                </div>
-                ${appFees.map((f,i)=>`
-                  <div class="fee-row">
-                    <span class="lbl">${esc(f.label)}</span>
-                    <span class="amt">${esc(f.amount)}</span>
-                    <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>
-                    ${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}
-                  </div>`).join("")}
-              </div>` : ''}
-
-              ${app.clientServices&&app.clientServices.length?`
-              <div class="card pad" style="margin-bottom:20px">
-                <h4 style="margin:0 0 16px;color:var(--blue-900);font-size:15px"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Assistance Services</h4>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
-                  ${app.clientServices.map(s=>{
-                    const t=SERVICE_TYPES.find(st=>st.id===s.type);
-                    const ico=t?t.icon:'fa-handshake';
-                    const col=t?t.color:'var(--slate-500)';
-                    const stCls=s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':s.status==='cancelled'?'badge-rose':'badge-slate';
-                    const stLbl=s.status==='pending'?'⏳ Pending':s.status==='in-progress'?'🔄 In Progress':s.status==='completed'?'✅ Completed':s.status==='cancelled'?'❌ Cancelled':'Pending';
-                    return `<div style="background:#fff;border:1px solid var(--slate-200);border-radius:10px;padding:16px;transition:var(--transition);hover:border-color:var(--blue-500)">
-                      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-                        <span style="width:36px;height:36px;border-radius:10px;background:${col}20;color:${col};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
-                        <div><div style="font-weight:700;font-size:13.5px;color:var(--blue-900)">${esc(s.label)}</div>${s.description?`<div style="font-size:11.5px;color:var(--slate-500)">${esc(s.description)}</div>`:''}</div>
+              <div class="dash-slider-wrap">
+                <div class="dash-slider-arrows"><button class="slider-prev" title="Previous"><i class="fa-solid fa-chevron-left"></i></button><button class="slider-next" title="Next"><i class="fa-solid fa-chevron-right"></i></button></div>
+                <div class="dash-slider" id="dashSlider">
+                  <!-- Slide 0: Overview -->
+                  <div>
+                    <div class="stat-grid" style="grid-template-columns:1fr 1fr">
+                      <div class="stat-card" style="cursor:pointer" data-action="chat-admin">
+                        <div class="n" style="font-size:20px"><i class="fa-solid fa-comment-dots" style="color:var(--blue-500);margin-right:8px"></i></div>
+                        <div class="l">Chat with Admin</div>
                       </div>
-                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
-                        <span class="badge ${stCls}">${stLbl}</span>
-                        ${s.amount?`<span style="font-weight:700;font-size:13px;color:var(--blue-800)">${esc(s.amount)}</span>`:''}
+                      <div class="stat-card" style="cursor:pointer" data-nav="jobs">
+                        <div class="n" style="font-size:20px"><i class="fa-solid fa-briefcase" style="color:var(--slate-500);margin-right:8px"></i></div>
+                        <div class="l">Browse Jobs</div>
                       </div>
-                      ${s.paid?`<div style="margin-top:8px;padding:6px 10px;background:var(--emerald-50);border-radius:6px;font-size:12px;color:var(--emerald-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-check"></i> Paid${s.paidDate?` · ${fmtDate(s.paidDate)}`:''}</div>`:s.amount?`<div style="margin-top:8px;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div>`:''}
-                    </div>`;
-                  }).join("")}
-                </div>
-              </div>`:''}
-
-              <div class="grid dash-details-grid">
-                <div class="card pad">
-                  <h4 style="margin:0 0 18px;color:var(--blue-900)"><i class="fa-solid fa-timeline" style="color:var(--maroon-500)"></i> Status Timeline</h4>
-                  ${renderTimeline(app)}
-                </div>
-                <div>
-                  <div class="card pad" style="margin-bottom:18px">
-                    <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Job Details</h4>
-                    <div style="font-size:13.5px;color:var(--slate-600);line-height:1.9">
-                      <div><b>Position:</b> ${esc(app.jobTitle)}</div>
-                      <div><b>Country:</b> ${esc(app.country)}</div>
-                      <div><b>Applied:</b> ${fmtDate(app.createdAt)}</div>
+                    </div>
+                    <div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-top:16px">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                        <span style="font-weight:600;font-size:13.5px;color:var(--blue-900)">Application Progress</span>
+                        <span style="font-size:12px;color:var(--slate-500)">${filled}/${fields.length}</span>
+                      </div>
+                      <div style="height:8px;background:var(--slate-100);border-radius:99px;overflow:hidden">
+                        <div style="height:100%;width:${pct}%;background:${pct === 100 ? 'var(--emerald-500)' : pct > 50 ? 'var(--maroon-500)' : 'var(--amber-500)'};border-radius:99px;transition:width .5s"></div>
+                      </div>
+                      ${pct<100?(()=>{
+                        const missing=[];
+                        ['fullName','dob','nationality','phone','email','address','city','education','jobId','passportNumber'].forEach(f=>{if(!app[f])missing.push(f==='jobId'?'Job Interested In':f.charAt(0).toUpperCase()+f.slice(1));});
+                        if(!app.cvUrl)missing.push('CV / Resume');
+                        if(!app.passportUrl)missing.push('Passport Upload');
+                        if(!missing.length)return '';
+                        return `<div style="margin-top:8px;font-size:12px;color:var(--slate-500);background:var(--amber-50);border-radius:6px;padding:10px 14px"><b>Complete your application:</b><br>${missing.map(m=>`<span style="display:inline-block;margin:2px 6px 2px 0">• ${esc(m)}</span>`).join('')}</div>`;
+                      })():''}
                     </div>
                   </div>
-                  <div class="card pad" style="margin-bottom:18px">
-                    <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Personal Details</h4>
-                    <div style="font-size:13.5px;color:var(--slate-600);line-height:1.9">
-                      <div><b>Full Name:</b> ${esc(app.fullName)}</div>
-                      ${app.dob ? `<div><b>Date of Birth:</b> ${esc(app.dob)}</div>` : ''}
-                      ${app.nationality ? `<div><b>Nationality:</b> ${esc(app.nationality)}</div>` : ''}
-                      <div><b>Phone:</b> ${esc(app.phone)}</div>
-                      <div><b>Email:</b> ${esc(app.email)}</div>
-                      ${app.address ? `<div><b>Address:</b> ${esc(app.address)}</div>` : ''}
-                      ${app.education ? `<div><b>Education:</b> ${esc(app.education)}</div>` : ''}
-                      ${app.passportNumber ? `<div><b>Passport:</b> ${esc(app.passportNumber)}</div>` : ''}
+                  <!-- Slide 1: Fees -->
+                  <div>
+                    <div class="app-fee-card">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <h4 style="margin:0;color:var(--blue-900);font-size:15px"><i class="fa-solid fa-coins" style="color:var(--maroon-500)"></i> Fee Status</h4>
+                        <div style="display:flex;gap:14px;font-size:12px">
+                          <span><b style="color:var(--emerald-600)">Paid:</b> ${esc(String(totalPaid))}</span>
+                          <span><b style="color:var(--maroon-600)">Outstanding:</b> ${esc(String(totalOwed - totalPaid))}</span>
+                        </div>
+                      </div>
+                      ${appFees.length ? appFees.map((f,i)=>`
+                        <div class="fee-row">
+                          <span class="lbl">${esc(f.label)}</span>
+                          <span class="amt">${esc(f.amount)}</span>
+                          <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>
+                          ${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}
+                        </div>`).join("") : '<div style="padding:24px;text-align:center;color:var(--slate-400);font-size:13px">No fees recorded yet.</div>'}
                     </div>
                   </div>
-                  <div class="card pad">
-                    <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Documents</h4>
-                    ${[
-                        {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
-                        {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
-                        {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
-                        {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
-                        {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
-                    ].map(d=>{
-                        const hasUrl = !!d.url;
-                        const st = !hasUrl ? 'not_uploaded' : (app.documentStatus?.[d.key] || 'pending_review');
-                        const acts = [];
-                        if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
-                        if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
-                        else if(st==='changes_requested'||st==='upload_again'||st==='rejected') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload New</button>`);
-                        else acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Replace</button>`);
-                        return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center">${docStatusBadge(st)}${acts.join('')}</div></div>`;
-                    }).join("")}
+                  <!-- Slide 2: Services -->
+                  <div>
+                    ${app.clientServices&&app.clientServices.length ? `
+                    <div class="card pad">
+                      <h4 style="margin:0 0 16px;color:var(--blue-900);font-size:15px"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Assistance Services</h4>
+                      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+                        ${app.clientServices.map(s=>{
+                          const t=SERVICE_TYPES.find(st=>st.id===s.type);
+                          const ico=t?t.icon:'fa-handshake';
+                          const col=t?t.color:'var(--slate-500)';
+                          const stCls=s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':s.status==='cancelled'?'badge-rose':'badge-slate';
+                          const stLbl=s.status==='pending'?'⏳ Pending':s.status==='in-progress'?'🔄 In Progress':s.status==='completed'?'✅ Completed':s.status==='cancelled'?'❌ Cancelled':'Pending';
+                          return `<div style="background:#fff;border:1px solid var(--slate-200);border-radius:10px;padding:16px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                              <span style="width:36px;height:36px;border-radius:10px;background:${col}20;color:${col};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
+                              <div><div style="font-weight:700;font-size:13.5px;color:var(--blue-900)">${esc(s.label)}</div>${s.description?`<div style="font-size:11.5px;color:var(--slate-500)">${esc(s.description)}</div>`:''}</div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+                              <span class="badge ${stCls}">${stLbl}</span>
+                              ${s.amount?`<span style="font-weight:700;font-size:13px;color:var(--blue-800)">${esc(s.amount)}</span>`:''}
+                            </div>
+                            ${s.paid?`<div style="margin-top:8px;padding:6px 10px;background:var(--emerald-50);border-radius:6px;font-size:12px;color:var(--emerald-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-check"></i> Paid${s.paidDate?` · ${fmtDate(s.paidDate)}`:''}</div>`:s.amount?`<div style="margin-top:8px;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div>`:''}
+                          </div>`;
+                        }).join("")}
+                      </div>
+                    </div>` : `<div class="card pad" style="text-align:center;color:var(--slate-400);font-size:13px;padding:24px"><i class="fa-solid fa-handshake" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4"></i>No assistance services added yet.</div>`}
+                  </div>
+                  <!-- Slide 3: Profile -->
+                  <div>
+                    <div class="grid dash-details-grid">
+                      <div class="card pad">
+                        <h4 style="margin:0 0 18px;color:var(--blue-900)"><i class="fa-solid fa-timeline" style="color:var(--maroon-500)"></i> Status Timeline</h4>
+                        ${renderTimeline(app)}
+                      </div>
+                      <div>
+                        <div class="card pad" style="margin-bottom:18px">
+                          <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Job Details</h4>
+                          <div style="font-size:13.5px;color:var(--slate-600);line-height:1.9">
+                            <div><b>Position:</b> ${esc(app.jobTitle)}</div>
+                            <div><b>Country:</b> ${esc(app.country)}</div>
+                            <div><b>Applied:</b> ${fmtDate(app.createdAt)}</div>
+                          </div>
+                        </div>
+                        <div class="card pad" style="margin-bottom:18px">
+                          <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Personal Details</h4>
+                          <div style="font-size:13.5px;color:var(--slate-600);line-height:1.9">
+                            <div><b>Full Name:</b> ${esc(app.fullName)}</div>
+                            ${app.dob ? `<div><b>Date of Birth:</b> ${esc(app.dob)}</div>` : ''}
+                            ${app.nationality ? `<div><b>Nationality:</b> ${esc(app.nationality)}</div>` : ''}
+                            <div><b>Phone:</b> ${esc(app.phone)}</div>
+                            <div><b>Email:</b> ${esc(app.email)}</div>
+                            ${app.address ? `<div><b>Address:</b> ${esc(app.address)}</div>` : ''}
+                            ${app.education ? `<div><b>Education:</b> ${esc(app.education)}</div>` : ''}
+                            ${app.passportNumber ? `<div><b>Passport:</b> ${esc(app.passportNumber)}</div>` : ''}
+                          </div>
+                        </div>
+                        <div class="card pad">
+                          <h4 style="margin:0 0 14px;font-size:14px;color:var(--blue-900)">Documents</h4>
+                          ${[
+                              {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
+                              {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
+                              {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
+                              {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
+                              {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
+                          ].map(d=>{
+                              const hasUrl = !!d.url;
+                              const st = !hasUrl ? 'not_uploaded' : (app.documentStatus?.[d.key] || 'pending_review');
+                              const acts = [];
+                              if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                              if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
+                              else if(st==='changes_requested'||st==='upload_again'||st==='rejected') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload New</button>`);
+                              else acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Replace</button>`);
+                              return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                          }).join("")}
+                        </div>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:22px">
+                      <a class="btn btn-primary" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Open Messages</a>
+                      <a class="btn btn-outline" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse More Jobs</a>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:22px">
-                <a class="btn btn-primary" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Open Messages</a>
-                <a class="btn btn-outline" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Browse More Jobs</a>
+                <div class="dash-slider-dots" id="dashSliderDots"></div>
               </div>
             </div>
           </div>`;
@@ -2669,6 +2693,31 @@
             document.querySelectorAll('[data-switchapp]').forEach(b => b.addEventListener('click', function(){
                 navigate("applicant-dashboard", { appId: this.getAttribute('data-switchapp') });
             }));
+            wireSlider();
+        }
+        function wireSlider(){
+            const el=document.getElementById('dashSlider');if(!el)return;
+            const dots=document.getElementById('dashSliderDots');if(!dots)return;
+            const slides=el.children;if(!slides.length)return;
+            const labels=['Overview','Fees','Services','Profile'];
+            dots.innerHTML=Array.from(slides).map((_,i)=>`<button class="${i===0?'active':''}" data-idx="${i}"></button>`).join('');
+            const sync=()=>{
+                const idx=Math.round(el.scrollLeft/el.clientWidth);
+                dots.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+            };
+            el.addEventListener('scroll',sync);
+            dots.addEventListener('click',e=>{
+                const b=e.target.closest('button');if(!b)return;
+                el.scrollTo({left:parseInt(b.getAttribute('data-idx'))*el.clientWidth,behavior:'smooth'});
+            });
+            document.querySelector('.slider-prev')?.addEventListener('click',()=>{
+                const idx=Math.round(el.scrollLeft/el.clientWidth);
+                if(idx>0)el.scrollTo({left:(idx-1)*el.clientWidth,behavior:'smooth'});
+            });
+            document.querySelector('.slider-next')?.addEventListener('click',()=>{
+                const idx=Math.round(el.scrollLeft/el.clientWidth);
+                if(idx<slides.length-1)el.scrollTo({left:(idx+1)*el.clientWidth,behavior:'smooth'});
+            });
         }
 
         function uploadDoc(field, label, docKey) {
