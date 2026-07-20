@@ -1765,13 +1765,25 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
     async function getAdminUser(uid) { try{const d=await getDoc(doc(db,"admins",uid));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
     async function getApp(appId) { try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
 
+    function _dedupApps(arr) {
+        const map = {};
+        arr.forEach(a => {
+            const key = a.uid || a.id;
+            const existing = map[key];
+            if (!existing) { map[key] = a; return; }
+            const s1 = (existing.fullName ? 2 : 0) + (existing.email ? 1 : 0) + (existing.nationality ? 1 : 0);
+            const s2 = (a.fullName ? 2 : 0) + (a.email ? 1 : 0) + (a.nationality ? 1 : 0);
+            if (s2 > s1) map[key] = a;
+        });
+        return Object.values(map).filter(a => a.uid || a.fullName || a.email);
+    }
     async function loadApps() {
-        getDocs(collection(db,"applications")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allApps=l;if(ROUTE.view==="dashboard")render();}).catch(()=>{});
+        getDocs(collection(db,"applications")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allApps=_dedupApps(l);if(ROUTE.view==="dashboard")render();}).catch(()=>{});
     }
     let unsubscribeApps=null;
     function subscribeApps() {
         if(unsubscribeApps)unsubscribeApps();
-        unsubscribeApps=onSnapshot(collection(db,"applications"),(snapshot)=>{allApps=[];snapshot.forEach(d=>allApps.push({id:d.id,...d.data()}));if(ROUTE.view==="dashboard")render();});
+        unsubscribeApps=onSnapshot(collection(db,"applications"),(snapshot)=>{const l=[];snapshot.forEach(d=>l.push({id:d.id,...d.data()}));allApps=_dedupApps(l);if(ROUTE.view==="dashboard")render();});
     }
 
     async function loadJobs() {

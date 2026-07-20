@@ -886,6 +886,18 @@
         }
         function displayId(a) { return a.appId || a.id || a.uid || ''; }
         function displayName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'; }
+        function dedupApps(arr) {
+            const map = {};
+            arr.forEach(a => {
+                const key = a.uid || a.id;
+                const existing = map[key];
+                if (!existing) { map[key] = a; return; }
+                const s1 = (existing.fullName ? 2 : 0) + (existing.email ? 1 : 0) + (existing.nationality ? 1 : 0);
+                const s2 = (a.fullName ? 2 : 0) + (a.email ? 1 : 0) + (a.nationality ? 1 : 0);
+                if (s2 > s1) map[key] = a;
+            });
+            return Object.values(map).filter(a => a.uid || a.fullName || a.email);
+        }
         function calcCompleteness(a) {
             const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
             const f=fields.filter(Boolean).length;
@@ -1105,7 +1117,7 @@
             getDocs(collection(db, "applications")).then(snapshot => {
                 const live = [];
                 snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
-                allApps = live;
+                allApps = dedupApps(live);
                 if (ROUTE.view === "admin-dashboard") renderCurrentView();
             }).catch(() => {});
             return allApps;
@@ -1409,8 +1421,9 @@
         function subscribeToRealtime() {
             if (unsubscribeApps) unsubscribeApps();
             unsubscribeApps = onSnapshot(collection(db, "applications"), (snapshot) => {
-                allApps = [];
-                snapshot.forEach(d => allApps.push({ id: d.id, ...d.data() }));
+                const live = [];
+                snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
+                allApps = dedupApps(live);
                 if (["admin-dashboard", "applicant-dashboard", "messages", "messages-chat", "admin-jobs"].includes(ROUTE.view)) renderCurrentView();
             });
             if (unsubscribeJobs) unsubscribeJobs();
