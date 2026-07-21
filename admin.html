@@ -188,14 +188,8 @@
         .stage.active { background: var(--blue-800); color: #fff; }
         .stage.rejected { background: var(--rose-50); color: var(--rose-600); }
         .stage .stage-icon { display: block; font-size: 16px; margin-bottom: 4px; }
-        .modal-tab { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 2px solid var(--slate-200); }
-        .modal-tab button { padding: 10px 18px; font-size: 12.5px; font-weight: 600; color: var(--slate-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: var(--transition); }
-        .modal-tab button.active { color: var(--blue-800); border-bottom-color: var(--blue-800); }
-        .modal-tab button:hover { color: var(--blue-600); }
         .tab-panel { display: none; }
-        .tab-slider-body { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; scroll-snap-type: x mandatory; gap: 0; overscroll-behavior-x: contain; }
-        .tab-slider-body::-webkit-scrollbar { display: none; }
-        .tab-slider-body .tab-panel { display: block; flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
+        .modal-section { display: block; }
 
         .admin-topbar { background: var(--blue-950); color: #fff; padding: 14px 0; position: sticky; top: 0; left: 0; right: 0; width: 100%; z-index: 100; }
         .admin-topbar .wrap { display: flex; justify-content: space-between; align-items: center; max-width: none; }
@@ -254,8 +248,6 @@
             .table-wrap table { min-width: 640px; }
             table { font-size: 12px; }
             th, td { padding: 10px 10px; }
-            .modal-tab { overflow-x: auto; flex-wrap: nowrap; }
-            .modal-tab button { padding: 8px 12px; font-size: 11px; white-space: nowrap; }
             .progress-stages .stage { min-width: 60px; font-size: 9px; padding: 6px 2px; }
             .fee-row { flex-wrap: wrap; gap: 6px; }
             .fee-row .amt { min-width: 60px; font-size: 13px; }
@@ -280,7 +272,8 @@
             .app-card .ac-meta span { display: flex; align-items: center; gap: 4px; }
             .app-card .ac-meta i { color: var(--slate-400); width: 14px; text-align: center; font-size: 11px; }
             .app-card .ac-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--slate-100); padding-top: 10px; }
-            .stat-grid { grid-template-columns: 1fr; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+            .app-card .ac-meta { grid-template-columns: 1fr; }
             .stat-grid-3 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x proximity; scroll-behavior: smooth; }
             .stat-grid-3 .stat-card { flex: 0 0 auto; min-width: 160px; scroll-snap-align: start; }
             .stat-grid-5 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x proximity; scroll-behavior: smooth; }
@@ -308,6 +301,8 @@
             .msg-list-item { padding: 12px 14px; min-height: 56px; }
             .msg-avatar { width: 36px; height: 36px; font-size: 14px; }
             th, td { padding: 8px 8px; }
+            .doc-row { flex-wrap: wrap; gap: 6px; }
+            .doc-row .di { min-width: 80px; }
             .progress-stages .stage { min-width: 50px; font-size: 8px; padding: 4px 2px; }
             .progress-stages .stage .stage-icon { font-size: 11px; }
             footer { padding: 40px 16px 24px; }
@@ -327,6 +322,8 @@
             .msg-list-panel.show { inset: 48px 0 0; }
             .msg-list-item { padding: 8px 8px; min-height: 48px; }
             .msg-avatar { width: 30px; height: 30px; font-size: 12px; }
+            .stat-grid { grid-template-columns: 1fr; }
+            .app-card .ac-meta { grid-template-columns: 1fr; }
             .msg-chat-body { padding: 8px; }
             .msg-chat-input { padding: 6px 8px; }
             .msg-bubble { max-width: 92%; font-size: 12px; }
@@ -827,17 +824,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <div class="modal-head">                <h3>${esc(app.fullName||appId(app))} — ${appId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
                 <div class="modal-body">
                     ${progressHTML()}
-                    <div class="modal-tab">
-                        <button class="active" data-mtab="details"><i class="fa-solid fa-user"></i> Details</button>
-                        <button data-mtab="docs"><i class="fa-solid fa-file"></i> Documents</button>
-                        <button data-mtab="fees"><i class="fa-solid fa-coins"></i> Fees (${appFees.length})</button>
-                        <button data-mtab="services"><i class="fa-solid fa-handshake"></i> Services (${(app.clientServices||[]).length})</button>
-                        <button data-mtab="notes"><i class="fa-solid fa-note-sticky"></i> Notes (${appNotes.length})</button>
-                        <button data-mtab="timeline"><i class="fa-solid fa-timeline"></i> Timeline</button>
-                    </div>
-
-                    <div class="tab-slider-body">
-                    <div class="tab-panel active" data-tab="details">
+                    <hr style="margin:16px 0;border:none;border-top:1px solid var(--slate-200)">
+                    <div class="modal-section">
                         <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
                             <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Email</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.email)}</div>
                             <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Nationality</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.nationality||'—')}</div>
@@ -853,9 +841,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         ${app.workExperience?`<div style="background:var(--slate-50);border-radius:8px;padding:12px 16px"><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Work Experience</div><div style="font-size:13px;color:var(--slate-700)">${esc(app.workExperience)}</div></div>`:''}
                     </div>
 
-                    <!-- TAB: Documents -->
-                    <div class="tab-panel" data-tab="docs">
-                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Documents</h4>
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px"><i class="fa-solid fa-file" style="color:var(--blue-700)"></i> Documents</h4>
                         ${(()=>{
                             const borderColor=(st)=>{
                                 if(st==='verified') return 'var(--emerald-500)';
@@ -914,8 +902,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         </div>
                     </div>
 
-                    <!-- TAB: Fees -->
-                    <div class="tab-panel" data-tab="fees">
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
                         <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${esc(appFees.length)}</div><div style="font-size:11px;color:var(--slate-500)">Fee Items</div></div>
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${esc(totalPaid.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Total Paid</div></div>
@@ -930,8 +918,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         </div>
                     </div>
 
-                    <!-- TAB: Services -->
-                    <div class="tab-panel" data-tab="services">
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
                         <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${(app.clientServices||[]).length}</div><div style="font-size:11px;color:var(--slate-500)">Total Services</div></div>
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${(app.clientServices||[]).filter(s=>s.status==='completed').length}</div><div style="font-size:11px;color:var(--slate-500)">Completed</div></div>
@@ -980,8 +968,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         </div>
                     </div>
 
-                    <!-- TAB: Notes -->
-                    <div class="tab-panel" data-tab="notes">
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
                         <div id="appNotesList">${appNotes.length?appNotes.map(n=>`<div class="note-item"><div class="meta">${esc(n.author||'Admin')} · ${fmtDate(n.createdAt)}</div><div class="text">${esc(n.text)}</div></div>`).join(""):'<div class="empty-state" style="padding:20px"><p>No internal notes yet.</p></div>'}</div>
                         <div style="display:flex;gap:8px;margin-top:12px">
                             <textarea id="newNoteText" rows="2" placeholder="Add an internal note about this application..." style="flex:1"></textarea>
@@ -989,8 +977,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         </div>
                     </div>
 
-                    <!-- TAB: Timeline -->
-                    <div class="tab-panel" data-tab="timeline">
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
                         <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Update Status</h4>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
                             ${(()=>{
@@ -1036,7 +1024,6 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Application Timeline</h4>
                         ${renderTimeline(app)}
                     </div>
-                    </div>
                 </div>
                 <div class="modal-foot" style="flex-wrap:wrap">
                     <button class="btn btn-outline btn-sm" id="archiveBtn"><i class="fa-solid fa-box-archive"></i> Archive</button>
@@ -1049,21 +1036,6 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         </div>`;
         document.getElementById('modalCloseBtn').addEventListener('click',()=>root.innerHTML='');
         document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
-
-        // Tab switching (slide)
-        const tabBody = document.querySelector('.tab-slider-body');
-        document.querySelectorAll('[data-mtab]').forEach(b=>b.addEventListener('click',function(){
-            document.querySelectorAll('[data-mtab]').forEach(x=>x.classList.remove('active'));
-            this.classList.add('active');
-            const idx = Array.from(document.querySelectorAll('[data-mtab]')).indexOf(this);
-            if(tabBody) tabBody.scrollTo({ left: idx * tabBody.clientWidth, behavior: 'smooth' });
-        }));
-        if(tabBody){
-            tabBody.addEventListener('scroll', ()=>{
-                const idx = Math.round(tabBody.scrollLeft / tabBody.clientWidth);
-                document.querySelectorAll('[data-mtab]').forEach((b,i)=>b.classList.toggle('active',i===idx));
-            });
-        }
 
         // Archive
         document.getElementById('archiveBtn').addEventListener('click',async()=>{
@@ -1187,6 +1159,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             if(!s.exists())return;
             const ds={...(s.data().documentStatus||{}),[key]:'pending_review'};
             await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📝 Change request cancelled for document "${key.toUpperCase()}".`);}catch(e){}
+            try{addAuditLog(`Change request cancelled for "${key}"`,appName(app),id);}catch(e){}
             toast(`Change request cancelled for "${key}".`,"ok");await loadApps();openAppModal(appId);
         }));
         document.querySelectorAll('.docMarkReceivedBtn').forEach(b=>b.addEventListener('click',async function(){
@@ -1247,9 +1221,10 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             fees[idx].paid=!fees[idx].paid;
             fees[idx].paidDate=fees[idx].paid?new Date().toISOString():null;
             await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`💰 ${fees[idx].paid?'Payment received':'Payment unmarked'} for "${fees[idx].label}" (${fees[idx].amount}).`);}catch(e){}
             try{addAuditLog(`Fee ${fees[idx].paid?'paid':'unpaid'}`,`${appName(app)} — ${fees[idx].label} ${fees[idx].amount}`,id);}catch(e){}
-            toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'}.`,"ok");
-            openAppModal(appId);
+            toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'} — client notified.`,"ok");
+            await loadApps(); openAppModal(appId);
         }));
 
         // Add fee to application
@@ -1264,9 +1239,10 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             const data=s.data(),fees=[...(data.fees||[])];
             fees.push({id:'f_'+Date.now(),label:l,amount:a,paid:false,paidDate:null,addedAt:new Date().toISOString()});
             await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📋 New fee added: "${l}" (${a}). Please check your portal for details.`);}catch(e){}
             try{addAuditLog(`Fee added: ${l} ${a}`,`${appName(app)}`,id);}catch(e){}
-            toast("Fee added to application.","ok");
-            openAppModal(appId);
+            toast("Fee added to application — client notified.","ok");
+            await loadApps(); openAppModal(appId);
         });
 
         // Add note
@@ -1281,7 +1257,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             notes.push({id:'n_'+Date.now(),text:t,author:currentUserData?.email||'Admin',createdAt:new Date().toISOString()});
             await setDoc(ref,{internalNotes:notes,updatedAt:serverTimestamp()},{merge:true});
             toast("Note added.","ok");
-            openAppModal(appId);
+            await loadApps(); openAppModal(appId);
         });
 
         // Admin upload document for applicant
@@ -1296,7 +1272,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const id=appId(app);
                     await setDoc(doc(db,"applications",id),{[field]:url,[`documentStatus.${docKey}`]:'pending_review',updatedAt:serverTimestamp()},{merge:true});
                     toast("Document uploaded to application.","ok");
-                    openAppModal(appId);
+                    await loadApps(); openAppModal(appId);
                 }catch(e){toast(e.message||"Upload failed.","err");}
             });
             dialog.fail(()=>toast('Upload cancelled.',"err"));
@@ -1327,7 +1303,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             try{sendServiceStatusNotification(app.uid,app.fullName,services[idx].label,oldStatus,newStatus);}catch(e){}
             try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${appName(app)}`,id);}catch(e){}
             toast(`Service "${services[idx].label}" → ${newStatus} — client notified.`,"ok");
-            openAppModal(appId);
+            await loadApps(); openAppModal(appId);
         }));
 
         // Service toggle paid
@@ -1346,7 +1322,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             try{sendSystemNotification(app.uid,app.fullName,`💰 Payment ${services[idx].paid?'received':'unmarked'} for service "${services[idx].label}".`);}catch(e){}
             try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${appName(app)} — ${services[idx].label}`,id);}catch(e){}
             toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}" — client notified.`,"ok");
-            openAppModal(appId);
+            await loadApps(); openAppModal(appId);
         }));
 
         // Add service
@@ -1369,7 +1345,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             try{sendServiceStatusNotification(app.uid,app.fullName,label,'none','pending');}catch(e){}
             try{addAuditLog(`Service added: "${label}"`,`${appName(app)} — ${amount}`,id);}catch(e){}
             toast(`Service "${label}" added — client notified.`,"ok");
-            openAppModal(appId);
+            await loadApps(); openAppModal(appId);
         });
         // Disable action buttons on click to prevent double-submit
         root.querySelectorAll('[class*="Btn"],[class*="btn"]').forEach(b=>b.addEventListener('click',function(){if(!this.disabled)setTimeout(()=>this.disabled=true)}));
@@ -1778,7 +1754,12 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         return Object.values(map).filter(a => a.uid || a.fullName || a.email);
     }
     async function loadApps() {
-        getDocs(collection(db,"applications")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allApps=_dedupApps(l);if(ROUTE.view==="dashboard")render();}).catch(()=>{});
+        try {
+            const s=await getDocs(collection(db,"applications"));
+            const l=[]; s.forEach(d=>l.push({id:d.id,...d.data()}));
+            allApps=_dedupApps(l);
+            if(ROUTE.view==="dashboard")render();
+        } catch(e) {}
     }
     let unsubscribeApps=null;
     function subscribeApps() {

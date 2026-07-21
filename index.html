@@ -460,7 +460,8 @@
             .msg-chat-panel.show { display: flex; }
         }
         @media (max-width: 600px) {
-            .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid, .stat-grid { grid-template-columns: 1fr; }
+            .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid { grid-template-columns: 1fr; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
             .stat-grid-4 { display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 6px; scroll-snap-type: x proximity; scroll-behavior: smooth; }
             .stat-grid-4 .stat-card { flex: 0 0 auto; min-width: 160px; scroll-snap-align: start; }
             .hero { padding-top: 0; }
@@ -528,6 +529,8 @@
             .msg-count { font-size: 9px; padding: 1px 5px; min-width: 16px; }
             .progress-stages .stage { min-width: 50px; font-size: 8px; padding: 4px 2px; }
             .progress-stages .stage .stage-icon { font-size: 11px; }
+            .doc-row { flex-wrap: wrap; gap: 8px; }
+            .doc-row .di { min-width: 100px; }
             .fee-row { flex-wrap: wrap; gap: 4px; }
             .fee-row .amt { font-size: 13px; min-width: 50px; }
             .app-fee-card { padding: 12px; }
@@ -575,6 +578,7 @@
             .msg-bubble { max-width: 92%; font-size: 12px; }
             footer { padding: 28px 12px 20px; }
             .foot-grid { gap: 14px; }
+            .stat-grid { grid-template-columns: 1fr; }
             .stat-card { padding: 10px 12px; }
             .stat-card .n { font-size: 20px; }
             .dash-topbar h2 { font-size: 15px; }
@@ -1114,12 +1118,13 @@
         async function deleteJob(jobId) { await deleteDoc(doc(db, "jobs", jobId)); await loadJobs(); }
 
         async function loadApps() {
-            getDocs(collection(db, "applications")).then(snapshot => {
+            try {
+                const snapshot = await getDocs(collection(db, "applications"));
                 const live = [];
                 snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
                 allApps = dedupApps(live);
                 if (ROUTE.view === "admin-dashboard") renderCurrentView();
-            }).catch(() => {});
+            } catch(e) {}
             return allApps;
         }
         async function getApp(appId) {
@@ -2483,9 +2488,10 @@
                 </div>
               </div>`;
             }
-            const allApps = currentUserData.allApps || [currentUserData];
-            const selectedAppId = ROUTE.params.appId || (allApps.length ? allApps[0].id : null);
-            const app = allApps.find(a => a.id === selectedAppId) || allApps[0] || currentUserData;
+            const uid = currentUser?.uid;
+            const userApps = uid ? allApps.filter(a => a.uid === uid || a.id === uid) : [];
+            const selectedAppId = ROUTE.params.appId || (userApps.length ? userApps[0].id : null) || currentUserData?.id;
+            const app = userApps.find(a => a.id === selectedAppId || a.appId === selectedAppId) || userApps[0] || currentUserData;
             if (!app) {
                 return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications found.</p><a class="btn btn-primary" data-nav="jobs">Browse Jobs</a></div></div></div>`;
             }
@@ -2890,6 +2896,9 @@
             if (!app) { toast("Application not found.", "err"); return; }
             const root = document.getElementById('modal-root');
             const natFlag = app.nationalityCode ? NATIONALITIES.find(n => n.code === app.nationalityCode) : null;
+            const appFees = app.fees || [];
+            const totalOwed = appFees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+            const totalPaid = appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
             root.innerHTML = `
           <div class="modal-overlay" id="modalOverlay">
             <div class="modal">
@@ -2982,9 +2991,12 @@
                     const t=SERVICE_TYPES.find(st=>st.id===s.type);
                     const ico=t?t.icon:'fa-handshake';
                     const col=t?t.color:'var(--slate-500)';
+                    const svcStCls=s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':s.status==='cancelled'?'badge-rose':'badge-slate';
+                    const svcStLbl=s.status==='pending'?'⏳ Pending':s.status==='in-progress'?'🔄 In Progress':s.status==='completed'?'✅ Completed':s.status==='cancelled'?'❌ Cancelled':'Pending';
                     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--slate-50);border-radius:8px;margin-bottom:6px;flex-wrap:wrap">
                       <span style="color:${col};font-size:14px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
                       <span style="font-weight:600;font-size:13px;flex:1;min-width:100px">${esc(s.label)}</span>
+                      <span class="badge ${svcStCls}" style="font-size:10px">${svcStLbl}</span>
                       <select class="idxSvcStatus" data-svcid="${s.id}" style="width:auto;min-width:90px;padding:4px 6px;font-size:11px">
                         <option value="pending" ${s.status==='pending'?'selected':''}>Pending</option>
                         <option value="in-progress" ${s.status==='in-progress'?'selected':''}>In Progress</option>
@@ -2992,7 +3004,8 @@
                         <option value="cancelled" ${s.status==='cancelled'?'selected':''}>Cancelled</option>
                       </select>
                       ${s.amount?`<span style="font-size:12px;color:var(--slate-500);font-weight:600">${esc(s.amount)}</span>`:''}
-                      <button class="btn btn-xs ${s.paid?'btn-success':'btn-outline'}" data-svcpaid="${s.id}">${s.paid?'Paid':'Mark Paid'}</button>
+                      ${s.paid?`<span class="badge badge-green" style="font-size:10px">Paid</span>`:`<span class="badge badge-amber" style="font-size:10px">Unpaid</span>`}
+                      <button class="btn btn-xs btn-outline" data-svcpaid="${s.id}" style="font-size:10px">${s.paid?'Unmark':'Mark Paid'}</button>
                     </div>`;
                   }).join(""):'<div class="hint" style="margin-bottom:8px">No services assigned yet.</div>'}
                   </div>
@@ -3005,6 +3018,16 @@
                     <input type="text" id="idxSvcDesc" placeholder="Description" style="flex:2;min-width:120px;font-size:12px">
                     <button class="btn btn-primary btn-sm" id="idxAddSvcBtn"><i class="fa-solid fa-plus"></i> Add</button>
                   </div>
+                </div>
+                <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                <div style="margin-bottom:14px">
+                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700"><i class="fa-solid fa-coins" style="color:var(--maroon-500)"></i> Fee Status</div>
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--blue-900)">${appFees.length}</div><div style="font-size:10px;color:var(--slate-500)">Items</div></div>
+                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--emerald-600)">€${totalPaid.toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">Paid</div></div>
+                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--maroon-600)">€${(totalOwed-totalPaid).toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">Outstanding</div></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">${appFees.length?appFees.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--slate-50);border-radius:6px;flex-wrap:wrap;font-size:12px"><span style="flex:1;min-width:80px;font-weight:600">${esc(f.label)}</span><span style="font-weight:700;color:var(--blue-800)">${esc(f.amount)}</span><span class="badge ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>${f.paidDate?`<span style="font-size:10px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}</div>`).join(""):'<div style="padding:12px;text-align:center;color:var(--slate-400);font-size:12px">No fees recorded.</div>'}</div>
                 </div>
                 ${(()=>{
                   const curIdx=STATUS_STEPS.indexOf(app.status);
@@ -3044,6 +3067,11 @@
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700">Internal Notes</div>
                   <div id="internalNotesList" style="margin-bottom:10px">${(app.internalNotes || []).length ? app.internalNotes.map(n => `<div class="tl-note" style="margin-bottom:8px"><b>${esc(n.author)}</b> · ${fmtDate(n.date)}<br>${esc(n.note)}</div>`).join("") : `<div class="hint">No internal notes yet.</div>`}</div>
                   <div style="display:flex;gap:10px"><input type="text" id="newNote" placeholder="Add an internal note..."><button class="btn btn-outline btn-sm" id="addNoteBtn">Add</button></div>
+                </div>
+                <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                <div>
+                  <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700"><i class="fa-solid fa-timeline" style="color:var(--maroon-500)"></i> Application Timeline</div>
+                  ${renderTimeline(app)}
                 </div>
               </div>
               <div class="modal-foot" style="flex-wrap:wrap">
@@ -3136,6 +3164,7 @@
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])]; const idx=svcs.findIndex(s=>s.id===svcId); if(idx<0)return;
                 const old=svcs[idx].status; svcs[idx].status=newStatus; svcs[idx].updatedAt=new Date().toISOString();
                 await updateApp(appIdKey,{clientServices:svcs});
+                try{notifyApplicant(app.uid,app.fullName,`🛎️ Service Update: "${svcs[idx].label}" → ${newStatus}${old!=='none'?` (was: ${old})`:''}`);}catch(e){}
                 try{addAuditLog(`Service status: "${svcs[idx].label}" → ${newStatus}`,`${displayName(app)}`,appIdKey);}catch(e){}
                 toast(`"${svcs[idx].label}" → ${newStatus}.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
@@ -3144,6 +3173,7 @@
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])]; const idx=svcs.findIndex(s=>s.id===svcId); if(idx<0)return;
                 svcs[idx].paid=!svcs[idx].paid; svcs[idx].paidDate=svcs[idx].paid?new Date().toISOString():null; svcs[idx].updatedAt=new Date().toISOString();
                 await updateApp(appIdKey,{clientServices:svcs});
+                try{notifyApplicant(app.uid,app.fullName,`💰 Payment ${svcs[idx].paid?'received':'unmarked'} for service "${svcs[idx].label}".`);}catch(e){}
                 try{addAuditLog(`Service payment ${svcs[idx].paid?'paid':'unpaid'}`,`${displayName(app)} — ${svcs[idx].label}`,appIdKey);}catch(e){}
                 toast(`Payment ${svcs[idx].paid?'marked':'unmarked'}.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
@@ -3154,6 +3184,7 @@
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])];
                 svcs.push({id:'svc_'+Date.now(),type,label,amount:amount||'',description:desc||'',status:'pending',paid:false,paidDate:null,progress:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
                 await updateApp(appIdKey,{clientServices:svcs});
+                try{notifyApplicant(app.uid,app.fullName,`🛎️ New service added: "${label}"${amount?` (${amount})`:''}`);}catch(e){}
                 try{addAuditLog(`Service added: "${label}"`,`${displayName(app)}`,appIdKey);}catch(e){}
                 toast(`Service "${label}" added.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
