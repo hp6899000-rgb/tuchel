@@ -19,11 +19,12 @@
     </script>
     <style>
         :root {
-            --blue-950: #06132b; --blue-900: #0A1F44; --blue-800: #0E2C5C; --blue-700: #133C79; --blue-600: #1B4F99; --blue-500: #2E68B8;
+            --blue-950: #06132b; --blue-900: #0A1F44; --blue-800: #0E2C5C; --blue-700: #133C79; --blue-600: #1B4F99; --blue-500: #2E68B8; --blue-50: #EFF6FF;
             --maroon-700: #6E0F1F; --maroon-600: #8A1226; --maroon-500: #A8172F; --maroon-400: #C42D45; --maroon-50: #FBEAEC;
-            --emerald-600: #0F9D58; --emerald-500: #1ab46a; --emerald-50: #E8F7EE;
-            --rose-600: #e11d48; --rose-50: #fce7eb;
-            --amber-600: #D97706; --amber-50: #FEF3E2;
+            --emerald-700: #047857; --emerald-600: #0F9D58; --emerald-500: #1ab46a; --emerald-300: #6EE7B7; --emerald-100: #D1FAE5; --emerald-50: #E8F7EE;
+            --rose-700: #BE123C; --rose-600: #e11d48; --rose-500: #F43F5E; --rose-300: #FDA4AF; --rose-50: #fce7eb;
+            --amber-600: #D97706; --amber-500: #F59E0B; --amber-50: #FEF3E2;
+            --indigo-500: #4F46E5; --indigo-50: #EEF2FF;
             --slate-900: #0F172A; --slate-800: #1E293B; --slate-700: #334155; --slate-600: #475569; --slate-500: #64748B; --slate-400: #94A3B8; --slate-300: #CBD5E1; --slate-200: #E2E8F0; --slate-100: #F1F5F9; --slate-50: #F8FAFC;
             --bg: #F6F8FB; --white: #FFFFFF;
             --radius: 12px; --radius-lg: 18px;
@@ -448,21 +449,22 @@
     function statusBadge(s) { if(!s)return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`; const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
     function appId(a) { return a.appId || a.id || a.uid || ''; }
 function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'; }
-    function docStatusBadge(st){
-        const m={
-            'not_uploaded':['badge-slate','Not Uploaded'],
-            'received':['badge-blue','Received'],
-            'pending_review':['badge-amber','Pending Review'],
-            'processing':['badge-indigo','Processing'],
-            'verified':['badge-green','Verified'],
-            'rejected':['badge-rose','Rejected'],
-            'upload_again':['badge-rose','Re-upload Required'],
-            'reuploaded':['badge-indigo','Re-uploaded'],
-            'changes_requested':['badge-rose','Changes Requested']
-        };
-        const b=m[st]||m['not_uploaded'];
-        return `<span class="badge ${b[0]}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${b[1]}</span>`;
-    }
+        function docStatusBadge(st){
+            const m={
+                'not_uploaded':['badge-slate','Not Uploaded'],
+                'submitted':['badge-blue','Submitted'],
+                'received':['badge-blue','Received'],
+                'pending_review':['badge-amber','Pending Review'],
+                'processing':['badge-indigo','Processing'],
+                'verified':['badge-green','Verified'],
+                'rejected':['badge-rose','Rejected'],
+                'upload_again':['badge-rose','Re-upload Required'],
+                'reuploaded':['badge-indigo','Re-uploaded'],
+                'changes_requested':['badge-rose','Changes Requested']
+            };
+            const b=m[st]||m['not_uploaded'];
+            return `<span class="badge ${b[0]}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${b[1]}</span>`;
+        }
     async function addAuditLog(action,details,targetId=''){try{await addDoc(collection(db,"auditLog"),{action,details,targetId,adminEmail:currentUserData?.email||currentUser?.email||'unknown',timestamp:serverTimestamp()});}catch(e){}}
     function calcCompleteness(a) {
         const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
@@ -850,7 +852,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 if(st==='processing') return 'var(--indigo-500)';
                                 if(st==='pending_review'||st==='reuploaded') return 'var(--amber-500)';
                                 if(st==='rejected'||st==='changes_requested'||st==='upload_again') return 'var(--rose-500)';
-                                if(st==='received') return 'var(--blue-500)';
+                                if(st==='received'||st==='submitted') return 'var(--blue-500)';
                                 return 'var(--slate-300)';
                             };
                             return [
@@ -864,29 +866,32 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
                                 const acts=[];
                                 if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
-                                if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);
+                                if(st==='submitted') acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);
                                 if(st==='received') acts.push(`<button class="btn btn-outline btn-sm docStartReviewBtn" data-dockey="${d.key}">Start Review</button>`);
                                 if(st==='pending_review'||st==='reuploaded'){
+                                    acts.push(`<button class="btn btn-outline btn-sm docRequestChangeBtn" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
                                     acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
                                     acts.push(`<button class="btn btn-primary btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
                                     acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                                 }
                                 if(st==='processing'){
                                     acts.push(`<span class="badge badge-indigo" style="font-size:11px">⏳ Processing</span>`);
+                                    acts.push(`<button class="btn btn-outline btn-sm docRequestChangeBtn" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
                                     acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
                                     acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                                 }
                                 if(st==='verified'){
-                                    acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified</span>`);
+                                    acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified ✓</span>`);
                                     acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
                                 }
                                 if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm docAllowReuploadBtn" data-dockey="${d.key}">Allow Re-upload</button>`);
                                 if(st==='changes_requested'||st==='upload_again'){
-                                    acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
+                                    acts.push(`<span class="badge badge-rose" style="font-size:11px">⏳ Awaiting re-upload</span>`);
                                     acts.push(`<button class="btn btn-outline btn-sm docCancelReqBtn" data-dockey="${d.key}">Cancel Request</button>`);
                                 }
                                 const bc=borderColor(st);
-                                return `<div class="doc-row" style="border-left:3px solid ${bc};background:${st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'?'var(--rose-50)':'transparent'};border-radius:6px;padding:8px 10px;margin-bottom:6px"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                                const bgClr=st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'||st==='changes_requested'||st==='upload_again'?'var(--rose-50)':st==='submitted'?'var(--blue-50)':'transparent';
+                                return `<div class="doc-row" style="border-left:3px solid ${bc};background:${bgClr};border-radius:6px;padding:8px 10px;margin-bottom:6px"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                             }).join('');
                         })()}
                         <h4 style="margin:16px 0 12px;color:var(--blue-900);font-size:14px">Upload Document for Applicant</h4>
@@ -1040,8 +1045,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         // Archive
         document.getElementById('archiveBtn').addEventListener('click',async()=>{
             if(!confirm("Archive this application?"))return;
-            await setDoc(doc(db,"applications",appId(app)),{archived:true,updatedAt:serverTimestamp()},{merge:true});
-            toast("Archived.","ok");root.innerHTML='';await loadApps();
+            const id=appId(app); await setDoc(doc(db,"applications",id),{archived:true,updatedAt:serverTimestamp()},{merge:true});
+            try{addAuditLog(`Application archived`,appName(app),id);}catch(e){}
+            toast("Application archived.","ok");await loadApps();root.innerHTML='';
         });
 
         // Delete / Block Account
@@ -1111,11 +1117,12 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const curTimeline=snap.exists()?snap.data().timeline:[];
                     updates.timeline=[...(curTimeline||[]),tlEntry];
                     try{sendAppStatusNotification(app.uid,app.fullName,newStatus,note);}catch(e){}
+                    try{simulateEmail(app.email,`Application Status Update – ${newStatus}`,`Dear ${app.fullName},\n\nYour application (${appId(app)}) status has been updated to: ${newStatus}.\n\n${note?note+'\n\n':''}Log in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);}catch(e){}
                 }
             }
             await setDoc(ref,updates,{merge:true});
             const changedStatus=selectedStatus&&selectedStatus.getAttribute('data-setstatus')!==app.status;
-            try{addAuditLog(changedStatus?`Status → ${selectedStatus.getAttribute('data-setstatus')}`:'Documents verified',`${appName(app)} (${appId(app)})`,id);}catch(e){}
+            if(changedStatus){try{addAuditLog(`Status → ${selectedStatus.getAttribute('data-setstatus')}`,appName(app),id);}catch(e){}}
             toast("Application updated.","ok");await loadApps();openAppModal(appId);
         });
 
@@ -1270,7 +1277,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const info=await file.promise(); if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
                     const url=info.cdnUrl;
                     const id=appId(app);
-                    await setDoc(doc(db,"applications",id),{[field]:url,[`documentStatus.${docKey}`]:'pending_review',updatedAt:serverTimestamp()},{merge:true});
+                    await setDoc(doc(db,"applications",id),{[field]:url,[`documentStatus.${docKey}`]:'submitted',updatedAt:serverTimestamp()},{merge:true});
+                    try{sendSystemNotification(app.uid,app.fullName,`📄 Document "${docKey.toUpperCase()}" has been uploaded by admin.`);}catch(e){}
+                    try{addAuditLog(`Document uploaded: ${docKey}`,`${appName(app)}`,id);}catch(e){}
                     toast("Document uploaded to application.","ok");
                     await loadApps(); openAppModal(appId);
                 }catch(e){toast(e.message||"Upload failed.","err");}
@@ -1371,6 +1380,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             const msgText=`📋 Status Update: ${status}${note?` — ${note}`:''}`;
             await sendSystemNotification(uid,name,msgText);
         }catch(e){console.warn("Status notification send failed:",e);}
+    }
+    function simulateEmail(to,subject,body){
+        console.log(`[EMAIL] To: ${to}, Subject: ${subject}`);
     }
     let _fixAdminHash = '';
     async function fixAdminChatNames() {

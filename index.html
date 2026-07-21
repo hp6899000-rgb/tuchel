@@ -26,18 +26,28 @@
             --blue-700: #133C79;
             --blue-600: #1B4F99;
             --blue-500: #2E68B8;
+            --blue-50: #EFF6FF;
             --maroon-700: #6E0F1F;
             --maroon-600: #8A1226;
             --maroon-500: #A8172F;
             --maroon-400: #C42D45;
             --maroon-50: #FBEAEC;
+            --emerald-700: #047857;
             --emerald-600: #0F9D58;
             --emerald-500: #1ab46a;
+            --emerald-300: #6EE7B7;
+            --emerald-100: #D1FAE5;
             --emerald-50: #E8F7EE;
+            --rose-700: #BE123C;
             --rose-600: #e11d48;
+            --rose-500: #F43F5E;
+            --rose-300: #FDA4AF;
             --rose-50: #fce7eb;
             --amber-600: #D97706;
+            --amber-500: #F59E0B;
             --amber-50: #FEF3E2;
+            --indigo-500: #4F46E5;
+            --indigo-50: #EEF2FF;
             --slate-900: #0F172A;
             --slate-800: #1E293B;
             --slate-700: #334155;
@@ -918,6 +928,7 @@
         function docStatusBadge(st){
             const m={
                 'not_uploaded':['badge-slate','Not Uploaded'],
+                'submitted':['badge-blue','Submitted'],
                 'received':['badge-blue','Received'],
                 'pending_review':['badge-amber','Pending Review'],
                 'processing':['badge-indigo','Processing'],
@@ -2956,56 +2967,69 @@
                   ].map(d=>{
                     const hasUrl=!!d.url;
                     const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
-                    const bc=st==='verified'?'var(--emerald-500)':st==='processing'?'var(--indigo-500)':st==='pending_review'||st==='reuploaded'?'var(--amber-500)':st==='rejected'||st==='changes_requested'||st==='upload_again'?'var(--rose-500)':st==='received'?'var(--blue-500)':'var(--slate-300)';
+                    const bc=st==='verified'?'var(--emerald-500)':st==='processing'?'var(--indigo-500)':st==='pending_review'||st==='reuploaded'?'var(--amber-500)':st==='rejected'||st==='changes_requested'||st==='upload_again'?'var(--rose-500)':st==='received'||st==='submitted'?'var(--blue-500)':'var(--slate-300)';
                     const acts=[];
                     if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
-                    if(st==='not_uploaded'&&hasUrl) acts.push(`<button class="btn btn-outline btn-sm idxDocMarkReceived" data-dockey="${d.key}">Mark Received</button>`);
+                    if(st==='submitted') acts.push(`<button class="btn btn-outline btn-sm idxDocMarkReceived" data-dockey="${d.key}">Mark Received</button>`);
                     if(st==='received') acts.push(`<button class="btn btn-outline btn-sm idxDocStartReview" data-dockey="${d.key}">Start Review</button>`);
                     if(st==='pending_review'||st==='reuploaded'){
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocRequestChange" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
                       acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
                       acts.push(`<button class="btn btn-primary btn-sm idxDocProcess" data-dockey="${d.key}">Processing</button>`);
                       acts.push(`<button class="btn btn-danger btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                     }
                     if(st==='processing'){
                       acts.push(`<span class="badge badge-indigo" style="font-size:11px">⏳ Processing</span>`);
+                      acts.push(`<button class="btn btn-outline btn-sm idxDocRequestChange" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
                       acts.push(`<button class="btn btn-success btn-sm idxDocVerify" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
                       acts.push(`<button class="btn btn-danger btn-sm idxDocReject" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
                     }
                     if(st==='verified'){
-                      acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified</span>`);
+                      acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified ✓</span>`);
                       acts.push(`<button class="btn btn-outline btn-sm idxDocRevoke" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
                     }
                     if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm idxDocAllowReupload" data-dockey="${d.key}">Allow Re-upload</button>`);
                     if(st==='changes_requested'||st==='upload_again'){
-                      acts.push(`<span class="badge badge-rose">Awaiting re-upload</span>`);
+                      acts.push(`<span class="badge badge-rose" style="font-size:11px">⏳ Awaiting re-upload</span>`);
                       acts.push(`<button class="btn btn-outline btn-sm idxDocCancelRequest" data-dockey="${d.key}">Cancel Request</button>`);
                     }
-                    const bg=st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'?'var(--rose-50)':'transparent';
+                    const bg=st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'||st==='changes_requested'||st==='upload_again'?'var(--rose-50)':st==='submitted'?'var(--blue-50)':'transparent';
                     return `<div class="doc-row" style="border-left:3px solid ${bc};background:${bg};border-radius:6px;padding:8px 10px;margin-bottom:6px"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                   }).join("")}
                 </div>
                 <!-- Services Section -->
                 <div style="margin-bottom:14px;border-top:1px solid var(--slate-200);padding-top:14px">
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Assistance Services</div>
-                  <div id="idxSvcList">${(app.clientServices||[]).length?(app.clientServices||[]).map((s,i)=>{
+                   <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                    <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--blue-900)">${(app.clientServices||[]).length}</div><div style="font-size:10px;color:var(--slate-500)">Total</div></div>
+                    <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--emerald-600)">${(app.clientServices||[]).filter(s=>s.status==='completed').length}</div><div style="font-size:10px;color:var(--slate-500)">Completed</div></div>
+                    <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--maroon-600)">${(app.clientServices||[]).filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0).toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">EUR</div></div>
+                   </div>
+                   <div id="idxSvcList">${(app.clientServices||[]).length?(app.clientServices||[]).map((s,i)=>{
                     const t=SERVICE_TYPES.find(st=>st.id===s.type);
                     const ico=t?t.icon:'fa-handshake';
                     const col=t?t.color:'var(--slate-500)';
                     const svcStCls=s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':s.status==='cancelled'?'badge-rose':'badge-slate';
                     const svcStLbl=s.status==='pending'?'⏳ Pending':s.status==='in-progress'?'🔄 In Progress':s.status==='completed'?'✅ Completed':s.status==='cancelled'?'❌ Cancelled':'Pending';
-                    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--slate-50);border-radius:8px;margin-bottom:6px;flex-wrap:wrap">
-                      <span style="color:${col};font-size:14px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
-                      <span style="font-weight:600;font-size:13px;flex:1;min-width:100px">${esc(s.label)}</span>
-                      <span class="badge ${svcStCls}" style="font-size:10px">${svcStLbl}</span>
-                      <select class="idxSvcStatus" data-svcid="${s.id}" style="width:auto;min-width:90px;padding:4px 6px;font-size:11px">
-                        <option value="pending" ${s.status==='pending'?'selected':''}>Pending</option>
-                        <option value="in-progress" ${s.status==='in-progress'?'selected':''}>In Progress</option>
-                        <option value="completed" ${s.status==='completed'?'selected':''}>Completed</option>
-                        <option value="cancelled" ${s.status==='cancelled'?'selected':''}>Cancelled</option>
-                      </select>
-                      ${s.amount?`<span style="font-size:12px;color:var(--slate-500);font-weight:600">${esc(s.amount)}</span>`:''}
-                      ${s.paid?`<span class="badge badge-green" style="font-size:10px">Paid</span>`:`<span class="badge badge-amber" style="font-size:10px">Unpaid</span>`}
-                      <button class="btn btn-xs btn-outline" data-svcpaid="${s.id}" style="font-size:10px">${s.paid?'Unmark':'Mark Paid'}</button>
+                    return `<div style="background:var(--slate-50);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span style="color:${col};font-size:14px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
+                        <div style="flex:1;min-width:100px"><div style="font-weight:700;font-size:13px;color:var(--blue-900)">${esc(s.label)}</div>${s.description?`<div style="font-size:11px;color:var(--slate-500)">${esc(s.description)}</div>`:''}</div>
+                        <span class="badge ${svcStCls}" style="font-size:10px">${svcStLbl}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">
+                        ${s.amount?`<span style="font-size:12px;color:var(--slate-500);font-weight:600">${esc(s.amount)}</span>`:''}
+                        ${s.paid?`<span class="badge badge-green" style="font-size:10px">Paid</span>`:`<span class="badge badge-amber" style="font-size:10px">Unpaid</span>`}
+                        <span style="font-size:11px;color:var(--slate-500);font-weight:600">${s.progress||0}%</span>
+                        <input type="range" min="0" max="100" value="${s.progress||0}" class="idxSvcProgress" data-svcid="${s.id}" style="flex:1;max-width:140px;height:4px">
+                        <select class="idxSvcStatus" data-svcid="${s.id}" style="width:auto;min-width:90px;padding:4px 6px;font-size:11px">
+                          <option value="pending" ${s.status==='pending'?'selected':''}>Pending</option>
+                          <option value="in-progress" ${s.status==='in-progress'?'selected':''}>In Progress</option>
+                          <option value="completed" ${s.status==='completed'?'selected':''}>Completed</option>
+                          <option value="cancelled" ${s.status==='cancelled'?'selected':''}>Cancelled</option>
+                        </select>
+                        <button class="btn btn-xs btn-outline" data-svcpaid="${s.id}" style="font-size:10px">${s.paid?'Unmark':'Mark Paid'}</button>
+                      </div>
                     </div>`;
                   }).join(""):'<div class="hint" style="margin-bottom:8px">No services assigned yet.</div>'}
                   </div>
@@ -3065,7 +3089,7 @@
                 </div>
                 <div>
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700">Internal Notes</div>
-                  <div id="internalNotesList" style="margin-bottom:10px">${(app.internalNotes || []).length ? app.internalNotes.map(n => `<div class="tl-note" style="margin-bottom:8px"><b>${esc(n.author)}</b> · ${fmtDate(n.date)}<br>${esc(n.note)}</div>`).join("") : `<div class="hint">No internal notes yet.</div>`}</div>
+                  <div id="internalNotesList" style="margin-bottom:10px">${(app.internalNotes || []).length ? app.internalNotes.map(n => `<div class="tl-note" style="margin-bottom:8px"><b>${esc(n.author)}</b> · ${fmtDate(n.createdAt||n.date)}<br>${esc(n.text||n.note)}</div>`).join("") : `<div class="hint">No internal notes yet.</div>`}</div>
                   <div style="display:flex;gap:10px"><input type="text" id="newNote" placeholder="Add an internal note..."><button class="btn btn-outline btn-sm" id="addNoteBtn">Add</button></div>
                 </div>
                 <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
@@ -3095,6 +3119,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'verified'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`✅ Document "${key.toUpperCase()}" has been verified.`);
+                try{addAuditLog(`Document verified: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`"${key}" verified.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocRequestChange').forEach(b=>b.addEventListener('click',async function(){
@@ -3102,6 +3127,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'changes_requested'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`📝 Document "${key.toUpperCase()}": Changes requested. Please upload a revised version.`);
+                try{addAuditLog(`Changes requested: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`Changes requested for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocRevoke').forEach(b=>b.addEventListener('click',async function(){
@@ -3109,12 +3135,15 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`🔄 Document "${key.toUpperCase()}" verification has been revoked.`);
+                try{addAuditLog(`Verification revoked: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`Verification revoked for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocCancelRequest').forEach(b=>b.addEventListener('click',async function(){
                 const key=this.getAttribute('data-dockey'); const fresh=await getApp(appIdKey);
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
+                notifyApplicant(app.uid,app.fullName,`📝 Change request cancelled for document "${key.toUpperCase()}".`);
+                try{addAuditLog(`Change request cancelled: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`Change request cancelled for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocMarkReceived').forEach(b=>b.addEventListener('click',async function(){
@@ -3122,6 +3151,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'received'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`📄 Document "${key.toUpperCase()}" has been received and is under review.`);
+                try{addAuditLog(`Document received: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`"${key}" marked as received.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocStartReview').forEach(b=>b.addEventListener('click',async function(){
@@ -3129,6 +3159,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'pending_review'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`🔍 Document "${key.toUpperCase()}" is now under review.`);
+                try{addAuditLog(`Review started: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`"${key}" moved to review.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocProcess').forEach(b=>b.addEventListener('click',async function(){
@@ -3136,6 +3167,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'processing'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`⚙️ Document "${key.toUpperCase()}" is being processed.`);
+                try{addAuditLog(`Document processing: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`"${key}" set to processing.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocReject').forEach(b=>b.addEventListener('click',async function(){
@@ -3143,6 +3175,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'rejected'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please upload a new version from your portal.`);
+                try{addAuditLog(`Document rejected: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`"${key}" rejected.`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             document.querySelectorAll('.idxDocAllowReupload').forEach(b=>b.addEventListener('click',async function(){
@@ -3150,6 +3183,7 @@
                 const ds={...(fresh?.documentStatus||{}),[key]:'upload_again'};
                 await updateApp(appIdKey,{documentStatus:ds});
                 notifyApplicant(app.uid,app.fullName,`📤 Document "${key.toUpperCase()}": You may now upload a new version.`);
+                try{addAuditLog(`Re-upload allowed: ${key}`,displayName(app),appIdKey);}catch(e){}
                 toast(`Re-upload allowed for "${key}".`,"ok"); await loadApps(); openAdminAppModal(appIdKey);
             }));
             // Status chip click
@@ -3159,6 +3193,12 @@
                 this.classList.add('active'); selectedStatus=this.getAttribute('data-setstatus');
             }));
             // Services wire
+            document.querySelectorAll('.idxSvcProgress').forEach(sl=>sl.addEventListener('input',async function(){
+                const svcId=this.getAttribute('data-svcid'); const val=parseInt(this.value);
+                const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])]; const idx=svcs.findIndex(s=>s.id===svcId); if(idx<0)return;
+                svcs[idx].progress=val; svcs[idx].updatedAt=new Date().toISOString();
+                await updateApp(appIdKey,{clientServices:svcs});
+            }));
             document.querySelectorAll('.idxSvcStatus').forEach(sel=>sel.addEventListener('change',async function(){
                 const svcId=this.getAttribute('data-svcid'); const newStatus=this.value;
                 const fresh=await getApp(appIdKey); const svcs=[...(fresh?.clientServices||[])]; const idx=svcs.findIndex(s=>s.id===svcId); if(idx<0)return;
@@ -3222,12 +3262,12 @@
                 const val = document.getElementById('newNote').value.trim();
                 if (!val) return;
                 const fresh = await getApp(appIdKey);
-                const internalNotes = [...(fresh?.internalNotes || []), { date: new Date().toISOString(), author: currentUserData?.name || currentUser?.email || 'admin', note: val }];
+                const internalNotes = [...(fresh?.internalNotes || []), { id: 'n_'+Date.now(), text: val, author: currentUserData?.email || currentUser?.email || 'admin', createdAt: new Date().toISOString() }];
                 await updateApp(appIdKey, { internalNotes });
                 toast("Internal note added.", "ok"); await loadApps(); openAdminAppModal(appIdKey);
             });
             document.getElementById('archiveBtn').addEventListener('click', async () => {
-                if (confirm("Archive this application?")) { await updateApp(appIdKey, { archived: true }); toast("Application archived.", "ok"); loadApps(); closeModal(); }
+                if (confirm("Archive this application?")) { await updateApp(appIdKey, { archived: true }); try{addAuditLog(`Application archived`,displayName(app),appIdKey);}catch(e){} toast("Application archived.", "ok"); loadApps(); closeModal(); }
             });
             document.getElementById('indexBlockBtn').addEventListener('click', async () => {
                 const email = app.email || '';
