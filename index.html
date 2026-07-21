@@ -295,6 +295,13 @@
         .modal-close:hover { background: var(--slate-200); }
         .modal-body { padding: 24px 26px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         .modal-foot { padding: 16px 26px; border-top: 1px solid var(--slate-200); display: flex; justify-content: flex-end; gap: 10px; }
+        .mpesa-paybill { font-size: 36px; font-weight: 800; color: var(--blue-900); font-family: var(--font-head); letter-spacing: .03em; background: var(--slate-50); border-radius: 12px; padding: 8px 24px; display: inline-block; border: 2px dashed var(--slate-300); user-select: all; }
+        .pay-now-btn { transition: var(--transition); }
+        .pay-now-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(168,23,47,.25); }
+        .payment-success { animation: payPulse .6s ease; }
+        @keyframes payPulse { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
+        .copy-hint { font-size: 11px; color: var(--slate-400); cursor: pointer; }
+        .copy-hint:hover { color: var(--blue-600); }
         .doc-row { display: flex; align-items: center; justify-content: space-between; background: var(--slate-50); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
         .doc-row .di { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--blue-800); }
         .doc-row .di i { color: var(--blue-700); }
@@ -2599,8 +2606,9 @@
                         <div class="fee-row">
                           <span class="lbl">${esc(f.label)}</span>
                           <span class="amt">${esc(f.amount)}</span>
-                          <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>
+                          <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (You)':'Paid'):'Unpaid'}</span>
                           ${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}
+                          ${!f.paid && f.amount ? `<button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="fee" data-pay-index="${i}" data-pay-amount="${esc(f.amount)}" data-pay-label="${esc(f.label)}" style="font-size:11px;padding:6px 14px;margin-left:auto"><i class="fa-solid fa-mobile-screen-button"></i> Pay Now</button>` : ''}
                         </div>`).join("") : '<div style="padding:24px;text-align:center;color:var(--slate-400);font-size:13px">No fees recorded yet.</div>'}
                     </div>
                   </div>
@@ -2610,12 +2618,12 @@
                     <div class="card pad">
                       <h4 style="margin:0 0 16px;color:var(--blue-900);font-size:15px"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Assistance Services</h4>
                       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
-                        ${app.clientServices.map(s=>{
+                        ${app.clientServices.map((s,i)=>{
                           const t=SERVICE_TYPES.find(st=>st.id===s.type);
                           const ico=t?t.icon:'fa-handshake';
                           const col=t?t.color:'var(--slate-500)';
                           const stCls=s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':s.status==='cancelled'?'badge-rose':'badge-slate';
-                          const stLbl=s.status==='pending'?'⏳ Pending':s.status==='in-progress'?'🔄 In Progress':s.status==='completed'?'✅ Completed':s.status==='cancelled'?'❌ Cancelled':'Pending';
+                          const stLbl=s.status==='completed'?'Completed':s.status==='in-progress'?'In Progress':s.status==='cancelled'?'Cancelled':'Pending';
                           return `<div style="background:#fff;border:1px solid var(--slate-200);border-radius:10px;padding:16px">
                             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
                               <span style="width:36px;height:36px;border-radius:10px;background:${col}20;color:${col};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
@@ -2625,7 +2633,11 @@
                               <span class="badge ${stCls}">${stLbl}</span>
                               ${s.amount?`<span style="font-weight:700;font-size:13px;color:var(--blue-800)">${esc(s.amount)}</span>`:''}
                             </div>
-                            ${s.paid?`<div style="margin-top:8px;padding:6px 10px;background:var(--emerald-50);border-radius:6px;font-size:12px;color:var(--emerald-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-check"></i> Paid${s.paidDate?` · ${fmtDate(s.paidDate)}`:''}</div>`:s.amount?`<div style="margin-top:8px;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div>`:''}
+                            ${s.paid
+                              ? `<div style="margin-top:8px;padding:6px 10px;background:var(--emerald-50);border-radius:6px;font-size:12px;color:var(--emerald-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-check"></i> Paid${s.paidByClient?' (You)':''}${s.paidDate?` · ${fmtDate(s.paidDate)}`:''}</div>`
+                              : s.amount
+                                ? `<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><div style="flex:1;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div><button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="service" data-pay-index="${i}" data-pay-amount="${esc(s.amount)}" data-pay-label="${esc(s.label)}" style="font-size:11px;padding:6px 14px"><i class="fa-solid fa-mobile-screen-button"></i> Pay Now</button></div>`
+                                : ''}
                           </div>`;
                         }).join("")}
                       </div>
@@ -3019,7 +3031,7 @@
                       </div>
                       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">
                         ${s.amount?`<span style="font-size:12px;color:var(--slate-500);font-weight:600">${esc(s.amount)}</span>`:''}
-                        ${s.paid?`<span class="badge badge-green" style="font-size:10px">Paid</span>`:`<span class="badge badge-amber" style="font-size:10px">Unpaid</span>`}
+                        ${s.paid?`<span class="badge badge-green" style="font-size:10px">${s.paidByClient?'Client Paid':'Paid'}</span>`:`<span class="badge badge-amber" style="font-size:10px">Unpaid</span>`}${s.paidByClient?`<span style="font-size:9px;color:var(--indigo-500);font-weight:600;background:var(--indigo-50);padding:2px 6px;border-radius:3px">Client</span>`:''}${s.transactionCode?`<span style="font-size:9px;color:var(--slate-500)">${esc(s.transactionCode)}</span>`:''}
                         <span style="font-size:11px;color:var(--slate-500);font-weight:600">${s.progress||0}%</span>
                         <input type="range" min="0" max="100" value="${s.progress||0}" class="idxSvcProgress" data-svcid="${s.id}" style="flex:1;max-width:140px;height:4px">
                         <select class="idxSvcStatus" data-svcid="${s.id}" style="width:auto;min-width:90px;padding:4px 6px;font-size:11px">
@@ -3051,7 +3063,7 @@
                     <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--emerald-600)">€${totalPaid.toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">Paid</div></div>
                     <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--maroon-600)">€${(totalOwed-totalPaid).toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">Outstanding</div></div>
                   </div>
-                  <div style="display:flex;flex-direction:column;gap:6px">${appFees.length?appFees.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--slate-50);border-radius:6px;flex-wrap:wrap;font-size:12px"><span style="flex:1;min-width:80px;font-weight:600">${esc(f.label)}</span><span style="font-weight:700;color:var(--blue-800)">${esc(f.amount)}</span><span class="badge ${f.paid?'badge-green':'badge-amber'}">${f.paid?'Paid':'Unpaid'}</span>${f.paidDate?`<span style="font-size:10px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}</div>`).join(""):'<div style="padding:12px;text-align:center;color:var(--slate-400);font-size:12px">No fees recorded.</div>'}</div>
+                  <div style="display:flex;flex-direction:column;gap:6px">${appFees.length?appFees.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--slate-50);border-radius:6px;flex-wrap:wrap;font-size:12px"><span style="flex:1;min-width:80px;font-weight:600">${esc(f.label)}</span><span style="font-weight:700;color:var(--blue-800)">${esc(f.amount)}</span><span class="badge ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (Client)':'Paid'):'Unpaid'}</span>${f.paidDate?`<span style="font-size:10px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}${f.paidByClient?`<span style="font-size:9px;color:var(--indigo-500);font-weight:600;background:var(--indigo-50);padding:2px 6px;border-radius:3px">Client</span>`:''}${f.transactionCode?`<span style="font-size:9px;color:var(--slate-500)">${esc(f.transactionCode)}</span>`:''}</div>`).join(""):'<div style="padding:12px;text-align:center;color:var(--slate-400);font-size:12px">No fees recorded.</div>'}</div>
                 </div>
                 ${(()=>{
                   const curIdx=STATUS_STEPS.indexOf(app.status);
@@ -3971,7 +3983,120 @@ function showChatUserDetails(userName, chatId) {
         console.log("📊 Firestore collections: jobs, applications, fees, admins, chats, messages");
         console.log("💬 WhatsApp-like messaging system active");
         console.log("📁 Uploadcare public key:", UPLOADCARE_PUBLIC_KEY);
+
+        // =============================================================
+        // M-PESA PAYMENT FLOW
+        // =============================================================
+        let mpesaTarget = null;
+
+        function openMpesaModal(type, index, amount, label) {
+            mpesaTarget = { type, index };
+            document.getElementById('mpesaAmount').textContent = amount;
+            document.getElementById('mpesaLabel').textContent = label;
+            document.getElementById('mpesaTxnCode').value = '';
+            document.getElementById('mpesaModal').style.display = '';
+        }
+
+        function closeMpesaModal() {
+            document.getElementById('mpesaModal').style.display = 'none';
+            mpesaTarget = null;
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('[data-pay-now]')) {
+                const btn = e.target.closest('[data-pay-now]');
+                const type = btn.getAttribute('data-pay-type');
+                const idx = parseInt(btn.getAttribute('data-pay-index'));
+                const amount = btn.getAttribute('data-pay-amount');
+                const label = btn.getAttribute('data-pay-label');
+                openMpesaModal(type, idx, amount, label);
+            }
+        });
+
+        document.getElementById('mpesaConfirmBtn')?.addEventListener('click', async function() {
+            if (!mpesaTarget) return;
+            const { type, index } = mpesaTarget;
+            const txnCode = document.getElementById('mpesaTxnCode').value.trim();
+            const app = allApps.find(a => a.uid === currentUser.uid);
+            if (!app) { toast('Application not found.', 'err'); return; }
+            const id = app.id || app.uid;
+            try {
+                const s = await getDoc(doc(db, "applications", id));
+                if (!s.exists()) { toast('Application not found.', 'err'); return; }
+                const data = s.data();
+                if (type === 'fee') {
+                    const fees = [...(data.fees || [])];
+                    if (!fees[index]) return;
+                    fees[index].paid = true;
+                    fees[index].paidDate = new Date().toISOString();
+                    fees[index].paidByClient = true;
+                    fees[index].paymentMethod = 'mpesa';
+                    if (txnCode) fees[index].transactionCode = txnCode;
+                    await setDoc(doc(db, "applications", id), { fees, updatedAt: serverTimestamp() }, { merge: true });
+                    toast(`✅ Payment recorded for "${fees[index].label}". Admin will verify shortly.`, 'ok');
+                } else if (type === 'service') {
+                    const services = [...(data.clientServices || [])];
+                    if (!services[index]) return;
+                    services[index].paid = true;
+                    services[index].paidDate = new Date().toISOString();
+                    services[index].paidByClient = true;
+                    services[index].paymentMethod = 'mpesa';
+                    if (txnCode) services[index].transactionCode = txnCode;
+                    await setDoc(doc(db, "applications", id), { clientServices: services, updatedAt: serverTimestamp() }, { merge: true });
+                    toast(`✅ Payment recorded for "${services[index].label}". Admin will verify shortly.`, 'ok');
+                }
+                closeMpesaModal();
+                await loadApps();
+                renderCurrentView();
+            } catch (e) {
+                toast('Payment failed: ' + e.message, 'err');
+            }
+        });
+
+        document.getElementById('mpesaCloseBtn')?.addEventListener('click', closeMpesaModal);
+        document.getElementById('mpesaModal')?.addEventListener('click', function(e) {
+            if (e.target.id === 'mpesaModal') closeMpesaModal();
+        });
     </script>
+
+    <!-- M-Pesa Payment Modal -->
+    <div class="modal-overlay" id="mpesaModal" style="display:none">
+        <div class="modal" style="max-width:480px">
+            <div class="modal-head">
+                <h3><i class="fa-solid fa-mobile-screen-button" style="color:var(--emerald-600)"></i> M-Pesa Payment</h3>
+                <button class="modal-close" id="mpesaCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="text-align:center">
+                <div style="margin-bottom:20px">
+                    <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Paybill Number</div>
+                    <div class="mpesa-paybill" onclick="navigator.clipboard?.writeText('0143350004');toast('Paybill copied!','ok')">0143350004</div>
+                    <div class="copy-hint" onclick="navigator.clipboard?.writeText('0143350004');toast('Paybill copied!','ok')"><i class="fa-regular fa-copy"></i> Tap to copy</div>
+                </div>
+                <div style="margin-bottom:20px;padding:18px;background:var(--slate-50);border-radius:12px">
+                    <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Amount to Pay</div>
+                    <div style="font-size:30px;font-weight:800;color:var(--blue-900);font-family:var(--font-head)" id="mpesaAmount"></div>
+                    <div style="font-size:13px;color:var(--slate-500);margin-top:4px" id="mpesaLabel"></div>
+                </div>
+                <div style="text-align:left;background:var(--emerald-50);border-radius:12px;padding:18px;margin-bottom:20px">
+                    <div style="font-weight:700;font-size:13px;color:var(--emerald-700);margin-bottom:10px"><i class="fa-solid fa-circle-info"></i> How to Pay via M-Pesa</div>
+                    <ol style="margin:0;padding-left:18px;font-size:13px;color:var(--slate-700);line-height:2">
+                        <li>Go to <b>M-Pesa</b> on your phone</li>
+                        <li>Select <b>Lipa na M-Pesa</b> → <b>Paybill</b></li>
+                        <li>Enter Business Number: <b>0143350004</b></li>
+                        <li>Enter the amount shown above</li>
+                        <li>Enter your M-Pesa PIN and send</li>
+                        <li>Enter the M-Pesa transaction code below</li>
+                    </ol>
+                </div>
+                <div style="margin-bottom:20px;text-align:left">
+                    <label style="font-size:12px;font-weight:700;color:var(--slate-600);display:block;margin-bottom:6px">M-Pesa Transaction Code <span style="color:var(--slate-400);font-weight:400">(optional)</span></label>
+                    <input type="text" id="mpesaTxnCode" placeholder="e.g. OGQ2P2ABC3" style="width:100%;padding:12px 14px;border:1.5px solid var(--slate-200);border-radius:8px;font-size:14px;font-family:inherit;background:#fff">
+                </div>
+                <button class="btn btn-maroon" id="mpesaConfirmBtn" style="width:100%;padding:14px;font-size:15px;font-weight:700"><i class="fa-solid fa-circle-check"></i> I've Made Payment</button>
+                <div style="margin-top:10px;font-size:12px;color:var(--slate-400)">Your payment will be marked for admin verification.</div>
+            </div>
+        </div>
+    </div>
     <!-- =====================================================================
     ADMIN BOOTSTRAP — READ THIS BEFORE GOING LIVE
     =====================================================================
