@@ -447,7 +447,8 @@
     function toast(msg,type) { const w=document.getElementById('toast-wrap'),el=document.createElement('div'); el.className='toast'+(type?' '+type:''); el.innerHTML=`<i class="fa-solid ${type==='err'?'fa-circle-exclamation':type==='ok'?'fa-circle-check':'fa-bell'}"></i><span>${esc(msg)}</span>`; w.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3600); }
     function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
     function statusBadge(s) { if(!s)return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`; const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
-    function appId(a) { return a.appId || a.id || a.uid || ''; }
+    function appId(a) { return a.id || a.uid || ''; }
+    function displayId(a) { return a.appId || a.id || a.uid || ''; }
 function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'; }
         function docStatusBadge(st){
             const m={
@@ -709,7 +710,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div class="stat-card" style="border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:18px;color:var(--maroon-600)">€${esc((totalFees-totalPaid).toFixed(0))}</div><div class="l">Outstanding</div></div>
                 </div>
                 ${(()=>{
-                    const allSvcs=apps.flatMap(a=>(a.clientServices||[]).map(s=>({...s,applicant:a.fullName,appId:appId(a),uid:a.uid||a.id})));
+                    const allSvcs=apps.flatMap(a=>(a.clientServices||[]).map(s=>({...s,applicant:a.fullName,appId:displayId(a),uid:a.uid||a.id})));
                     if(!allSvcs.length)return '';
                     const pend=allSvcs.filter(s=>s.status==='pending').length;
                     const ip=allSvcs.filter(s=>s.status==='in-progress').length;
@@ -745,7 +746,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
                             const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
                             return `<tr>
-                                <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:11px;color:var(--slate-500)">${appId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}</td>
+                                            <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:11px;color:var(--slate-500)">${displayId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}</td>
                                 <td style="font-size:12px;color:var(--slate-600)">${esc(a.phone||'—')}</td>
                                 <td>${esc(a.jobTitle)||'—'}<br>${a.country?`<span style="font-size:12px;color:var(--slate-500)"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}</span>`:'<span style="font-size:12px;color:var(--slate-400)">—</span>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                                 <td>${statusBadge(a.status)}</td>
@@ -767,7 +768,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             <div class="ac-head">
                                 <div>
                                     <div class="ac-name">${esc(a.fullName)}</div>
-                                    <div class="ac-id">${appId(a)}</div>
+                                    <div class="ac-id">${displayId(a)}</div>
                                 </div>
                                 ${statusBadge(a.status)}
                             </div>
@@ -823,7 +824,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         root.innerHTML=`
         <div class="modal-overlay" id="modalOverlay">
             <div class="modal" style="max-width:900px">
-                <div class="modal-head">                <h3>${esc(app.fullName||appId(app))} — ${appId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-head">                <h3>${esc(app.fullName||displayId(app))} — ${displayId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
                 <div class="modal-body">
                     ${progressHTML()}
                     <hr style="margin:16px 0;border:none;border-top:1px solid var(--slate-200)">
@@ -1072,7 +1073,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
 
         // Delete application permanently
         document.getElementById('deleteAppBtn').addEventListener('click',async()=>{
-            if(!confirm(`⚠️ DELETE application for ${app.fullName||'this user'} (${appId(app)})? This permanently removes ALL data including chats and messages. Cannot be undone.`))return;
+            if(!confirm(`⚠️ DELETE application for ${app.fullName||'this user'} (${displayId(app)})? This permanently removes ALL data including chats and messages. Cannot be undone.`))return;
             if(!confirm(`FINAL CONFIRMATION: Delete ${app.fullName||'this user'}'s application forever?`))return;
             try{
                 const id=app.id||app.uid;
@@ -1083,7 +1084,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     msgsSnap.forEach(m=>m.ref.delete().catch(()=>{}));
                     chatDoc.ref.delete().catch(()=>{});
                 }
-                try{addAuditLog(`Deleted application`,`${appName(app)} (${appId(app)})`);}catch(e){}
+                try{addAuditLog(`Deleted application`,`${appName(app)} (${displayId(app)})`);}catch(e){}
                 toast("Application permanently deleted.","ok");
                 root.innerHTML='';await loadApps();
             }catch(e){toast("Delete error: "+e.message,"err");}
@@ -1117,7 +1118,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const curTimeline=snap.exists()?snap.data().timeline:[];
                     updates.timeline=[...(curTimeline||[]),tlEntry];
                     try{sendAppStatusNotification(app.uid,app.fullName,newStatus,note);}catch(e){}
-                    try{simulateEmail(app.email,`Application Status Update – ${newStatus}`,`Dear ${app.fullName},\n\nYour application (${appId(app)}) status has been updated to: ${newStatus}.\n\n${note?note+'\n\n':''}Log in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);}catch(e){}
+                    try{simulateEmail(app.email,`Application Status Update – ${newStatus}`,`Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${newStatus}.\n\n${note?note+'\n\n':''}Log in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);}catch(e){}
                 }
             }
             await setDoc(ref,updates,{merge:true});

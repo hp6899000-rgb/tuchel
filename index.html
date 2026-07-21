@@ -3111,7 +3111,7 @@
             document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
             document.getElementById('modalCloseBtn2').addEventListener('click', closeModal);
             document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') closeModal(); });
-            const appIdKey = displayId(app);
+            const appIdKey = app.id || app.uid;
 
             // Document action handlers
             document.querySelectorAll('.idxDocVerify').forEach(b=>b.addEventListener('click',async function(){
