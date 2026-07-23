@@ -483,6 +483,37 @@
             .msg-chat-panel { display: none; }
             .msg-chat-panel.show { display: flex; }
         }
+        @media (max-width: 360px) {
+            .wrap { padding: 0 8px; }
+            .hero h1 { font-size: 20px; }
+            .hero .lead { font-size: 12.5px; }
+            .hero-stat b { font-size: 16px; }
+            .section-head h2 { font-size: 20px; }
+            .country-flagbar { height: 50px; padding: 0 12px; font-size: 13px; }
+            .country-flagbar .flag-img { width: 24px; height: 16px; }
+            .country-body { padding: 12px; }
+            .btn { font-size: 12px; padding: 10px 16px; }
+            .btn-sm { font-size: 11px; padding: 6px 12px; }
+            .badge { font-size: 10px; padding: 3px 8px; }
+            .card.pad { padding: 14px; }
+            .dash-main { padding: 12px 8px; }
+            .side-link { padding: 6px 10px; font-size: 11.5px; }
+            .dash-quick-card { padding: 12px 14px; }
+            .dash-quick-card .q-label { font-size: 12px; }
+            .fee-row { font-size: 12px; padding: 8px 10px; }
+            .fee-row .amt { font-size: 13px; min-width: 60px; }
+            .doc-row { padding: 10px 12px; font-size: 12px; }
+            .doc-row .di { font-size: 12px; }
+            .mpesa-paybill { font-size: 28px; padding: 6px 16px; }
+            .msg-bubble { max-width: 92%; font-size: 12.5px; }
+            .modal-head h3 { font-size: 14px; }
+            .modal-body { padding: 12px; }
+            th, td { padding: 8px 6px; font-size: 11px; }
+            .chip { padding: 4px 10px; font-size: 10.5px; }
+            .progress-stages .stage { min-width: 48px; font-size: 8px; padding: 4px 1px; }
+            .dash-quick-grid { gap: 8px; }
+            .dash-services-grid { gap: 8px; }
+        }
         @media (max-width: 600px) {
             .country-grid, .job-grid, .why-grid, .fee-grid, .process-grid { grid-template-columns: 1fr; }
             .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -666,7 +697,6 @@
     <script type="module">
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
         import {
             getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
             onAuthStateChanged, updateProfile,
@@ -689,7 +719,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const auth = getAuth(app);
         try{await setPersistence(auth, browserSessionPersistence);}catch(e){console.warn("Auth persistence:",e.message);}
         const db = getFirestore(app);
@@ -1038,16 +1067,17 @@
                 if (fixed) console.log(`Fixed ${fixed} admin entries across chats.`);
             } catch (e) { console.warn("fixAdminChatNames error:", e); }
         }
+        const LOCALE = 'en-GB';
         function fmtDate(ts) {
             if (!ts) return "—";
             if (ts.toDate) ts = ts.toDate();
             const d = new Date(ts);
-            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) + " · " + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            return d.toLocaleDateString(LOCALE, { year: 'numeric', month: 'short', day: 'numeric' }) + " · " + d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
         }
         function fmtTime(ts) {
             if (!ts) return "";
             if (ts.toDate) ts = ts.toDate();
-            return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            return new Date(ts).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
         }
         function fmtDateShort(ts) {
             if (!ts) return "";
@@ -1056,13 +1086,13 @@
             const now = new Date();
             const diff = (now - d) / (1000 * 60 * 60 * 24);
             if (diff < 1) return fmtTime(ts);
-            if (diff < 7) return d.toLocaleDateString(undefined, { weekday: 'short' });
-            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            if (diff < 7) return d.toLocaleDateString(LOCALE, { weekday: 'short' });
+            return d.toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
         }
         function fmtMsgTime(ts) {
             if (!ts) return "";
             if (ts.toDate) ts = ts.toDate();
-            return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            return new Date(ts).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
         }
         function formatMsgDate(ts) {
             if (!ts) return "";
@@ -1075,8 +1105,8 @@
             const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             if (dDate.getTime() === today.getTime()) return "Today";
             if (dDate.getTime() === yesterday.getTime()) return "Yesterday";
-            if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-            return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString(LOCALE, { weekday: 'short', month: 'short', day: 'numeric' });
+            return d.toLocaleDateString(LOCALE, { year: 'numeric', month: 'short', day: 'numeric' });
         }
         function shouldShowDateSeparator(msg, prevMsg) {
             if (!prevMsg) return true;
@@ -1097,7 +1127,8 @@
             const icon = type === 'err' ? 'fa-circle-exclamation' : type === 'ok' ? 'fa-circle-check' : 'fa-bell';
             el.innerHTML = `<i class="fa-solid ${icon}"></i><span>${esc(msg)}</span>`;
             wrap.appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; el.style.transition = '.3s'; setTimeout(() => el.remove(), 300); }, 3600);
+            const duration = type === 'err' ? 6000 : 3600;
+            setTimeout(() => { el.style.opacity = '0'; el.style.transition = '.3s'; setTimeout(() => el.remove(), 300); }, duration);
         }
         function statusTone(status) {
             if (status === "Placed — Active Employment") return "green";
@@ -1172,7 +1203,7 @@
                 snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
                 allApps = dedupApps(live);
                 if (ROUTE.view === "admin-dashboard") renderCurrentView();
-            } catch(e) {}
+            } catch(e) { console.warn("loadApps:", e.message); }
             return allApps;
         }
         async function getApp(appId) {
@@ -1563,6 +1594,7 @@
                 history.replaceState({ ...history.state, scrollY: window.scrollY }, '');
             }
             ROUTE = { view, params };
+            history.pushState({ ...ROUTE, scrollY: 0 }, '');
             appEl.classList.add('fade-out');
             requestAnimationFrame(() => {
                 window.scrollTo({ top: 0 });
@@ -1570,7 +1602,6 @@
                 const nl = document.getElementById('navLinks');
                 if (nl) nl.classList.remove('open');
                 saveRouteState();
-                history.pushState({ ...ROUTE, scrollY: 0 }, '');
                 requestAnimationFrame(() => {
                     appEl.classList.remove('fade-out');
                     restoreScrollPos();
@@ -1696,7 +1727,7 @@
                 case "terms": html = viewTerms(); break;
                 case "privacy": html = viewPrivacy(); break;
                 case "about-demo": html = viewAboutDemo(); break;
-                default: html = viewHome();
+                default: html = viewNotFound();
             }
             appEl.innerHTML = html + renderFooter();
             wireGlobalNav();
@@ -1755,6 +1786,18 @@
               </div>
             </div>
           </footer>`;
+        }
+
+        function viewNotFound() {
+            return `
+          <section class="section">
+            <div class="wrap" style="text-align:center;padding:60px 20px">
+              <i class="fa-solid fa-compass" style="font-size:52px;color:var(--slate-300);margin-bottom:16px;display:block"></i>
+              <h2 style="color:var(--blue-900);margin:0 0 8px">Page Not Found</h2>
+              <p style="color:var(--slate-500);font-size:15px;margin:0 0 24px">The page you're looking for doesn't exist or has been moved.</p>
+              <a class="btn btn-primary" data-nav="home"><i class="fa-solid fa-house"></i> Go Home</a>
+            </div>
+          </section>`;
         }
 
         function viewHome() {
@@ -2189,6 +2232,8 @@
 
             document.getElementById('applyForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const btn = e.target.querySelector('button[type="submit"]');
+                if (btn?.disabled) return;
                 if (currentUserData?.type === 'admin') { toast("Admin accounts cannot apply for jobs.", "err"); return; }
                 const fd = new FormData(e.target);
                 const fullName = fd.get('fullName').trim();
@@ -2225,6 +2270,7 @@
                 const natObj = NATIONALITIES.find(n => n.code === nationality);
                 const fullPhone = `${phoneCode} ${phone}`;
 
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...'; }
                 try {
                     let user = currentUser;
                     let isNewAccount = false;
@@ -2274,6 +2320,8 @@
                 } catch (error) {
                     console.error("Application error:", error);
                     toast(error.message || "Failed to submit application. Please try again.", "err");
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Application'; }
                 }
             });
         }
@@ -2365,23 +2413,24 @@
             if (!f) return;
             f.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const btn = f.querySelector('button[type="submit"]');
+                if (btn?.disabled) return;
                 const q = document.getElementById('statusQuery').value.trim().toLowerCase();
                 if (!q) { toast("Please enter an Application ID or email.", "err"); return; }
-                let matches = allApps.filter(a => (a.id && a.id.toLowerCase() === q) || (a.uid && a.uid.toLowerCase() === q) || (a.appId && a.appId.toLowerCase() === q) || (a.email && a.email.toLowerCase() === q));
-                if (matches.length === 0) {
-                    try {
-                        const docSnap = await getDoc(doc(db, "applications", q));
-                        if (docSnap.exists()) matches = [{ id: docSnap.id, ...docSnap.data() }];
-                    } catch (e) {}
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching...'; }
+                try {
+                    let matches = allApps.filter(a => (a.id && a.id.toLowerCase() === q) || (a.uid && a.uid.toLowerCase() === q) || (a.appId && a.appId.toLowerCase() === q) || (a.email && a.email.toLowerCase() === q));
+                    if (matches.length === 0) {
+                        try { const docSnap = await getDoc(doc(db, "applications", q)); if (docSnap.exists()) matches = [{ id: docSnap.id, ...docSnap.data() }]; } catch (e) {}
+                    }
+                    if (matches.length === 0) {
+                        try { const qSnap = await getDocs(query(collection(db,"applications"),where("appId","==",q))); qSnap.forEach(d => matches.push({ id: d.id, ...d.data() })); } catch (e) {}
+                    }
+                    if (matches.length === 0) { navigate("status", { found: false }); return; }
+                    navigate("status", { found: matches.length === 1 ? matches[0] : matches });
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Check Status'; }
                 }
-                if (matches.length === 0) {
-                    try {
-                        const qSnap = await getDocs(query(collection(db,"applications"),where("appId","==",q)));
-                        qSnap.forEach(d => matches.push({ id: d.id, ...d.data() }));
-                    } catch (e) {}
-                }
-                if (matches.length === 0) { navigate("status", { found: false }); return; }
-                navigate("status", { found: matches.length === 1 ? matches[0] : matches });
             });
         }
 
@@ -2448,6 +2497,8 @@
         function wireLogin() {
             const gBtn = document.getElementById('googleLoginBtn');
             if (gBtn) gBtn.addEventListener('click', async () => {
+                if (gBtn.disabled) return;
+                gBtn.disabled = true; gBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';
                 try {
                     const result = await signInWithPopup(auth, googleProvider);
                     const uid = result.user.uid;
@@ -2466,19 +2517,24 @@
                     toast("Signed in with Google!", "ok");
                 } catch (error) {
                     toast(error.message || "Google sign-in failed.", "err");
+                } finally {
+                    gBtn.disabled = false; gBtn.innerHTML = '<i class="fa-brands fa-google"></i> Sign in with Google';
                 }
             });
             const lf = document.getElementById('loginForm');
             if (lf) lf.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const btn = lf.querySelector('button[type="submit"]');
+                if (btn?.disabled) return;
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Please wait...'; }
                 const fd = new FormData(e.target);
                 const email = fd.get('email').trim();
                 const password = fd.get('password');
-                if (loginMode === 'register') {
-                    const fullName = fd.get('fullName').trim();
-                    if (!fullName) { toast("Please enter your full name.", "err"); return; }
-                    const asAdmin = fd.get('registerAsAdmin') === 'on';
-                    try {
+                try {
+                    if (loginMode === 'register') {
+                        const fullName = fd.get('fullName').trim();
+                        if (!fullName) { toast("Please enter your full name.", "err"); if (btn) { btn.disabled = false; btn.innerHTML = 'Create Account'; } return; }
+                        const asAdmin = fd.get('registerAsAdmin') === 'on';
                         const cred = await createUserWithEmailAndPassword(auth, email, password);
                         const uid = cred.user.uid;
                         await updateProfile(cred.user, { displayName: fullName });
@@ -2493,20 +2549,25 @@
                             });
                             toast("Account created! Welcome.", "ok");
                         }
-                    } catch (error) {
-                        toast(error.message || "Registration failed.", "err");
-                    }
-                } else {
-                    try {
+                    } else {
                         await signInWithEmailAndPassword(auth, email, password);
                         toast("Signed in successfully!", "ok");
-                    } catch (error) {
-                        toast(error.message || "Sign in failed. Please check your credentials.", "err");
                     }
+                } catch (error) {
+                    const code = error.code || '';
+                    const msg = code === 'auth/user-not-found' ? 'No account found with this email.'
+                        : code === 'auth/wrong-password' || code === 'auth/invalid-credential' ? 'Incorrect password.'
+                        : code === 'auth/email-already-in-use' ? 'An account with this email already exists.'
+                        : code === 'auth/too-many-requests' ? 'Too many attempts. Please try again later.'
+                        : code === 'auth/weak-password' ? 'Password must be at least 6 characters.'
+                        : error.message || 'Something went wrong.';
+                    toast(msg, "err");
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = loginMode === 'register' ? 'Create Account' : 'Sign In'; }
                 }
             });
-            document.getElementById('switchToRegister')?.addEventListener('click', () => { loginMode = 'register'; renderCurrentView(); });
-            document.getElementById('switchToSignIn')?.addEventListener('click', () => { loginMode = 'signin'; renderCurrentView(); });
+            document.getElementById('switchToRegister')?.addEventListener('click', () => { loginMode = 'register'; window.scrollTo({ top: 0 }); renderCurrentView(); });
+            document.getElementById('switchToSignIn')?.addEventListener('click', () => { loginMode = 'signin'; window.scrollTo({ top: 0 }); renderCurrentView(); });
         }
 
         
@@ -2924,6 +2985,8 @@
                 footerHtml: `<button class="btn btn-outline" data-modal-close>Cancel</button><button class="btn btn-primary" id="saveEditBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>`,
                 onOpen: () => {
                     document.getElementById('saveEditBtn')?.addEventListener('click', async () => {
+                        const btn = document.getElementById('saveEditBtn');
+                        if (btn?.disabled) return;
                         const form = document.getElementById('editAppForm');
                         if (!form) return;
                         const fd = new FormData(form);
@@ -2960,6 +3023,7 @@
                             workExperience, coverLetter: cover,
                         };
 
+                        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...'; }
                         try {
                             await updateApp(appId, patch);
                             if (currentUserData && currentUserData.id === appId) {
@@ -2972,6 +3036,8 @@
                             renderCurrentView();
                         } catch (e) {
                             toast(e.message || 'Failed to update application.', 'err');
+                        } finally {
+                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes'; }
                         }
                     });
                 }
@@ -4295,8 +4361,9 @@ function showChatUserDetails(userName, chatId) {
                     <div style="font-weight:700;font-size:13px;color:var(--emerald-700);margin-bottom:10px"><i class="fa-solid fa-circle-info"></i> How to Pay via M-Pesa</div>
                     <ol style="margin:0;padding-left:18px;font-size:13px;color:var(--slate-700);line-height:2">
                         <li>Go to <b>M-Pesa</b> on your phone</li>
-                        <li>Select <b>Send Money</b> 
-                        <li>Enter Phone Number Number: <b>0143350004</b></li>
+                        <li>Select <b>Lipa na M-Pesa</b> &gt; <b>Pay Bill</b></li>
+                        <li>Enter Business Number: <b>0143350004</b></li>
+                        <li>Enter Account: <b>Your Application ID</b> (shown in your dashboard)</li>
                         <li>Enter the amount shown above</li>
                         <li>Enter your M-Pesa PIN and send</li>
                         <li>Enter the M-Pesa transaction code below</li>
