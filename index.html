@@ -632,6 +632,29 @@
         .gap-8 { gap: 8px; }
         .flex-wrap { flex-wrap: wrap; }
         .flex-center { display: flex; align-items: center; justify-content: center; }
+        .edit-btn-row { display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--slate-200); }
+        .doc-preview-thumb { display: inline-flex; align-items: center; gap: 8px; background: var(--slate-100); border-radius: 6px; padding: 4px 12px 4px 4px; cursor: pointer; transition: var(--transition); max-width: 200px; overflow: hidden; }
+        .doc-preview-thumb:hover { background: var(--slate-200); }
+        .doc-preview-thumb img { width: 36px; height: 36px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+        .doc-preview-thumb .doc-icon { width: 36px; height: 36px; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: var(--maroon-50); color: var(--maroon-600); font-size: 16px; flex-shrink: 0; }
+        .doc-preview-thumb .doc-name { font-size: 11.5px; font-weight: 600; color: var(--blue-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .doc-preview-thumb .doc-size { font-size: 10px; color: var(--slate-400); white-space: nowrap; }
+        .preview-modal-body { display: flex; align-items: center; justify-content: center; min-height: 300px; padding: 0; background: #111; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+        .preview-modal-body img { max-width: 100%; max-height: 75vh; object-fit: contain; display: block; }
+        .preview-modal-body iframe { width: 100%; height: 75vh; border: none; background: #fff; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+        .preview-modal-body .preview-fallback { text-align: center; padding: 48px 24px; color: var(--slate-400); background: #fff; width: 100%; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+        .preview-modal-body .preview-fallback i { font-size: 48px; display: block; margin-bottom: 12px; color: var(--slate-300); }
+        .edit-form .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .edit-form .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        .edit-form .field { margin-bottom: 14px; }
+        .edit-form .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--blue-800); margin-bottom: 4px; }
+        .edit-form .field input, .edit-form .field select, .edit-form .field textarea { width: 100%; }
+        .edit-form .field textarea { min-height: 80px; resize: vertical; }
+        @media (max-width: 600px) {
+            .edit-form .field-row { grid-template-columns: 1fr; }
+            .edit-form .field-row-3 { grid-template-columns: 1fr; }
+            .doc-preview-thumb { max-width: 140px; }
+        }
     </style>
 </head>
 <body>
@@ -2679,7 +2702,10 @@
                     </div>
                   </div>
                   <div class="card pad" style="margin-bottom:18px">
-                    <h4 style="margin:0 0 14px;color:var(--blue-900);font-size:14px"><i class="fa-solid fa-user" style="color:var(--maroon-500)"></i> Personal Details</h4>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                      <h4 style="margin:0;color:var(--blue-900);font-size:14px"><i class="fa-solid fa-user" style="color:var(--maroon-500)"></i> Personal Details</h4>
+                      <button class="btn btn-outline btn-sm" data-action="edit-application" style="font-size:11.5px;padding:6px 14px"><i class="fa-solid fa-pen"></i> Edit</button>
+                    </div>
                     <div style="font-size:13.5px;color:var(--slate-600);line-height:1.9">
                       <div><b>Full Name:</b> ${esc(app.fullName)}</div>
                       ${app.dob ? `<div><b>Date of Birth:</b> ${esc(app.dob)}</div>` : ''}
@@ -2702,12 +2728,20 @@
                     ].map(d=>{
                         const hasUrl = !!d.url;
                         const st = !hasUrl ? 'not_uploaded' : (app.documentStatus?.[d.key] || 'pending_review');
+                        const isImg = d.url && /\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(d.url);
+                        const isPdf = d.url && /\.pdf(\?.*)?$/i.test(d.url);
+                        const previewHtml = hasUrl
+                            ? (isImg
+                                ? `<div class="doc-preview-thumb" data-preview="${d.url}" data-label="${d.label}"><img src="${d.url}" alt="${d.label}" loading="lazy"><span class="doc-name">${d.label}</span></div>`
+                                : isPdf
+                                    ? `<div class="doc-preview-thumb" data-preview="${d.url}" data-label="${d.label}"><span class="doc-icon"><i class="fa-solid fa-file-pdf"></i></span><span class="doc-name">${d.label}</span></div>`
+                                    : `<div class="doc-preview-thumb" data-preview="${d.url}" data-label="${d.label}"><span class="doc-icon"><i class="fa-solid fa-file"></i></span><span class="doc-name">${d.label}</span></div>`)
+                            : `<div style="font-size:11.5px;color:var(--slate-400);font-style:italic">Not uploaded</div>`;
                         const acts = [];
-                        if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
                         if(st==='not_uploaded') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload</button>`);
                         else if(st==='changes_requested'||st==='upload_again'||st==='rejected') acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Upload New</button>`);
                         else acts.push(`<button class="btn btn-outline btn-sm" data-action="upload-${d.key}">Replace</button>`);
-                        return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                        return `<div class="doc-row"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div>${previewHtml}<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
                     }).join("")}
                   </div>
                 </div>
@@ -2749,34 +2783,198 @@
                 const labelMap = {cv:'CV',passport:'Passport',certificates:'Certificates',reference:'Reference Letter',medical:'Medical Report',contract:'Contract'};
                 uploadDoc(field, labelMap[key]||key, key);
             }));
+            document.querySelectorAll('[data-action="edit-application"]').forEach(b => b.addEventListener('click', function(){
+                const app = currentUserData;
+                if (app && app.type === 'applicant') showEditApplicationModal(app);
+                else toast('Application data not available.', 'err');
+            }));
+            document.querySelectorAll('.doc-preview-thumb').forEach(el => el.addEventListener('click', function(){
+                const url = this.getAttribute('data-preview');
+                const label = this.getAttribute('data-label');
+                if (url) showDocPreviewModal(url, label);
+            }));
             document.querySelectorAll('[data-action="chat-admin"]').forEach(b => b.addEventListener('click', startChatWithAdmin));
             document.querySelectorAll('[data-switchapp]').forEach(b => b.addEventListener('click', function(){
                 navigate("applicant-dashboard", { appId: this.getAttribute('data-switchapp') });
             }));
-            wireSlider();
         }
-        function wireSlider(){
-            const el=document.getElementById('dashSlider');if(!el)return;
-            const dots=document.getElementById('dashSliderDots');if(!dots)return;
-            const slides=el.children;if(!slides.length)return;
-            const labels=['Overview','Fees','Services','Profile'];
-            dots.innerHTML=Array.from(slides).map((_,i)=>`<button class="${i===0?'active':''}" data-idx="${i}"></button>`).join('');
-            const sync=()=>{
-                const idx=Math.round(el.scrollLeft/el.clientWidth);
-                dots.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===idx));
-            };
-            el.addEventListener('scroll',sync);
-            dots.addEventListener('click',e=>{
-                const b=e.target.closest('button');if(!b)return;
-                el.scrollTo({left:parseInt(b.getAttribute('data-idx'))*el.clientWidth,behavior:'smooth'});
+        function showModal({ title, bodyHtml, footerHtml = '', wide = false, onOpen }) {
+            const root = document.getElementById('modal-root');
+            root.innerHTML = `
+            <div class="modal-overlay" id="modalOverlay">
+              <div class="modal" style="${wide ? 'max-width:900px' : ''}">
+                <div class="modal-head">
+                  <h3>${title}</h3>
+                  <button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">${bodyHtml}</div>
+                ${footerHtml ? `<div class="modal-foot">${footerHtml}</div>` : ''}
+              </div>
+            </div>`;
+            const close = () => { root.innerHTML = ''; };
+            document.getElementById('modalCloseBtn')?.addEventListener('click', close);
+            document.getElementById('modalOverlay')?.addEventListener('click', (e) => { if (e.target === e.currentTarget) close(); });
+            root.querySelectorAll('[data-modal-close]').forEach(el => el.addEventListener('click', close));
+            if (onOpen) setTimeout(onOpen, 50);
+        }
+
+        function showDocPreviewModal(url, label) {
+            const isImg = /\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(url);
+            const isPdf = /\.pdf(\?.*)?$/i.test(url);
+            const bodyHtml = isImg
+                ? `<div class="preview-modal-body"><img src="${url}" alt="${esc(label)}"></div>`
+                : isPdf
+                    ? `<div class="preview-modal-body"><iframe src="${url}" title="${esc(label)}"></iframe></div>`
+                    : `<div class="preview-modal-body"><div class="preview-fallback"><i class="fa-solid fa-file"></i><p style="font-size:14px;font-weight:600;margin-bottom:6px">${esc(label)}</p><p style="font-size:12px;margin:0">Preview not available inline.</p><a href="${url}" target="_blank" class="btn btn-primary mt-16" style="display:inline-flex"><i class="fa-solid fa-download"></i> Download File</a></div></div>`;
+            showModal({
+                title: esc(label),
+                bodyHtml,
+                wide: true
             });
-            document.querySelector('.slider-prev')?.addEventListener('click',()=>{
-                const idx=Math.round(el.scrollLeft/el.clientWidth);
-                if(idx>0)el.scrollTo({left:(idx-1)*el.clientWidth,behavior:'smooth'});
-            });
-            document.querySelector('.slider-next')?.addEventListener('click',()=>{
-                const idx=Math.round(el.scrollLeft/el.clientWidth);
-                if(idx<slides.length-1)el.scrollTo({left:(idx+1)*el.clientWidth,behavior:'smooth'});
+        }
+
+        function showEditApplicationModal(app) {
+            const nationalityOptions = NATIONALITIES.map(n =>
+                `<option value="${n.code}" ${app.nationalityCode === n.code ? 'selected' : ''}>${n.flag} ${n.name}</option>`
+            ).join('');
+            const phoneParts = (app.phone || '').split(' ');
+            const phoneCode = phoneParts.length > 1 ? phoneParts[0] : '+1';
+            const phoneNumber = phoneParts.length > 1 ? phoneParts.slice(1).join(' ') : (app.phone || '');
+            const educationOptions = ['High School','Associate\'s Degree','Bachelor\'s Degree','Master\'s Degree','PhD','Vocational/Technical','Other'].map(o =>
+                `<option value="${o}" ${app.education === o ? 'selected' : ''}>${o}</option>`
+            ).join('');
+            const jobOptions = allJobs.map(j =>
+                `<option value="${j.id}" ${app.jobId === j.id ? 'selected' : ''}>${esc(j.title)} — ${esc(j.country)}</option>`
+            ).join('');
+
+            const bodyHtml = `
+            <form id="editAppForm" class="edit-form">
+              <div class="field-row">
+                <div class="field">
+                  <label>Full Name <span class="req">*</span></label>
+                  <input type="text" name="fullName" value="${esc(app.fullName || '')}" required>
+                </div>
+                <div class="field">
+                  <label>Date of Birth <span class="req">*</span></label>
+                  <input type="date" name="dob" value="${app.dob || ''}" required>
+                </div>
+              </div>
+              <div class="field-row-3">
+                <div class="field">
+                  <label>Nationality <span class="req">*</span></label>
+                  <select name="nationality" required>${nationalityOptions}</select>
+                </div>
+                <div class="field" style="display:flex;flex-direction:column">
+                  <label>Phone <span class="req">*</span></label>
+                  <div class="phone-wrapper">
+                    <input type="text" name="phoneCode" value="${esc(phoneCode)}" placeholder="Code" style="max-width:100px;flex-shrink:0">
+                    <input type="tel" name="phoneNumber" value="${esc(phoneNumber)}" placeholder="Phone number" required>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Email <span class="req">*</span></label>
+                  <input type="email" name="email" value="${esc(app.email || '')}" required>
+                </div>
+              </div>
+              <div class="field">
+                <label>Address</label>
+                <input type="text" name="address" value="${esc(app.address || '')}">
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Residence Country</label>
+                  <input type="text" name="residence" value="${esc(app.residence || '')}">
+                </div>
+                <div class="field">
+                  <label>City</label>
+                  <input type="text" name="city" value="${esc(app.city || '')}">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Education <span class="req">*</span></label>
+                  <select name="education" required>${educationOptions}</select>
+                </div>
+                <div class="field">
+                  <label>Passport Number</label>
+                  <input type="text" name="passportNumber" value="${esc(app.passportNumber || '')}">
+                </div>
+              </div>
+              <div class="field">
+                <label>Job Interested In <span class="req">*</span></label>
+                <select name="jobId" required>
+                  <option value="">Select a job...</option>
+                  ${jobOptions}
+                </select>
+              </div>
+              <div class="field">
+                <label>Work Experience</label>
+                <textarea name="workExperience">${esc(app.workExperience || '')}</textarea>
+              </div>
+              <div class="field">
+                <label>Cover Letter / Message</label>
+                <textarea name="cover">${esc(app.coverLetter || app.cover || '')}</textarea>
+              </div>
+              <input type="hidden" name="appId" value="${app.id}">
+            </form>`;
+
+            showModal({
+                title: `<i class="fa-solid fa-pen" style="color:var(--maroon-500)"></i> Edit Application`,
+                bodyHtml,
+                footerHtml: `<button class="btn btn-outline" data-modal-close>Cancel</button><button class="btn btn-primary" id="saveEditBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>`,
+                onOpen: () => {
+                    document.getElementById('saveEditBtn')?.addEventListener('click', async () => {
+                        const form = document.getElementById('editAppForm');
+                        if (!form) return;
+                        const fd = new FormData(form);
+                        const fullName = fd.get('fullName')?.toString().trim();
+                        const dob = fd.get('dob')?.toString().trim();
+                        const nationality = fd.get('nationality')?.toString().trim();
+                        const phoneCode = fd.get('phoneCode')?.toString().trim();
+                        const phoneNumber = fd.get('phoneNumber')?.toString().trim();
+                        const email = fd.get('email')?.toString().trim();
+                        const address = fd.get('address')?.toString().trim();
+                        const residence = fd.get('residence')?.toString().trim();
+                        const city = fd.get('city')?.toString().trim();
+                        const education = fd.get('education')?.toString().trim();
+                        const passportNumber = fd.get('passportNumber')?.toString().trim();
+                        const jobId = fd.get('jobId')?.toString().trim();
+                        const workExperience = fd.get('workExperience')?.toString().trim();
+                        const cover = fd.get('cover')?.toString().trim();
+                        const appId = fd.get('appId')?.toString().trim();
+
+                        if (!fullName || !dob || !nationality || !phoneNumber || !email || !education || !jobId) {
+                            toast('Please fill in all required fields.', 'err'); return;
+                        }
+                        if (!/^\S+@\S+\.\S+$/.test(email)) { toast('Invalid email address.', 'err'); return; }
+
+                        const natObj = NATIONALITIES.find(n => n.code === nationality);
+                        const fullPhone = `${phoneCode} ${phoneNumber}`;
+                        const job = allJobs.find(j => j.id === jobId);
+
+                        const patch = {
+                            fullName, dob, nationality: natObj ? natObj.name : nationality,
+                            nationalityCode: nationality, phone: fullPhone, phoneCode, phoneNumber,
+                            email, address, residence, city, education, passportNumber,
+                            jobId, jobTitle: job ? job.title : '', country: job ? job.country : '',
+                            workExperience, coverLetter: cover,
+                        };
+
+                        try {
+                            await updateApp(appId, patch);
+                            if (currentUserData && currentUserData.id === appId) {
+                                Object.assign(currentUserData, patch);
+                            }
+                            const appIdx = allApps.findIndex(a => a.id === appId);
+                            if (appIdx >= 0) Object.assign(allApps[appIdx], patch);
+                            closeModal();
+                            toast('Application updated successfully!', 'ok');
+                            renderCurrentView();
+                        } catch (e) {
+                            toast(e.message || 'Failed to update application.', 'err');
+                        }
+                    });
+                }
             });
         }
 
