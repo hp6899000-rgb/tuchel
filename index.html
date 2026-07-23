@@ -377,13 +377,13 @@
         .chat-del:hover { color:var(--maroon-600);background:var(--maroon-50); }
         .chat-header-del { background:none;border:none;color:var(--slate-400);font-size:16px;cursor:pointer;padding:8px;border-radius:8px;transition:.15s;flex-shrink:0; }
         .chat-header-del:hover { color:var(--maroon-600);background:var(--maroon-50); }
-        .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); height: calc(100vh - 72px); }
+        .msg-chat-panel { display: flex; flex-direction: column; background: var(--bg); height: calc(100dvh - 72px); height: calc(100vh - 72px); }
         .msg-chat-header { padding: 10px 16px; border-bottom: 1px solid #e0e0e0; background: #f0f0f0; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; color: var(--blue-900); flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
         .msg-chat-header .msg-avatar { cursor: pointer; }
         .msg-chat-body { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; max-width: 800px; margin: 0 auto; width: 100%; overscroll-behavior: contain; background: #efeae2; background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" opacity="0.06"><path d="M128 0L256 128L128 256L0 128Z" fill="%23887766"/><circle cx="128" cy="128" r="60" fill="%23998877"/><circle cx="80" cy="80" r="20" fill="%23aa9988"/><circle cx="180" cy="100" r="15" fill="%23998877"/></svg>'); background-size: 200px 200px; padding: 0 16px; }
         .msg-chat-body .msg-bubble:first-child { margin-top: 8px; }
         .msg-chat-body .msg-empty { padding: 40px 20px; }
-        .msg-chat-input { padding: 8px 14px; border-top: 1px solid #e0e0e0; background: #f0f0f0; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+        .msg-chat-input { background: #f0f0f0; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; padding: 10px 16px; box-shadow: 0 -1px 3px rgba(0,0,0,.04); }
         .msg-bubble { max-width: 82%; padding: 6px 12px 7px; border-radius: 8px; font-size: 14px; line-height: 1.5; word-wrap: break-word; position: relative; margin-bottom: 1px; }
         .msg-bubble.sent { align-self: flex-end; background: #d9fdd3; border-bottom-right-radius: 2px; box-shadow: 0 1px 1px rgba(0,0,0,.08); }
         .msg-bubble.rec { align-self: flex-start; background: #fff; border-bottom-left-radius: 2px; box-shadow: 0 1px 1px rgba(0,0,0,.08); }
@@ -393,11 +393,13 @@
         .msg-bubble .msg-file a { color: var(--blue-700); font-weight: 600; }
         .msg-read-check { font-size: 11px; color: #53bdeb; margin-left: 1px; }
         .msg-read-check.read { color: #53bdeb; }
-        .msg-chat-input textarea { flex: 1; resize: none; min-height: 20px; max-height: 100px; padding: 9px 14px; border-radius: 24px; border: 1px solid #e0e0e0; font-size: 14px; background: #fff; }
-        .msg-chat-input textarea:focus { border-color: var(--maroon-400); outline: none; box-shadow: none; }
-        .msg-chat-input .btn { border-radius: 50%; width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 0; }
-        .msg-chat-input .btn-maroon { background: var(--maroon-600); }
-        .msg-chat-input .btn-maroon:hover { background: var(--maroon-500); }
+        .msg-chat-input textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; padding: 10px 16px; border-radius: 24px; border: 1px solid #e0e0e0; font-size: 15px; background: #fff; font-family: inherit; line-height: 1.5; outline: none; }
+        .msg-chat-input textarea:focus { border-color: var(--maroon-400); box-shadow: 0 0 0 2px rgba(138,18,38,.1); }
+        .msg-chat-input .btn-send { border-radius: 50%; width: 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 0; background: var(--maroon-600); color: #fff; border: none; cursor: pointer; transition: background .15s; font-size: 16px; }
+        .msg-chat-input .btn-send:hover { background: var(--maroon-500); }
+        .msg-chat-input .btn-send:disabled { background: var(--slate-300); cursor: default; }
+        .msg-chat-input .btn-file { border-radius: 50%; width: 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 0; background: transparent; color: var(--slate-400); font-size: 20px; border: none; cursor: pointer; transition: color .15s; }
+        .msg-chat-input .btn-file:hover { color: var(--maroon-600); }
         .msg-bubble-tail { display: none; }
         .msg-empty { display: flex; flex: 1; align-items: center; justify-content: center; color: var(--slate-400); text-align: center; padding: 40px; }
         .msg-empty i { font-size: 48px; margin-bottom: 16px; color: var(--slate-300); }
@@ -539,8 +541,10 @@
             th, td { padding: 10px 10px; }
             .msg-bubble { max-width: 88%; font-size: 13px; }
             .msg-chat-body { padding: 0 12px; }
-            .msg-chat-input { padding: 10px 12px; }
-            .msg-chat-input textarea { font-size: 13px; }
+            .msg-chat-input { padding: 8px 12px; }
+            .msg-chat-input textarea { font-size: 14px; min-height: 38px; padding: 8px 14px; }
+            .msg-chat-input .btn-send { width: 38px; height: 38px; font-size: 15px; }
+            .msg-chat-input .btn-file { width: 38px; height: 38px; font-size: 18px; }
             .msg-list-panel.show { inset: 60px 0 0; }
             .msg-list-panel:not(.show) ~ .msg-chat-panel.show { inset: 60px 0 0; }
             .msg-list-item { padding: 12px 14px; }
@@ -626,7 +630,10 @@
             .msg-list-item { padding: 10px 10px; min-height: 48px; }
             .msg-avatar { width: 30px; height: 30px; font-size: 12px; }
             .msg-chat-body { padding: 0 8px; }
-            .msg-chat-input { padding: 8px 10px; }
+            .msg-chat-input { padding: 6px 8px; }
+            .msg-chat-input textarea { font-size: 13px; min-height: 34px; padding: 6px 12px; }
+            .msg-chat-input .btn-send { width: 34px; height: 34px; font-size: 13px; }
+            .msg-chat-input .btn-file { width: 34px; height: 34px; font-size: 16px; }
             .msg-list-panel:not(.show) ~ .msg-chat-panel.show { inset: 52px 0 0; }
             .msg-bubble { max-width: 92%; font-size: 12px; }
             .section { padding: 24px 8px; }
@@ -732,6 +739,7 @@
         let unsubscribeFees = null;
         let unsubscribeChats = null;
         let unsubscribeMessages = null;
+        let viewportCleanup = null;
         let cachedAdminUids = null;
         let olderMessages = [];
         let msgEarliestTimestamp = null;
@@ -1702,6 +1710,7 @@
         }
 
         function renderCurrentView() {
+            if (viewportCleanup) { viewportCleanup(); viewportCleanup = null; }
             const appEl = document.getElementById('app');
             let html = "";
             switch (ROUTE.view) {
@@ -3951,8 +3960,8 @@
           </div>
               <div class="msg-chat-input">
                 <textarea id="msgInput" placeholder="Type a message..." rows="1"></textarea>
-                <button class="btn btn-maroon" id="msgSendBtn" style="width:42px;height:42px;border-radius:50%;font-size:16px"><i class="fa-solid fa-paper-plane"></i></button>
-                <button class="btn" id="msgFileBtn" style="width:42px;height:42px;border-radius:50%;background:#f0f0f0;color:var(--slate-500);font-size:18px;border:none;min-height:0"><i class="fa-solid fa-paperclip"></i></button>
+                <button class="btn-send" id="msgSendBtn"><i class="fa-solid fa-paper-plane"></i></button>
+                <button class="btn-file" id="msgFileBtn"><i class="fa-solid fa-paperclip"></i></button>
               </div>
             </div>
           </div>`;
@@ -4036,7 +4045,36 @@ function wireMessagesChat() {
     const sendBtn = document.getElementById('msgSendBtn');
     const fileBtn = document.getElementById('msgFileBtn');
 
-    // Don't auto-focus on mobile — keyboard would obstruct messages
+    // Keyboard-aware viewport handler — keeps input bar above keyboard (WhatsApp style)
+    const panel = document.getElementById('chatPanel');
+    if (window.visualViewport && panel) {
+        const navEl = document.querySelector('.nav-inner');
+        const getNavHeight = () => navEl ? navEl.offsetHeight : 72;
+        function onViewportChange() {
+            const vv = window.visualViewport;
+            const navH = getNavHeight();
+            panel.style.height = (vv.height - navH) + 'px';
+            const body = document.getElementById('msgChatBody');
+            if (body) setTimeout(() => body.scrollTop = body.scrollHeight, 80);
+        }
+        window.visualViewport.addEventListener('resize', onViewportChange);
+        window.visualViewport.addEventListener('scroll', onViewportChange);
+        viewportCleanup = () => {
+            window.visualViewport.removeEventListener('resize', onViewportChange);
+            window.visualViewport.removeEventListener('scroll', onViewportChange);
+            panel.style.height = '';
+        };
+    }
+
+    // Scroll to bottom when input is focused (keyboard coming up)
+    if (input) {
+        input.addEventListener('focus', () => {
+            setTimeout(() => {
+                const body = document.getElementById('msgChatBody');
+                if (body) body.scrollTop = body.scrollHeight;
+            }, 350);
+        });
+    }
 
     async function doSend() {
         const text = input.value.trim();
