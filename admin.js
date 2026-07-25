@@ -1,0 +1,1611 @@
+
+    import { initializeApp } from "firebase/app";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, setPersistence, browserSessionPersistence } from "firebase/auth";
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, arrayUnion, limit, limitToLast, startAfter } from "firebase/firestore";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCAKCZJTAq_NeLmo5toNjYVHFqZFSQxNzE",
+        authDomain: "tuchel-98f49.firebaseapp.com",
+        projectId: "tuchel-98f49",
+        storageBucket: "tuchel-98f49.firebasestorage.app",
+        messagingSenderId: "150337843790",
+        appId: "1:150337843790:web:ae748271b1ffae423f491f",
+        measurementId: "G-NZMF0WDKVK"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    try{await setPersistence(auth, browserSessionPersistence);}catch(e){console.warn("Auth persistence:",e.message);}
+    const db = getFirestore(app);
+    const googleProvider = new GoogleAuthProvider();
+    const UPLOADCARE_PUBLIC_KEY = "a86c7a60e542a9af46c4";
+    const COUNTRY_META = {
+        "Germany": { flag: "de", dial: "+49", currency: "EUR" },
+        "United Kingdom": { flag: "gb", dial: "+44", currency: "GBP" },
+        "Netherlands": { flag: "nl", dial: "+31", currency: "EUR" },
+        "Sweden": { flag: "se", dial: "+46", currency: "SEK" },
+        "Ireland": { flag: "ie", dial: "+353", currency: "EUR" },
+        "Luxembourg": { flag: "lu", dial: "+352", currency: "EUR" },
+        "France": { flag: "fr", dial: "+33", currency: "EUR" },
+        "Poland": { flag: "pl", dial: "+48", currency: "PLN" }
+    };
+    const FLAG_BASE = "https://flagcdn.com/";
+    function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
+
+    let currentUser = null;
+    let currentUserData = null;
+    let cachedAdminUids = null;
+    let allApps = [];
+    let allJobs = [];
+    let allFees = [];
+    let allChats = [];
+    let currentChatMessages = [];
+    let chatMessagesUnsub = null;
+    let olderMessages = [];
+    let msgEarliestTimestamp = null;
+    let msgHasMore = false;
+    const PAGE_SIZE = 200;
+    let chatWindowOpen = null;
+    let allMessagesSub = null;
+
+    const STATUS_STEPS = [
+        "Application Received",
+        "Documents Processing (Work Permit, Standard Europe Pass CV / Cover Letter)",
+        "Documents Review & Approval",
+        "Employer Matching & Interview",
+        "Job Offer & Contract Signing",
+        "Visa Sponsorship Processing",
+        "Medical & Police Clearance",
+        "Travel & Deployment",
+        "Placed — Active Employment"
+    ];
+    const TERMINAL_ALT = ["On Hold", "Rejected", "Withdrawn by Applicant"];
+    const ALL_STATUSES = [...STATUS_STEPS, ...TERMINAL_ALT];
+    const SERVICE_TYPES = [
+        { id:'visa_application', label:'Visa Application Processing', icon:'fa-passport', color:'var(--blue-600)' },
+        { id:'air_ticket', label:'Air Ticket Booking', icon:'fa-plane', color:'var(--emerald-600)' },
+        { id:'hotel_booking', label:'Hotel Booking', icon:'fa-hotel', color:'var(--amber-600)' },
+        { id:'airport_pickup', label:'Airport Pickup', icon:'fa-taxi', color:'var(--maroon-600)' },
+        { id:'bank_account', label:'Bank Account Setup', icon:'fa-building-columns', color:'var(--slate-600)' },
+        { id:'orientation', label:'Orientation & Settling In', icon:'fa-compass', color:'var(--blue-600)' },
+        { id:'legal_assistance', label:'Legal / Permit Assistance', icon:'fa-gavel', color:'var(--maroon-500)' },
+        { id:'accommodation', label:'Accommodation Arrangement', icon:'fa-house', color:'var(--emerald-600)' },
+        { id:'insurance', label:'Health Insurance Setup', icon:'fa-shield', color:'var(--blue-700)' },
+        { id:'other', label:'Other Assistance Service', icon:'fa-handshake', color:'var(--slate-500)' }
+    ];
+    let adminFilters = { status: "All", country: "All", search: "", showBlocked: false };
+    let ROUTE = { view: "login", params: {} };
+
+    async function isAdminEmail(email) { return false; }
+
+    function esc(s) { if (!s) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function fmtDate(ts) { if (!ts) return "—"; if (ts.toDate) ts=ts.toDate(); return new Date(ts).toLocaleDateString(void 0,{year:'numeric',month:'short',day:'numeric'})+" · "+new Date(ts).toLocaleTimeString(void 0,{hour:'2-digit',minute:'2-digit'}); }
+    function fmtDateShort(ts) { if (!ts) return ""; if (ts.toDate) ts=ts.toDate(); const d=new Date(ts),n=new Date(),diff=(n-d)/(864e5); if(diff<1) return d.toLocaleTimeString(void 0,{hour:'2-digit',minute:'2-digit'}); if(diff<7) return d.toLocaleDateString(void 0,{weekday:'short'}); return d.toLocaleDateString(void 0,{month:'short',day:'numeric'}); }
+    function toast(msg,type) { const w=document.getElementById('toast-wrap'),el=document.createElement('div'); el.className='toast'+(type?' '+type:''); el.innerHTML=`<i class="fa-solid ${type==='err'?'fa-circle-exclamation':type==='ok'?'fa-circle-check':'fa-bell'}"></i><span>${esc(msg)}</span>`; w.appendChild(el); setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3600); }
+    function statusTone(s) { if(s==="Placed — Active Employment") return "green"; if(s==="Rejected") return "rose"; if(s==="On Hold"||s==="Withdrawn by Applicant") return "amber"; return "maroon"; }
+    function statusBadge(s) { if(!s)return `<span class="badge badge-slate"><i class="fa-solid fa-circle" style="font-size:7px"></i> No Status</span>`; const t=statusTone(s),c=t==='green'?'badge-green':t==='rose'?'badge-rose':t==='amber'?'badge-amber':'badge-maroon'; return `<span class="badge ${c}"><i class="fa-solid ${t==='green'?'fa-circle-check':t==='rose'?'fa-circle-xmark':t==='amber'?'fa-triangle-exclamation':'fa-circle'}" style="font-size:7px"></i> ${esc(s)}</span>`; }
+    function appId(a) { return a.id || a.uid || ''; }
+    function displayId(a) { return a.appId || a.id || a.uid || ''; }
+function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'; }
+        function docStatusBadge(st){
+            const m={
+                'not_uploaded':['badge-slate','Not Uploaded'],
+                'submitted':['badge-blue','Submitted'],
+                'received':['badge-blue','Received'],
+                'pending_review':['badge-amber','Pending Review'],
+                'processing':['badge-indigo','Processing'],
+                'verified':['badge-green','Verified'],
+                'rejected':['badge-rose','Rejected'],
+                'upload_again':['badge-rose','Re-upload Required'],
+                'reuploaded':['badge-indigo','Re-uploaded'],
+                'changes_requested':['badge-rose','Changes Requested']
+            };
+            const b=m[st]||m['not_uploaded'];
+            return `<span class="badge ${b[0]}"><i class="fa-solid fa-circle" style="font-size:7px"></i> ${b[1]}</span>`;
+        }
+    async function addAuditLog(action,details,targetId=''){try{await addDoc(collection(db,"auditLog"),{action,details,targetId,adminEmail:currentUserData?.email||currentUser?.email||'unknown',timestamp:serverTimestamp()});}catch(e){}}
+    function calcCompleteness(a) {
+        const fields=[a.fullName,a.email,a.phone,a.nationality,a.dob,a.passportNumber,a.education,a.jobTitle,a.country];
+        const f=fields.filter(Boolean).length;
+        const cv=!!a.cvUrl,pass=!!a.passportUrl;
+        const _v=k=>{const s=a.documentStatus?.[k];return s==='verified'||!!a.documentsVerified?.[k];};
+        const cvV=_v('cv'),passV=_v('passport');
+        let score=f; if(cv)score++; if(pass)score++;
+        if(cvV)score++; if(passV)score++;
+        const total=9+2+2;
+        return Math.min(100,Math.round((Math.min(score,total)/total)*100));
+    }
+    function completenessBar(pct) {
+        const c=pct>=80?'green':pct>=40?'amber':'maroon';
+        return `<div class="completeness-bar"><div class="fill ${c}" style="width:${pct}%"></div></div><span style="font-size:10px;color:var(--slate-500)">${pct}%</span>`;
+    }
+    function getStageRequirements(a, stageIdx) {
+        const _dv=k=>a.documentStatus?.[k]==='verified'||!!a.documentsVerified?.[k];
+        const reqs=[
+            {label:'Personal info complete (name, email, phone, nationality)', met:!!(a.fullName&&a.email&&a.phone&&a.nationality)},
+            {label:'CV uploaded', met:!!a.cvUrl},
+            {label:'Passport uploaded', met:!!a.passportUrl},
+            {label:'Job selected', met:!!(a.jobTitle&&a.country)},
+            {label:'Education & experience provided', met:!!(a.education||a.workExperience)}
+        ];
+        if(stageIdx>=1){
+            reqs.push({label:'CV verified by admin', met:_dv('cv')});
+            reqs.push({label:'Passport verified by admin', met:_dv('passport')});
+        }
+        if(stageIdx>=2){
+            reqs.push({label:'Certificates verified', met:_dv('certificates')});
+            reqs.push({label:'Reference letter verified', met:_dv('reference')});
+        }
+        if(stageIdx>=3) reqs.push({label:'Employer matched & interview completed', met:!!(a.timeline||[]).some(t=>t.status==='Employer Matching & Interview')});
+        if(stageIdx>=4){
+            reqs.push({label:'Job offer extended & contract signed', met:!!(a.timeline||[]).some(t=>t.status==='Job Offer & Contract Signing')});
+            reqs.push({label:'Contract documents uploaded', met:!!a.contractUrl});
+        }
+        if(stageIdx>=5){
+            reqs.push({label:'Medical report uploaded', met:!!a.medicalUrl});
+            reqs.push({label:'Reference letters uploaded', met:!!a.referenceUrl});
+            reqs.push({label:'Certificates uploaded', met:!!a.certificatesUrl});
+        }
+        if(stageIdx>=6){
+            reqs.push({label:'Medical report cleared', met:_dv('medical')});
+            reqs.push({label:'Police clearance submitted', met:!!a.policeClearanceUrl});
+        }
+        if(stageIdx>=7) reqs.push({label:'Travel & deployment arranged', met:!!(a.timeline||[]).some(t=>t.status==='Travel & Deployment')});
+        return reqs;
+    }
+    function checkAutoAdvance(a) {
+        const cur=STATUS_STEPS.indexOf(a.status);
+        if(cur<0||cur>=STATUS_STEPS.length-1)return null;
+        const reqs=getStageRequirements(a,cur);
+        const allMet=reqs.every(r=>r.met);
+        if(!allMet)return null;
+        const next=STATUS_STEPS[cur+1];
+        return next;
+    }
+
+    // Admin email grant — dev override
+    let _loadingCount = 0;
+    function showLoading() {
+        _loadingCount++;
+        if (_loadingCount === 1) {
+            let ov = document.getElementById('loadingOverlay');
+            if (!ov) {
+                ov = document.createElement('div');
+                ov.id = 'loadingOverlay';
+                ov.className = 'loading-overlay';
+                ov.innerHTML = '<div class="spinner"></div>';
+                document.body.appendChild(ov);
+            }
+            ov.style.display = 'flex';
+        }
+    }
+    function hideLoading() {
+        _loadingCount = Math.max(0, _loadingCount - 1);
+        if (_loadingCount === 0) {
+            const ov = document.getElementById('loadingOverlay');
+            if (ov) ov.style.display = 'none';
+        }
+    }
+    history.scrollRestoration = 'manual';
+    function saveScrollPos() {
+        try { sessionStorage.setItem('scrollPos_' + ROUTE.view, String(window.scrollY)); } catch(e) {}
+    }
+    function restoreScrollPos() {
+        try {
+            const saved = sessionStorage.getItem('scrollPos_' + ROUTE.view);
+            if (saved) { const sy = parseInt(saved, 10); if (!isNaN(sy)) requestAnimationFrame(() => window.scrollTo({ top: sy })); }
+        } catch(e) {}
+    }
+    function saveAdminFilters() {
+        try { sessionStorage.setItem('adminFilters', JSON.stringify(adminFilters)); } catch(e) {}
+    }
+    function restoreAdminFilters() {
+        try {
+            const saved = sessionStorage.getItem('adminFilters');
+            if (saved) { const f = JSON.parse(saved); if (f && typeof f === 'object') Object.assign(adminFilters, f); }
+        } catch(e) {}
+    }
+    function saveRouteState() {
+        try {
+            sessionStorage.setItem('lastRoute', JSON.stringify(ROUTE));
+            saveScrollPos();
+            saveAdminFilters();
+        } catch(e) {}
+    }
+    function initHistoryState() {
+        if (!history.state || !history.state.view) {
+            history.replaceState({ ...ROUTE, scrollY: 0 }, '');
+        }
+    }
+    function navigate(v,p={}) {
+        if (v === ROUTE.view && JSON.stringify(p) === JSON.stringify(ROUTE.params)) return;
+        saveRouteState();
+        if (history.state && history.state.view) {
+            history.replaceState({ ...history.state, scrollY: window.scrollY }, '');
+        }
+        ROUTE={view:v,params:p};
+        const appEl = document.getElementById('app');
+        appEl.classList.add('fade-out');
+        requestAnimationFrame(() => {
+            window.scrollTo({top:0});
+            render();
+            saveRouteState();
+            history.pushState({ ...ROUTE, scrollY: 0 }, '');
+            requestAnimationFrame(() => {
+                appEl.classList.remove('fade-out');
+                restoreScrollPos();
+            });
+        });
+    }
+    const _throttleResize = (() => { let t; return (fn, ms) => { clearTimeout(t); t = setTimeout(fn, ms); }; })();
+    window.addEventListener('resize', () => { _throttleResize(() => { saveRouteState(); }, 300); });
+    window.addEventListener('beforeunload', () => { saveRouteState(); });
+    window.addEventListener('popstate',(e)=>{
+        if(e.state&&e.state.view&&e.state.view!==ROUTE.view){
+            saveRouteState();
+            ROUTE=e.state;
+            const appEl = document.getElementById('app');
+            appEl.classList.add('fade-out');
+            requestAnimationFrame(() => {
+                render();
+                requestAnimationFrame(() => {
+                    appEl.classList.remove('fade-out');
+                    const sy = e.state.scrollY || 0;
+                    requestAnimationFrame(() => window.scrollTo({ top: sy }));
+                });
+            });
+        }
+    });
+    restoreAdminFilters();
+    function render() {
+        let html="";
+        switch(ROUTE.view) {
+            case "login": html=viewLogin(); break;
+            case "dashboard": html=viewDashboard(); break;
+            case "jobs": html=viewJobs(); break;
+            case "fees": html=viewFees(); break;
+            case "messages": html=viewMessages(); break;
+            case "messages-chat": html=viewMessagesChat(); break;
+            case "audit": html=viewAuditLog(); break;
+            default: html=viewLogin();
+        }
+        document.getElementById('app').innerHTML=html;
+        document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>navigate(el.getAttribute('data-nav'))));
+        document.querySelectorAll('[data-action="logout"]').forEach(el=>el.addEventListener('click',()=>signOut(auth)));
+        if(ROUTE.view==='login') wireLogin();
+        if(ROUTE.view==='dashboard') wireDashboard();
+        if(ROUTE.view==='jobs') wireJobs();
+        if(ROUTE.view==='fees') wireFees();
+        if(ROUTE.view==='messages') wireMessages();
+        if(ROUTE.view==='messages-chat') wireMessagesChat();
+    }
+
+    function viewLogin() {
+        return `
+        <div class="auth-shell">
+            <div class="card pad">
+                <div class="auth-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h2 style="margin:0 0 4px;color:var(--blue-900)">Admin Sign In</h2>
+                <p style="color:var(--slate-500);font-size:13.5px;margin:0 0 20px">Platform management console — authorized administrators only.</p>
+                <form id="loginForm">
+                    <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" placeholder="admin@example.com" required></div>
+                    <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" placeholder="Your password" required></div>
+                    <button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+                </form>
+                <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--slate-400)"><a href="index.html" target="_blank" style="text-decoration:underline">Back to main site</a></p>
+            </div>
+        </div>`;
+    }
+
+    function wireLogin() {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fd=new FormData(e.target);
+            try {
+                await signInWithEmailAndPassword(auth, fd.get('email').trim(), fd.get('password'));
+                toast("Signed in!", "ok");
+            } catch(err) { toast(err.message||"Sign in failed.", "err"); }
+        });
+    }
+
+    function viewDashboard() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const apps=allApps.filter(a=>!a.archived&&(adminFilters.showBlocked||!a.blocked));
+        const stats={total:apps.length,received:apps.filter(a=>a.status==="Application Received").length,inProgress:apps.filter(a=>!TERMINAL_ALT.includes(a.status)&&a.status!=="Placed — Active Employment"&&a.status!=="Application Received").length,placed:apps.filter(a=>a.status==="Placed — Active Employment").length,rejected:apps.filter(a=>a.status==="Rejected").length};
+        const parseAmt=v=>{if(!v)return 0;const m=v.match(/[\d,.]+/);return m?parseFloat(m[0].replace(/,/g,'')):0;};
+        const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmt(f.amount),0),0);
+        const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmt(f.amount):0),0),0);
+        let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort((a,b)=>{const da=a.updatedAt?new Date(a.updatedAt):new Date(0),db=b.updatedAt?new Date(b.updatedAt):new Date(0);return db-da;});
+        const unread=getUnreadCount();
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link active" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread?` <span class="msg-count">${unread}</span>`:''}</a>
+                <a class="side-link" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar">
+                    <h2>Applications Dashboard</h2>
+                    <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search..." value="${esc(adminFilters.search)}"></div>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="n">${stats.total}</div><div class="l">Total Applications</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--blue-500)"><div class="n">${stats.received}</div><div class="l">New</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--amber-600)"><div class="n">${stats.inProgress}</div><div class="l">In Progress</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n">${stats.placed}</div><div class="l">Placed</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--rose-500)"><div class="n">${stats.rejected}</div><div class="l">Rejected</div></div>
+                </div>
+                <div class="stat-grid stat-grid-3" style="margin-bottom:20px">
+                    <div class="stat-card"><div class="n" style="font-size:18px;color:var(--blue-800)">€${esc(totalFees.toFixed(0))}</div><div class="l">Total Invoiced</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:18px;color:var(--emerald-600)">€${esc(totalPaid.toFixed(0))}</div><div class="l">Total Collected</div></div>
+                    <div class="stat-card" style="border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:18px;color:var(--maroon-600)">€${esc((totalFees-totalPaid).toFixed(0))}</div><div class="l">Outstanding</div></div>
+                </div>
+                ${(()=>{
+                    const allSvcs=apps.flatMap(a=>(a.clientServices||[]).map(s=>({...s,applicant:a.fullName,appId:displayId(a),uid:a.uid||a.id})));
+                    if(!allSvcs.length)return '';
+                    const pend=allSvcs.filter(s=>s.status==='pending').length;
+                    const ip=allSvcs.filter(s=>s.status==='in-progress').length;
+                    const done=allSvcs.filter(s=>s.status==='completed').length;
+                    const totPaid=allSvcs.filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                    return `<div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px">
+                        <div style="font-weight:700;font-size:13px;color:var(--blue-900);margin-bottom:10px"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Active Services (${allSvcs.length})</div>
+                        <div class="stat-grid stat-grid-5" style="margin-bottom:10px">
+                            <div class="stat-card" style="padding:10px"><div class="n" style="font-size:16px;color:var(--slate-700)">${allSvcs.length}</div><div class="l" style="font-size:10px">Total</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--amber-500)"><div class="n" style="font-size:16px;color:var(--amber-600)">${pend}</div><div class="l" style="font-size:10px">Pending</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--blue-500)"><div class="n" style="font-size:16px;color:var(--blue-600)">${ip}</div><div class="l" style="font-size:10px">In Progress</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:16px;color:var(--emerald-600)">${done}</div><div class="l" style="font-size:10px">Completed</div></div>
+                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:16px;color:var(--maroon-600)">€${totPaid.toFixed(0)}</div><div class="l" style="font-size:10px">Collected</div></div>
+                        </div>
+                        <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th></tr></thead><tbody>${allSvcs.slice(0,10).map(s=>{
+                            const t=SERVICE_TYPES.find(st=>st.id===s.type);
+                            return `<tr><td><b style="font-size:12px">${esc(s.applicant)}</b></td><td>${esc(s.label)}</td><td>${esc(s.amount||'—')}</td><td><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td>${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td></tr>`;
+                        }).join("")}</tbody></table></div>
+                    </div>`;
+                })()}
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                    <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:var(--slate-600)"><input type="checkbox" id="showBlockedCb" ${adminFilters.showBlocked?'checked':''}> Show blocked accounts</label>
+                </div>
+                <div class="filter-bar">${["All","Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
+                <div class="filter-bar">${["All",...ALL_STATUSES].map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
+                <div class="card">
+                    <div class="table-wrap">
+                    <table class="app-table">
+                        <thead><tr><th>Applicant</th><th>Phone</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th></tr></thead>
+                        <tbody>${filtered.length?filtered.map(a=>{
+                            const cmp=calcCompleteness(a);
+                            const fees=a.fees||[];
+                            const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            return `<tr>
+                                            <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:11px;color:var(--slate-500)">${displayId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}</td>
+                                <td style="font-size:12px;color:var(--slate-600)">${esc(a.phone||'—')}</td>
+                                <td>${esc(a.jobTitle)||'—'}<br>${a.country?`<span style="font-size:12px;color:var(--slate-500)"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}</span>`:'<span style="font-size:12px;color:var(--slate-400)">—</span>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
+                                <td>${statusBadge(a.status)}</td>
+                                <td style="white-space:nowrap">${completenessBar(cmp)}</td>
+                                <td style="font-size:11px;white-space:nowrap"><span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span> / <span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></td>
+                                <td style="font-size:11px;color:var(--slate-500);white-space:nowrap">${fmtDate(a.updatedAt)}</td>
+                                <td><button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
+                            </tr>`;
+                        }).join(""):`<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div></td></tr>`}</tbody>
+                    </table>
+                    </div>
+                    <!-- Mobile card layout -->
+                    <div class="app-card-row">${filtered.length?filtered.map(a=>{
+                        const cmp=calcCompleteness(a);
+                        const fees=a.fees||[];
+                        const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        return `<div class="app-card">
+                            <div class="ac-head">
+                                <div>
+                                    <div class="ac-name">${esc(a.fullName)}</div>
+                                    <div class="ac-id">${displayId(a)}</div>
+                                </div>
+                                ${statusBadge(a.status)}
+                            </div>
+                            <div class="ac-meta">
+                                <span><i class="fa-solid fa-envelope"></i> ${esc(a.email||'—')}</span>
+                                <span><i class="fa-solid fa-phone"></i> ${esc(a.phone||'—')}</span>
+                                <span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)||'—'}${a.blocked?' <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>':''}</span>
+                                <span><i class="fa-solid fa-location-dot"></i> ${a.country?`<img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}`:'—'}</span>
+                                <span><i class="fa-solid fa-file"></i> ${completenessBar(cmp)}</span>
+                                <span><i class="fa-solid fa-coins"></i> <span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span>/<span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></span>
+                                <span><i class="fa-regular fa-clock"></i> ${fmtDate(a.updatedAt)}</span>
+                            </div>
+                            <div class="ac-foot">
+                                <button class="btn btn-primary btn-sm" data-openapp="${appId(a)}"><i class="fa-solid fa-chevron-right"></i> Review</button>
+                            </div>
+                        </div>`;
+                    }).join(""):`<div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div>`}</div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function wireDashboard() {
+        document.getElementById('adminSearch')?.addEventListener('input',function(){adminFilters.search=this.value;saveAdminFilters();render()});
+        document.getElementById('showBlockedCb')?.addEventListener('change',function(){adminFilters.showBlocked=this.checked;saveAdminFilters();render()});
+        document.querySelectorAll('[data-afcountry]').forEach(b=>b.addEventListener('click',()=>{adminFilters.country=b.getAttribute('data-afcountry');saveAdminFilters();render()}));
+        document.querySelectorAll('[data-afstatus]').forEach(b=>b.addEventListener('click',()=>{adminFilters.status=b.getAttribute('data-afstatus');saveAdminFilters();render()}));
+        document.querySelectorAll('[data-openapp]').forEach(b=>b.addEventListener('click',()=>openAppModal(b.getAttribute('data-openapp'))));
+    }
+
+    async function openAppModal(appId) {
+        let app=allApps.find(a=>a.id===appId||a.uid===appId||a.appId===appId);
+        if(!app){try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())app={id:d.id,...d.data()};}catch(e){}}
+        if(!app){toast("Application not found.","err");return;}
+        const root=document.getElementById('modal-root');
+        const appFees=app.fees||[];
+        const appNotes=app.internalNotes||[];
+        const totalDue=appFees.filter(f=>!f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+        const totalPaid=appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+        const curStageIdx=STATUS_STEPS.indexOf(app.status);
+
+        function progressHTML(){
+            if(curStageIdx<0){
+                return `<div class="progress-stages" style="justify-content:center;padding:8px 0"><span class="badge badge-slate" style="font-size:12px"><i class="fa-solid fa-circle"></i> ${esc(app.status||'No Status')}</span><span style="font-size:11px;color:var(--slate-500);margin-left:8px">— Select a status below to begin</span></div>`;
+            }
+            return `<div class="progress-stages">${STATUS_STEPS.map((s,i)=>{
+                const cls=i<curStageIdx?'done':i===curStageIdx?'active':'';
+                const ico=i<curStageIdx?'fa-check-circle':i===curStageIdx?'fa-circle':'fa-circle-regular';
+                return `<div class="stage ${cls}"><span class="stage-icon"><i class="fa-regular ${ico}"></i></span>${s}</div>`;
+            }).join("")}</div>`;
+        }
+
+        root.innerHTML=`
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" style="max-width:900px">
+                <div class="modal-head">                <h3>${esc(app.fullName||displayId(app))} — ${displayId(app)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-body">
+                    ${progressHTML()}
+                    <hr style="margin:16px 0;border:none;border-top:1px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
+                            <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Email</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.email)}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Nationality</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.nationality||'—')}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Date of Birth</div><div style="font-size:13.5px;font-weight:600">${esc(app.dob||'—')}</div></div>
+                            <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Phone</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.phone||'—')}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Residence</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.residence||app.city||'—')}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Education</div><div style="font-size:13.5px;font-weight:600">${esc(app.education||'—')}</div></div>
+                            <div><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Position</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.jobTitle)}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Country</div><div style="font-size:13.5px;font-weight:600;margin-bottom:10px">${esc(app.country)}</div>
+                            <div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em">Passport No.</div><div style="font-size:13.5px;font-weight:600">${esc(app.passportNumber||'—')}</div></div>
+                        </div>
+                        ${app.coverLetter?`<div style="background:var(--slate-50);border-radius:8px;padding:12px 16px;margin-bottom:10px"><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Cover Letter / Notes</div><div style="font-size:13px;color:var(--slate-700)">${esc(app.coverLetter)}</div></div>`:''}
+                        ${app.workExperience?`<div style="background:var(--slate-50);border-radius:8px;padding:12px 16px"><div style="font-size:11px;color:var(--slate-500);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px">Work Experience</div><div style="font-size:13px;color:var(--slate-700)">${esc(app.workExperience)}</div></div>`:''}
+                    </div>
+
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px"><i class="fa-solid fa-file" style="color:var(--blue-700)"></i> Documents</h4>
+                        ${(()=>{
+                            const borderColor=(st)=>{
+                                if(st==='verified') return 'var(--emerald-500)';
+                                if(st==='processing') return 'var(--indigo-500)';
+                                if(st==='pending_review'||st==='reuploaded') return 'var(--amber-500)';
+                                if(st==='rejected'||st==='changes_requested'||st==='upload_again') return 'var(--rose-500)';
+                                if(st==='received'||st==='submitted') return 'var(--blue-500)';
+                                return 'var(--slate-300)';
+                            };
+                            return [
+                                {key:'cv',label:'CV / Resume',icon:'fa-file-lines',url:app.cvUrl},
+                                {key:'passport',label:'Passport Copy',icon:'fa-passport',url:app.passportUrl},
+                                {key:'certificates',label:'Certificates',icon:'fa-certificate',url:app.certificatesUrl},
+                                {key:'reference',label:'Reference Letter',icon:'fa-envelope',url:app.referenceUrl},
+                                {key:'medical',label:'Medical Report',icon:'fa-heart-pulse',url:app.medicalUrl}
+                            ].map(d=>{
+                                const hasUrl=!!d.url;
+                                const st=!hasUrl?'not_uploaded':(app.documentStatus?.[d.key]||'pending_review');
+                                const acts=[];
+                                if(hasUrl) acts.push(`<a href="${d.url}" target="_blank" class="btn btn-outline btn-sm">View</a>`);
+                                if(st==='submitted') acts.push(`<button class="btn btn-outline btn-sm docMarkReceivedBtn" data-dockey="${d.key}">Mark Received</button>`);
+                                if(st==='received') acts.push(`<button class="btn btn-outline btn-sm docStartReviewBtn" data-dockey="${d.key}">Start Review</button>`);
+                                if(st==='pending_review'||st==='reuploaded'){
+                                    acts.push(`<button class="btn btn-outline btn-sm docRequestChangeBtn" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
+                                    acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                                    acts.push(`<button class="btn btn-primary btn-sm docProcessBtn" data-dockey="${d.key}">Processing</button>`);
+                                    acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                                }
+                                if(st==='processing'){
+                                    acts.push(`<span class="badge badge-indigo" style="font-size:11px">⏳ Processing</span>`);
+                                    acts.push(`<button class="btn btn-outline btn-sm docRequestChangeBtn" data-dockey="${d.key}"><i class="fa-solid fa-pen"></i> Request Changes</button>`);
+                                    acts.push(`<button class="btn btn-success btn-sm docVerifyBtn" data-dockey="${d.key}"><i class="fa-solid fa-check"></i> Verify</button>`);
+                                    acts.push(`<button class="btn btn-danger btn-sm docRejectBtn" data-dockey="${d.key}"><i class="fa-solid fa-ban"></i> Reject</button>`);
+                                }
+                                if(st==='verified'){
+                                    acts.push(`<span class="badge badge-green" style="font-size:11px">✅ Verified ✓</span>`);
+                                    acts.push(`<button class="btn btn-outline btn-sm docRevokeBtn" data-dockey="${d.key}"><i class="fa-solid fa-rotate-left"></i> Revoke</button>`);
+                                }
+                                if(st==='rejected') acts.push(`<button class="btn btn-outline btn-sm docAllowReuploadBtn" data-dockey="${d.key}">Allow Re-upload</button>`);
+                                if(st==='changes_requested'||st==='upload_again'){
+                                    acts.push(`<span class="badge badge-rose" style="font-size:11px">⏳ Awaiting re-upload</span>`);
+                                    acts.push(`<button class="btn btn-outline btn-sm docCancelReqBtn" data-dockey="${d.key}">Cancel Request</button>`);
+                                }
+                                const bc=borderColor(st);
+                                const bgClr=st==='verified'?'var(--emerald-50)':st==='processing'?'var(--indigo-50)':st==='rejected'||st==='changes_requested'||st==='upload_again'?'var(--rose-50)':st==='submitted'?'var(--blue-50)':'transparent';
+                                return `<div class="doc-row" style="border-left:3px solid ${bc};background:${bgClr};border-radius:6px;padding:8px 10px;margin-bottom:6px"><div class="di"><i class="fa-solid ${d.icon}"></i> ${d.label}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${docStatusBadge(st)}${acts.join('')}</div></div>`;
+                            }).join('');
+                        })()}
+                        <h4 style="margin:16px 0 12px;color:var(--blue-900);font-size:14px">Upload Document for Applicant</h4>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <select id="adminDocType" style="width:auto;flex:1;min-width:140px">
+                                <option value="certificatesUrl">Certificate</option>
+                                <option value="referenceUrl">Reference Letter</option>
+                                <option value="medicalUrl">Medical Report</option>
+                                <option value="contractUrl">Contract Document</option>
+                                <option value="otherUrl">Other</option>
+                            </select>
+                            <button class="btn btn-primary btn-sm" id="adminUploadDocBtn"><i class="fa-solid fa-upload"></i> Upload</button>
+                        </div>
+                    </div>
+
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${esc(appFees.length)}</div><div style="font-size:11px;color:var(--slate-500)">Fee Items</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${esc(totalPaid.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Total Paid</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--maroon-600)">${esc(totalDue.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Outstanding</div></div>
+                        </div>
+                        <div id="appFeesList">${appFees.length?appFees.map((f,i)=>`<div class="fee-row"><span class="lbl">${esc(f.label)}</span><span class="amt">${esc(f.amount)}</span><span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (Client)':'Paid'):'Unpaid'}</span>${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}${f.paidByClient?`<span style="font-size:10px;color:var(--indigo-500);font-weight:600;background:var(--indigo-50);padding:2px 8px;border-radius:4px">Client</span>`:''}${f.transactionCode?`<span style="font-size:10px;color:var(--slate-500)">Txn: ${esc(f.transactionCode)}</span>`:''}<button class="btn btn-outline btn-sm" data-togglefee="${i}">${f.paid?'Unmark':'Mark Paid'}</button></div>`).join(""):'<div class="empty-state" style="padding:20px"><p>No fees added for this application yet.</p></div>'}</div>
+                        <h4 style="margin:16px 0 10px;color:var(--blue-900);font-size:14px">Add Fee to Application</h4>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <input type="text" id="newFeeLabel" placeholder="Fee label (e.g. Visa fee)" style="flex:2;min-width:140px">
+                            <input type="text" id="newFeeAmount" placeholder="Amount (e.g. EUR 500)" style="flex:1;min-width:100px">
+                            <button class="btn btn-primary btn-sm" id="addAppFeeBtn"><i class="fa-solid fa-plus"></i> Add</button>
+                        </div>
+                    </div>
+
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${(app.clientServices||[]).length}</div><div style="font-size:11px;color:var(--slate-500)">Total Services</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${(app.clientServices||[]).filter(s=>s.status==='completed').length}</div><div style="font-size:11px;color:var(--slate-500)">Completed</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--maroon-600)">${(app.clientServices||[]).filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0).toFixed(0)}</div><div style="font-size:11px;color:var(--slate-500)">EUR Collected</div></div>
+                        </div>
+                        <div id="appServicesList">${(app.clientServices||[]).length?(app.clientServices||[]).map((s,i)=>{
+                            const t=SERVICE_TYPES.find(st=>st.id===s.type);
+                            const ico=t?t.icon:'fa-handshake';
+                            const col=t?t.color:'var(--slate-500)';
+                            const stCls=s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':s.status==='cancelled'?'badge-rose':'badge-slate';
+                            return `<div style="background:var(--slate-50);border-radius:8px;padding:12px 14px;margin-bottom:8px">
+                                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+                                    <div style="display:flex;align-items:center;gap:8px">
+                                        <span style="width:32px;height:32px;border-radius:8px;background:${col}20;color:${col};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"><i class="fa-solid ${ico}"></i></span>
+                                        <div><div style="font-weight:700;font-size:13px;color:var(--blue-900)">${esc(s.label)}</div>${s.description?`<div style="font-size:11.5px;color:var(--slate-500)">${esc(s.description)}</div>`:''}</div>
+                                    </div>
+                                    <span class="badge ${stCls}">${esc(s.status)}</span>
+                                </div>
+                                ${s.amount?`<div style="margin-top:6px;font-size:13px;font-weight:700;color:var(--blue-800)">${esc(s.amount)} ${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Paid (Client)':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}${s.paidByClient?' <span style="font-size:10px;color:var(--indigo-500);font-weight:600;background:var(--indigo-50);padding:2px 7px;border-radius:4px">Client</span>':''}${s.transactionCode?` <span style="font-size:10px;color:var(--slate-500)">Txn: ${esc(s.transactionCode)}</span>`:''}</div>`:''}
+                                <div style="margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--slate-500);font-weight:600">${s.progress||0}%</span><input type="range" min="0" max="100" value="${s.progress||0}" class="svc-progress" data-svcidx="${i}" style="flex:1;max-width:160px;height:4px"></div>
+                                <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                                    <select class="svc-status-select" data-svcidx="${i}" style="width:auto;min-width:100px;padding:5px 8px;font-size:11px">
+                                        <option value="pending" ${s.status==='pending'?'selected':''}>Pending</option>
+                                        <option value="in-progress" ${s.status==='in-progress'?'selected':''}>In Progress</option>
+                                        <option value="completed" ${s.status==='completed'?'selected':''}>Completed</option>
+                                        <option value="cancelled" ${s.status==='cancelled'?'selected':''}>Cancelled</option>
+                                    </select>
+                                    <button class="btn btn-outline btn-sm svc-toggle-paid" data-svcidx="${i}">${s.paid?'Unmark Paid':'Mark Paid'}</button>
+                                </div>
+                            </div>`;
+                        }).join(""):'<div class="empty-state" style="padding:20px"><p>No services assigned to this client yet.</p></div>'}</div>
+                        <h4 style="margin:16px 0 10px;color:var(--blue-900);font-size:14px">Add Service for This Client</h4>
+                        <div style="display:flex;gap:8px;flex-direction:column">
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                <select id="newServiceType" style="flex:2;min-width:180px">
+                                    <option value="">Select service type...</option>
+                                    ${SERVICE_TYPES.map(st=>`<option value="${st.id}">${st.label}</option>`).join("")}
+                                </select>
+                                <input type="text" id="newServiceAmount" placeholder="Amount (e.g. EUR 350)" style="flex:1;min-width:100px">
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                <input type="text" id="newServiceLabel" placeholder="Custom label (optional)" style="flex:2;min-width:180px">
+                                <input type="text" id="newServiceDesc" placeholder="Description (optional)" style="flex:3;min-width:200px">
+                            </div>
+                            <button class="btn btn-primary btn-sm" id="addServiceBtn"><i class="fa-solid fa-plus"></i> Add Service</button>
+                        </div>
+                    </div>
+
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <div id="appNotesList">${appNotes.length?appNotes.map(n=>`<div class="note-item"><div class="meta">${esc(n.author||'Admin')} · ${fmtDate(n.createdAt)}</div><div class="text">${esc(n.text)}</div></div>`).join(""):'<div class="empty-state" style="padding:20px"><p>No internal notes yet.</p></div>'}</div>
+                        <div style="display:flex;gap:8px;margin-top:12px">
+                            <textarea id="newNoteText" rows="2" placeholder="Add an internal note about this application..." style="flex:1"></textarea>
+                            <button class="btn btn-primary btn-sm" id="addNoteBtn" style="align-self:flex-end"><i class="fa-solid fa-plus"></i> Add Note</button>
+                        </div>
+                    </div>
+
+                    <hr style="margin:20px 0;border:none;border-top:2px solid var(--slate-200)">
+                    <div class="modal-section">
+                        <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px">Update Status</h4>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+                            ${(()=>{
+                                const curIdx=STATUS_STEPS.indexOf(app.status);
+                                const chips=[];
+                                STATUS_STEPS.forEach((s,i)=>{
+                                    if(i<curIdx) chips.push(`<span class="chip" style="opacity:.5;pointer-events:none;background:var(--emerald-100);color:var(--emerald-700);border-color:var(--emerald-300)"><i class="fa-solid fa-check"></i> ${esc(s)}</span>`);
+                                    else if(i===curIdx) chips.push(`<span class="chip active">${esc(s)}</span>`);
+                                    else chips.push(`<span class="chip" style="cursor:pointer;border:1.5px dashed var(--slate-300)" data-setstatus="${esc(s)}">${esc(s)}</span>`);
+                                });
+                                TERMINAL_ALT.forEach(s=>{
+                                    const isActive=s===app.status;
+                                    chips.push(`<span class="chip ${isActive?'active':''}" style="${isActive?'background:var(--rose-600);color:#fff':'border:1.5px dashed var(--rose-300);color:var(--rose-700);cursor:pointer'}" data-setstatus="${esc(s)}">${esc(s)}</span>`);
+                                });
+                                return chips.join(' ');
+                            })()}
+                        </div>
+                        <div class="field"><label>Status Note</label><textarea id="statusNote" rows="2" placeholder="Optional note for this status change..."></textarea></div>
+                        ${(()=>{
+                            const autoNext=checkAutoAdvance(app);
+                            if(autoNext){
+                                return `<div style="background:var(--emerald-50);border:1px solid #bfe6cc;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                                    <span style="font-size:13px;font-weight:600;color:#065F46"><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> All requirements met for current stage.</span>
+                                    <button class="btn btn-success btn-sm" id="autoAdvanceBtn">Advance to "${esc(autoNext)}" <i class="fa-solid fa-arrow-right"></i></button>
+                                </div>`;
+                            }
+                            return '';
+                        })()}
+                        <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Stage Requirements</h4>
+                        <div style="background:var(--slate-50);border-radius:8px;padding:12px 16px;margin-bottom:16px">
+                            ${(()=>{
+                                const cur=STATUS_STEPS.indexOf(app.status);
+                                const idx=Math.max(0,cur);
+                                const reqs=getStageRequirements(app,idx);
+                                const met=reqs.filter(r=>r.met).length;
+                                return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                                    <span style="font-size:12px;font-weight:700;color:var(--slate-600)">Requirements for "${esc(STATUS_STEPS[idx]||app.status)}"</span>
+                                    <span style="font-size:12px;color:var(--slate-500)">${met}/${reqs.length}</span>
+                                </div>
+                                ${reqs.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px;color:${r.met?'var(--emerald-600)':'var(--slate-500)'}"><i class="fa-solid ${r.met?'fa-circle-check':'fa-circle-regular'}" style="font-size:11px"></i> ${esc(r.label)}</div>`).join("")}`;
+                            })()}
+                        </div>
+                        <h4 style="margin:18px 0 12px;color:var(--blue-900);font-size:14px">Application Timeline</h4>
+                        ${renderTimeline(app)}
+                    </div>
+                </div>
+                <div class="modal-foot" style="flex-wrap:wrap">
+                    <button class="btn btn-outline btn-sm" id="archiveBtn"><i class="fa-solid fa-box-archive"></i> Archive</button>
+                    <button class="btn ${app.blocked?'btn-success':'btn-danger'} btn-sm" id="deleteAccountBtn"><i class="fa-solid ${app.blocked?'fa-unlock':'fa-ban'}"></i> ${app.blocked?'Unblock':'Block'} Account</button>
+                    <button class="btn btn-primary btn-sm" id="startChatBtn" data-startchat="${app.uid}" data-chatname="${app.fullName}"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+                    <button class="btn btn-maroon btn-sm" id="saveModalBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                    <button class="btn btn-danger btn-sm" id="deleteAppBtn"><i class="fa-solid fa-trash-can"></i> Delete</button>
+                </div>
+            </div>
+        </div>`;
+        document.getElementById('modalCloseBtn').addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
+
+        // Archive
+        document.getElementById('archiveBtn').addEventListener('click',async()=>{
+            if(!confirm("Archive this application?"))return;
+            const id=appId(app); await setDoc(doc(db,"applications",id),{archived:true,updatedAt:serverTimestamp()},{merge:true});
+            try{addAuditLog(`Application archived`,appName(app),id);}catch(e){}
+            toast("Application archived.","ok");await loadApps();root.innerHTML='';
+        });
+
+        // Delete / Block Account
+        document.getElementById('deleteAccountBtn').addEventListener('click',async()=>{
+            const email=app.email||'';
+            const name=app.fullName||'this user';
+            const id=appId(app);
+            if(app.blocked){
+                if(!confirm(`UNBLOCK ${name} (${email})? They will regain platform access.`))return;
+                await setDoc(doc(db,"applications",id),{blocked:false,blockedAt:null,blockedBy:null,updatedAt:serverTimestamp()},{merge:true});
+                try{addAuditLog(`Unblocked account`,`${name} (${email})`,id);}catch(e){}
+                toast(`✅ ${name} has been unblocked.`,"ok");
+            }else{
+                if(!confirm(`BLOCK ${name} (${email})? They will no longer be able to access the platform.`))return;
+                if(!confirm(`⚠️ ARE YOU SURE? This will mark ${email} as blocked. Type "BLOCK" to confirm.`))return;
+                await setDoc(doc(db,"applications",id),{blocked:true,blockedAt:new Date().toISOString(),blockedBy:currentUserData?.email||'Admin',updatedAt:serverTimestamp()},{merge:true});
+                try{addAuditLog(`Blocked account`,`${name} (${email})`,id);}catch(e){}
+                toast(`🔇 ${name} has been blocked.`,"ok");
+            }
+            root.innerHTML='';await loadApps();
+        });
+
+        // Delete application permanently
+        document.getElementById('deleteAppBtn').addEventListener('click',async()=>{
+            if(!confirm(`⚠️ DELETE application for ${app.fullName||'this user'} (${displayId(app)})? This permanently removes ALL data including chats and messages. Cannot be undone.`))return;
+            if(!confirm(`FINAL CONFIRMATION: Delete ${app.fullName||'this user'}'s application forever?`))return;
+            try{
+                const id=app.id||app.uid;
+                if(id)await deleteDoc(doc(db,"applications",id)).catch(()=>{});
+                const chatsSnap=await getDocs(query(collection(db,"chats"),where("participants","array-contains",app.uid)));
+                await Promise.allSettled(chatsSnap.docs.map(async cd=>{
+                    const msgsSnap=await getDocs(collection(db,"chats",cd.id,"messages"));
+                    await Promise.allSettled(msgsSnap.docs.map(m=>m.ref.delete().catch(()=>{})));
+                    await cd.ref.delete().catch(()=>{});
+                }));
+                try{addAuditLog(`Deleted application`,`${appName(app)} (${displayId(app)})`);}catch(e){}
+                toast("Application permanently deleted.","ok");
+                root.innerHTML='';await loadApps();
+            }catch(e){toast("Delete error: "+e.message,"err");}
+        });
+
+        // Chat
+        document.getElementById('startChatBtn').addEventListener('click',async()=>{
+            const uid=document.getElementById('startChatBtn').getAttribute('data-startchat');
+            const name=document.getElementById('startChatBtn').getAttribute('data-chatname')||uid;
+            const chat=await getOrCreateChat(uid,name);
+            if(chat)navigate("messages-chat",{chatId:chat.id,otherName:name});
+            root.innerHTML='';
+        });
+
+        // Save: status update
+        document.getElementById('saveModalBtn').addEventListener('click',async()=>{
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const updates={updatedAt:serverTimestamp()};
+            const selectedStatus=document.querySelector('[data-setstatus].active');
+            if(selectedStatus){
+                const newStatus=selectedStatus.getAttribute('data-setstatus');
+                if(newStatus!==app.status){
+                    const curIdx=STATUS_STEPS.indexOf(app.status);
+                    const newIdx=STATUS_STEPS.indexOf(newStatus);
+                    if(newIdx>=0&&newIdx<curIdx){toast("Cannot go back to a previous step.","err");return;}
+                    updates.status=newStatus;
+                    const note=document.getElementById('statusNote').value.trim();
+                    const tlEntry={status:newStatus,date:new Date().toISOString(),note:note||`Status updated to "${newStatus}".`};
+                    const snap=await getDoc(ref);
+                    const curTimeline=snap.exists()?snap.data().timeline:[];
+                    updates.timeline=[...(curTimeline||[]),tlEntry];
+                    try{sendAppStatusNotification(app.uid,app.fullName,newStatus,note);}catch(e){}
+                    try{simulateEmail(app.email,`Application Status Update – ${newStatus}`,`Dear ${app.fullName},\n\nYour application (${displayId(app)}) status has been updated to: ${newStatus}.\n\n${note?note+'\n\n':''}Log in to your portal for more details.\n\nBest regards,\nEurope Sponsor Jobs Team`);}catch(e){}
+                }
+            }
+            await setDoc(ref,updates,{merge:true});
+            const changedStatus=selectedStatus&&selectedStatus.getAttribute('data-setstatus')!==app.status;
+            if(changedStatus){try{addAuditLog(`Status → ${selectedStatus.getAttribute('data-setstatus')}`,appName(app),id);}catch(e){}}
+            toast("Application updated.","ok");await loadApps();openAppModal(appId);
+        });
+
+        // Status chip toggle
+        document.querySelectorAll('[data-setstatus]').forEach(b=>b.addEventListener('click',function(){
+            document.querySelectorAll('[data-setstatus]').forEach(x=>x.classList.remove('active'));
+            this.classList.add('active');
+        }));
+
+        // Document action handlers
+        document.querySelectorAll('.docVerifyBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const s=await getDoc(doc(db,"applications",id));
+            if(!s.exists())return;
+            const ds={...(s.data().documentStatus||{}),[key]:'verified'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`✅ Document "${key.toUpperCase()}" has been verified.`);}catch(e){}
+            toast(`"${key}" verified.`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docRequestChangeBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const s=await getDoc(doc(db,"applications",id));
+            if(!s.exists())return;
+            const ds={...(s.data().documentStatus||{}),[key]:'changes_requested'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📝 Document "${key.toUpperCase()}": Changes requested. Please upload a revised version.`);}catch(e){}
+            toast(`Changes requested for "${key}".`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docRevokeBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const s=await getDoc(doc(db,"applications",id));
+            if(!s.exists())return;
+            const ds={...(s.data().documentStatus||{}),[key]:'pending_review'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`🔄 Document "${key.toUpperCase()}" verification has been revoked.`);}catch(e){}
+            toast(`Verification revoked for "${key}".`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docCancelReqBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const s=await getDoc(doc(db,"applications",id));
+            if(!s.exists())return;
+            const ds={...(s.data().documentStatus||{}),[key]:'pending_review'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📝 Change request cancelled for document "${key.toUpperCase()}".`);}catch(e){}
+            try{addAuditLog(`Change request cancelled for "${key}"`,appName(app),id);}catch(e){}
+            toast(`Change request cancelled for "${key}".`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docMarkReceivedBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'received'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📄 Document "${key.toUpperCase()}" has been received and is under review.`);}catch(e){}
+            toast(`"${key}" marked as received.`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docStartReviewBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'pending_review'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`🔍 Document "${key.toUpperCase()}" is now under review.`);}catch(e){}
+            toast(`"${key}" moved to review.`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docProcessBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'processing'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`⚙️ Document "${key.toUpperCase()}" is being processed.`);}catch(e){}
+            toast(`"${key}" set to processing.`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docRejectBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'rejected'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`❌ Document "${key.toUpperCase()}" has been rejected. Please upload a new version from your portal.`);}catch(e){}
+            toast(`"${key}" rejected.`,"ok");await loadApps();openAppModal(appId);
+        }));
+        document.querySelectorAll('.docAllowReuploadBtn').forEach(b=>b.addEventListener('click',async function(){
+            const key=this.getAttribute('data-dockey'); const id=appId(app);
+            const ds={...((await getDoc(doc(db,"applications",id))).data()?.documentStatus||{}),[key]:'upload_again'};
+            await setDoc(doc(db,"applications",id),{documentStatus:ds,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📤 Document "${key.toUpperCase()}": You may now upload a new version.`);}catch(e){}
+            toast(`Re-upload allowed for "${key}".`,"ok");await loadApps();openAppModal(appId);
+        }));
+
+        // Auto-advance
+        document.getElementById('autoAdvanceBtn')?.addEventListener('click',async()=>{
+            const next=checkAutoAdvance(app);
+            if(!next){toast("Requirements not met for auto-advance.","err");return;}
+            document.querySelectorAll('[data-setstatus]').forEach(x=>x.classList.remove('active'));
+            document.querySelector(`[data-setstatus="${esc(next)}"]`)?.classList.add('active');
+            document.getElementById('statusNote').value=`Auto-advanced: all requirements met for "${app.status}".`;
+            document.getElementById('saveModalBtn').click();
+        });
+
+        // Fee toggle (mark paid/unpaid)
+        document.querySelectorAll('[data-togglefee]').forEach(b=>b.addEventListener('click',async function(){
+            const idx=parseInt(this.getAttribute('data-togglefee'));
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists())return;
+            const data=s.data(),fees=[...(data.fees||[])];
+            if(!fees[idx])return;
+            fees[idx].paid=!fees[idx].paid;
+            fees[idx].paidDate=fees[idx].paid?new Date().toISOString():null;
+            await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`💰 ${fees[idx].paid?'Payment received':'Payment unmarked'} for "${fees[idx].label}" (${fees[idx].amount}).`);}catch(e){}
+            try{addAuditLog(`Fee ${fees[idx].paid?'paid':'unpaid'}`,`${appName(app)} — ${fees[idx].label} ${fees[idx].amount}`,id);}catch(e){}
+            toast(`Fee ${fees[idx].paid?'marked paid':'unmarked'} — client notified.`,"ok");
+            await loadApps(); openAppModal(appId);
+        }));
+
+        // Add fee to application
+        document.getElementById('addAppFeeBtn').addEventListener('click',async()=>{
+            const l=document.getElementById('newFeeLabel').value.trim();
+            const a=document.getElementById('newFeeAmount').value.trim();
+            if(!l||!a){toast("Enter both label and amount.","err");return;}
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists()){toast("Application doc not found.","err");return;}
+            const data=s.data(),fees=[...(data.fees||[])];
+            fees.push({id:'f_'+Date.now(),label:l,amount:a,paid:false,paidDate:null,addedAt:new Date().toISOString()});
+            await setDoc(ref,{fees,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`📋 New fee added: "${l}" (${a}). Please check your portal for details.`);}catch(e){}
+            try{addAuditLog(`Fee added: ${l} ${a}`,`${appName(app)}`,id);}catch(e){}
+            toast("Fee added to application — client notified.","ok");
+            await loadApps(); openAppModal(appId);
+        });
+
+        // Add note
+        document.getElementById('addNoteBtn').addEventListener('click',async()=>{
+            const t=document.getElementById('newNoteText').value.trim();
+            if(!t){toast("Enter a note.","err");return;}
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists()){toast("Application doc not found.","err");return;}
+            const data=s.data(),notes=[...(data.internalNotes||[])];
+            notes.push({id:'n_'+Date.now(),text:t,author:currentUserData?.email||'Admin',createdAt:new Date().toISOString()});
+            await setDoc(ref,{internalNotes:notes,updatedAt:serverTimestamp()},{merge:true});
+            toast("Note added.","ok");
+            await loadApps(); openAppModal(appId);
+        });
+
+        // Admin upload document for applicant
+        document.getElementById('adminUploadDocBtn').addEventListener('click',()=>{
+            const field=document.getElementById('adminDocType').value;
+            const docKey=field.replace('Url','');
+            const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
+            dialog.done(async(file)=>{
+                try{
+                    const info=await file.promise(); if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
+                    const url=info.cdnUrl;
+                    const id=appId(app);
+                    await setDoc(doc(db,"applications",id),{[field]:url,[`documentStatus.${docKey}`]:'submitted',updatedAt:serverTimestamp()},{merge:true});
+                    try{sendSystemNotification(app.uid,app.fullName,`📄 Document "${docKey.toUpperCase()}" has been uploaded by admin.`);}catch(e){}
+                    try{addAuditLog(`Document uploaded: ${docKey}`,`${appName(app)}`,id);}catch(e){}
+                    toast("Document uploaded to application.","ok");
+                    await loadApps(); openAppModal(appId);
+                }catch(e){toast(e.message||"Upload failed.","err");}
+            });
+            dialog.fail(()=>toast('Upload cancelled.',"err"));
+        });
+
+        // Service progress slider
+        document.querySelectorAll('.svc-progress').forEach(sl=>sl.addEventListener('input',async function(){
+            const idx=parseInt(this.getAttribute('data-svcidx')); const val=parseInt(this.value);
+            const id=appId(app); const ref=doc(db,"applications",id); const s=await getDoc(ref); if(!s.exists())return;
+            const data=s.data(),services=[...(data.clientServices||[])]; if(!services[idx])return;
+            services[idx].progress=val; services[idx].updatedAt=new Date().toISOString();
+            await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
+        }));
+        // Service status change
+        document.querySelectorAll('.svc-status-select').forEach(sel=>sel.addEventListener('change',async function(){
+            const idx=parseInt(this.getAttribute('data-svcidx'));
+            const newStatus=this.value;
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists())return;
+            const data=s.data(),services=[...(data.clientServices||[])];
+            if(!services[idx])return;
+            const oldStatus=services[idx].status;
+            services[idx].status=newStatus;
+            services[idx].updatedAt=new Date().toISOString();
+            await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
+            try{sendServiceStatusNotification(app.uid,app.fullName,services[idx].label,oldStatus,newStatus);}catch(e){}
+            try{addAuditLog(`Service status: "${services[idx].label}" → ${newStatus}`,`${appName(app)}`,id);}catch(e){}
+            toast(`Service "${services[idx].label}" → ${newStatus} — client notified.`,"ok");
+            await loadApps(); openAppModal(appId);
+        }));
+
+        // Service toggle paid
+        document.querySelectorAll('.svc-toggle-paid').forEach(b=>b.addEventListener('click',async function(){
+            const idx=parseInt(this.getAttribute('data-svcidx'));
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists())return;
+            const data=s.data(),services=[...(data.clientServices||[])];
+            if(!services[idx])return;
+            services[idx].paid=!services[idx].paid;
+            services[idx].paidDate=services[idx].paid?new Date().toISOString():null;
+            services[idx].updatedAt=new Date().toISOString();
+            await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
+            try{sendSystemNotification(app.uid,app.fullName,`💰 Payment ${services[idx].paid?'received':'unmarked'} for service "${services[idx].label}".`);}catch(e){}
+            try{addAuditLog(`Service payment ${services[idx].paid?'paid':'unpaid'}`,`${appName(app)} — ${services[idx].label}`,id);}catch(e){}
+            toast(`Payment ${services[idx].paid?'marked paid':'unmarked'} for "${services[idx].label}" — client notified.`,"ok");
+            await loadApps(); openAppModal(appId);
+        }));
+
+        // Add service
+        document.getElementById('addServiceBtn').addEventListener('click',async()=>{
+            const type=document.getElementById('newServiceType').value;
+            if(!type){toast("Select a service type.","err");return;}
+            const svcType=SERVICE_TYPES.find(st=>st.id===type);
+            const customLabel=document.getElementById('newServiceLabel').value.trim();
+            const label=customLabel||(svcType?svcType.label:'Assistance Service');
+            const amount=document.getElementById('newServiceAmount').value.trim();
+            const desc=document.getElementById('newServiceDesc').value.trim();
+            const id=appId(app);
+            const ref=doc(db,"applications",id);
+            const s=await getDoc(ref);
+            if(!s.exists()){toast("Application doc not found.","err");return;}
+            const data=s.data(),services=[...(data.clientServices||[])];
+            const svc={id:'svc_'+Date.now(),type,label,amount:amount||'',description:desc||'',status:'pending',paid:false,paidDate:null,progress:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+            services.push(svc);
+            await setDoc(ref,{clientServices:services,updatedAt:serverTimestamp()},{merge:true});
+            try{sendServiceStatusNotification(app.uid,app.fullName,label,'none','pending');}catch(e){}
+            try{addAuditLog(`Service added: "${label}"`,`${appName(app)} — ${amount}`,id);}catch(e){}
+            toast(`Service "${label}" added — client notified.`,"ok");
+            await loadApps(); openAppModal(appId);
+        });
+        // Disable action buttons on click to prevent double-submit
+        root.querySelectorAll('[class*="Btn"],[class*="btn"]').forEach(b=>b.addEventListener('click',function(){if(!this.disabled)setTimeout(()=>this.disabled=true)}));
+    }
+
+    async function sendSystemNotification(uid,name,msgText){
+        if(!currentUser||!uid)return;
+        const chat=await getOrCreateChat(uid,name);
+        if(!chat)return;
+        await setDoc(doc(collection(db,"chats",chat.id,"messages")),{senderId:currentUser.uid,senderName:'Admin',text:msgText,fileUrl:'',fileName:'',timestamp:serverTimestamp()});
+        await updateDoc(doc(db,"chats",chat.id),{[`unread.${uid}`]:increment(1),lastMessage:msgText,lastTimestamp:serverTimestamp()});
+    }
+
+    async function sendServiceStatusNotification(uid,name,svcLabel,oldStatus,newStatus){
+        try{
+            const msgText=`🛎️ Service Update: "${svcLabel}" → ${newStatus}${oldStatus!=='none'?` (was: ${oldStatus})`:''}`;
+            await sendSystemNotification(uid,name,msgText);
+        }catch(e){console.warn("Service notification send failed:",e);}
+    }
+
+    async function sendAppStatusNotification(uid,name,status,note){
+        try{
+            const msgText=`📋 Status Update: ${status}${note?` — ${note}`:''}`;
+            await sendSystemNotification(uid,name,msgText);
+        }catch(e){console.warn("Status notification send failed:",e);}
+    }
+    function simulateEmail(to,subject,body){
+        console.log(`[EMAIL] To: ${to}, Subject: ${subject}`);
+    }
+    let _fixAdminHash = '';
+    async function fixAdminChatNames() {
+        try {
+            const adminUids = await getAllAdminUids();
+            const hash = adminUids.sort().join(',');
+            if (hash === _fixAdminHash) return;
+            _fixAdminHash = hash;
+            if (!adminUids.length) return;
+            const snap = await getDocs(collection(db, "chats"));
+            let fixed = 0;
+            for (const d of snap.docs) {
+                const data = d.data();
+                    const missingAdmins = adminUids.filter(uid => !data.participants?.includes(uid));
+                    if (missingAdmins.length) {
+                        const updates = { participants: arrayUnion(...missingAdmins) };
+                        missingAdmins.forEach(uid => {
+                            updates[`participantNames.${uid}`] = 'Admin';
+                            updates[`unread.${uid}`] = 0;
+                        });
+                        await updateDoc(d.ref, updates);
+                        fixed += missingAdmins.length;
+                    }
+                for (const uid of adminUids) {
+                    if (data.participantNames?.[uid] && data.participantNames[uid] !== "Admin") {
+                        await updateDoc(d.ref, { [`participantNames.${uid}`]: "Admin" });
+                        fixed++;
+                    }
+                }
+            }
+            if (fixed) console.log(`Fixed ${fixed} admin entries across chats.`);
+        } catch (e) { console.warn("fixAdminChatNames error:", e); }
+    }
+
+    function renderTimeline(app) {
+        const timeline=app.timeline||[];
+        const isTerminalAlt=TERMINAL_ALT.includes(app.status);
+        const items=timeline.slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+        return `<div class="timeline">${items.map((t,i)=>{
+            const isLast=i===items.length-1;
+            const cls=TERMINAL_ALT.includes(t.status)?'rejected':(isLast?(isTerminalAlt?'':'current'):'done');
+            const iconDone=cls==='done'?'<i class="fa-solid fa-check"></i>':cls==='rejected'?'<i class="fa-solid fa-xmark"></i>':'';
+            return `<div class="tl-item ${cls}"><div class="tl-dot">${iconDone}</div><div class="tl-title">${esc(t.status)}</div><div class="tl-date">${fmtDate(t.date)}</div>${t.note?`<div class="tl-note">${esc(t.note)}</div>`:''}</div>`;
+        }).join("")}${!isTerminalAlt&&items.length<STATUS_STEPS.length?`<div class="tl-item"><div class="tl-dot"></div><div class="tl-title" style="color:var(--slate-400)">${esc(STATUS_STEPS[items.length]||"")}</div><div class="tl-date">Upcoming</div></div>`:""}</div>`;
+    }
+
+    function viewJobs() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link active" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar"><h2>Manage Jobs</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button></div></div>
+                <div class="card pad" style="margin-bottom:20px">
+                    <h4 style="margin:0 0 16px;color:var(--blue-900)">Add New Job</h4>
+                    <form id="addJobForm" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div class="field" style="margin:0"><label>Title <span class="req">*</span></label><input type="text" name="title" required></div>
+                        <div class="field" style="margin:0"><label>Country <span class="req">*</span></label><select name="country" required><option value="">Select</option>${["Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+                        <div class="field" style="margin:0"><label>Category <span class="req">*</span></label><select name="category" required><option value="">Select</option>${["Healthcare","Security & Safety","Logistics & Warehousing","Construction & Manual Labor","Cleaning & Maintenance","Health, Safety & Environment","Hospitality & Tourism","Agriculture & Farming","Driving"].map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+                        <div class="field" style="margin:0"><label>Salary</label><input type="text" name="salary" placeholder="e.g. EUR 2,500/month"></div>
+                        <div class="field" style="margin:0;grid-column:1/-1"><label>Description</label><textarea name="desc" rows="2"></textarea></div>
+                        <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Job</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th></tr></thead>
+                        <tbody>${allJobs.length?allJobs.map(j=>`<tr><td><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td>${esc(j.country)}</td><td>${esc(j.category)}</td><td>${esc(j.salary||'—')}</td><td><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function wireJobs() {
+        document.getElementById('addJobForm').addEventListener('submit',async(e)=>{
+            e.preventDefault();const fd=new FormData(e.target);
+            try{await addJob(Object.fromEntries(fd));toast("Job added.","ok");e.target.reset();}catch(err){toast(err.message,"err")}
+        });
+        document.querySelectorAll('[data-action="refresh"]').forEach(b=>b.addEventListener('click',async()=>{await loadJobs();render();toast("Refreshed.","ok")}));
+        document.querySelectorAll('[data-deljob]').forEach(b=>b.addEventListener('click',async()=>{
+            if(!confirm("Remove this job?"))return;
+            try{await deleteJob(b.getAttribute('data-deljob'));toast("Removed.","ok");}catch(e){toast(e.message,"err")}
+        }));
+    }
+
+    async function viewAuditLog() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        let entries=[];
+        try{const snap=await getDocs(query(collection(db,"auditLog"),orderBy("timestamp","desc"),limit(200)));snap.forEach(d=>entries.push({id:d.id,...d.data()}));}catch(e){}
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <a class="side-link active" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar"><h2>Audit Log</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button></div></div>
+                <div class="card pad">
+                    ${entries.length?`<table style="width:100%;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Time</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Admin</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Action</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Details</th></tr></thead><tbody>${entries.map(e=>`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);white-space:nowrap">${fmtDate(e.timestamp)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);font-weight:600">${esc(e.adminEmail||'—')}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100)">${esc(e.action)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);color:var(--slate-500)">${esc(e.details||'')}</td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><p>No audit entries yet.</p></div>'}
+                </div>
+            </div>
+        </div>`;
+    }
+    function viewFees() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link active" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+                <div class="dash-topbar"><h2>Fee Structure</h2></div>
+                <div class="card pad" style="margin-bottom:20px">
+                    <h4 style="margin:0 0 16px;color:var(--blue-900)">Add Fee Item</h4>
+                    <form id="addFeeForm" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div class="field" style="margin:0"><label>Label <span class="req">*</span></label><input type="text" name="label" required></div>
+                        <div class="field" style="margin:0"><label>Amount <span class="req">*</span></label><input type="text" name="amount" placeholder="e.g. EUR 500" required></div>
+                        <div class="field" style="margin:0"><label>Description</label><textarea name="desc" rows="2"></textarea></div>
+                        <div class="field" style="margin:0"><label>Paid By</label><select name="paidBy"><option>Employer</option><option>Applicant</option></select></div>
+                        <button class="btn btn-primary" type="submit" style="grid-column:1/-1"><i class="fa-solid fa-plus"></i> Add Fee</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <div class="table-wrap">
+                    <table><thead><tr><th>Label</th><th>Amount</th><th>Paid By</th><th></th></tr></thead>
+                    <tbody>${allFees.length?allFees.map(f=>`<tr><td><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td>${esc(f.amount)}</td><td>${esc(f.paidBy)}</td><td><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function wireFees() {
+        document.getElementById('addFeeForm').addEventListener('submit',async(e)=>{
+            e.preventDefault();const fd=new FormData(e.target);
+            try{await addFee(Object.fromEntries(fd));toast("Fee added.","ok");e.target.reset();}catch(err){toast(err.message,"err")}
+        });
+        document.querySelectorAll('[data-delfee]').forEach(b=>b.addEventListener('click',async()=>{
+            if(!confirm("Remove this fee?"))return;
+            try{await deleteFee(b.getAttribute('data-delfee'));toast("Removed.","ok");}catch(e){toast(e.message,"err")}
+        }));
+    }
+
+    // ============= MESSAGING =============
+    function viewMessages() {
+        if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        if(chatMessagesUnsub){chatMessagesUnsub();chatMessagesUnsub=null;}
+        olderMessages=[];msgEarliestTimestamp=null;msgHasMore=false;
+        const chats=_visibleChats(allChats);
+        return `
+        <div class="msg-shell">
+            <div class="msg-list-panel show">
+                <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages <span style="font-size:12px;color:var(--slate-500);font-weight:400;margin-left:8px">${chats.length} conversation${chats.length!==1?'s':''}</span></div>
+                <input class="msg-search" id="msgSearchInput" type="text" placeholder="Search conversations..." autocomplete="off">
+                <div id="msgListWrap">${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0;return `<div class="msg-list-item ${ROUTE.params.chatId===c.id?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}" data-search="${esc((c.otherName||'')+' '+(c.lastMessage||'')).toLowerCase()}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'No messages yet')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-slash"></i><p>No conversations yet.</p></div></div>`}</div>
+            </div>
+            <div class="msg-chat-panel show"><div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>Select a conversation</p></div></div></div>
+        </div>`;
+    }
+
+    function wireMessages() {
+        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(e){
+            if(e.target.closest('.chat-del'))return;
+            const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
+            navigate("messages-chat",{chatId:id,otherName:name});
+        }));
+        document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
+            e.stopPropagation();
+            const id=this.getAttribute('data-delchat');
+            const name=this.getAttribute('data-chatname')||"Chat";
+            if(id)await deleteChatForever(id,name);
+        }));
+        const searchInput=document.getElementById('msgSearchInput');
+        if(searchInput)searchInput.addEventListener('input',function(){
+            const q=this.value.toLowerCase().trim();
+            document.querySelectorAll('#msgListWrap .msg-list-item').forEach(el=>{
+                const hay=el.getAttribute('data-search')||'';
+                el.style.display=q&&!hay.includes(q)?'none':'flex';
+            });
+        });
+    }
+
+    function viewMessagesChat() {
+        if(!currentUser||!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const chatId=ROUTE.params.chatId,otherName=ROUTE.params.otherName||"Chat";
+        const chats=_visibleChats(allChats);
+        const isMobile=window.innerWidth<=900;
+        return `
+        <div class="msg-shell">
+            <div class="msg-list-panel ${isMobile?'':'show'}" id="msgListPanel">
+                <div class="msg-list-header"><i class="fa-solid fa-comment-dots" style="color:var(--maroon-500)"></i> Messages</div>
+                <input class="msg-search" id="msgSearchInput" type="text" placeholder="Search conversations..." autocomplete="off">
+                <div id="msgListWrap">${chats.length?chats.map(c=>{const u=c.unread?.[currentUser.uid]||0,isActive=c.id===chatId;return `<div class="msg-list-item ${isActive?'active':''}" data-chatid="${c.id}" data-chatname="${esc(c.otherName)}" data-search="${esc((c.otherName||'')+' '+(c.lastMessage||'')).toLowerCase()}"><div class="msg-avatar">${esc((c.otherName||'?').charAt(0).toUpperCase())}</div><div class="msg-list-content"><div class="msg-list-name">${esc(c.otherName)}</div><div class="msg-list-preview">${esc(c.lastMessage||'')}</div></div><div class="msg-list-meta">${u?`<span class="msg-unread">${u}</span>`:''}<div class="msg-list-time">${c.lastTimestamp?fmtDateShort(c.lastTimestamp):''}</div></div><button class="chat-del" data-delchat="${c.id}" data-chatname="${esc(c.otherName)}" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>`;}).join(""):''}</div>
+            </div>
+            <div class="msg-chat-panel show">
+                <div class="msg-chat-header"><button class="btn btn-outline btn-sm" id="msgBackBtn" style="display:none"><i class="fa-solid fa-arrow-left"></i></button><div class="msg-avatar" title="Click for user details">${esc(otherName.charAt(0).toUpperCase())}</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(otherName)}</div><div style="font-size:11px;color:var(--slate-400);font-weight:400" id="chatStatusText"></div></div><button class="chat-header-del" id="chatHeaderDelBtn" title="Delete conversation"><i class="fa-solid fa-trash-can"></i></button></div>
+                <div class="msg-chat-body" id="msgChatBody"></div>
+                <div class="msg-chat-input"><textarea id="chatInput" rows="1" placeholder="Type a message..."></textarea><button class="btn btn-primary" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-outline" id="msgFileBtn"><i class="fa-solid fa-paperclip"></i></button><button class="btn btn-maroon btn-sm" id="sendServiceOfferBtn" title="Send Service Offer"><i class="fa-solid fa-handshake"></i></button></div>
+            </div>
+        </div>`;
+    }
+
+    function wireMessagesChat() {
+        const chatId=ROUTE.params.chatId;
+        const otherName=ROUTE.params.otherName||"Chat";
+        if(!chatId) return;
+        const isMobile=window.innerWidth<=900;
+        const backBtn=document.getElementById('msgBackBtn');
+        if(backBtn&&isMobile)backBtn.style.display='inline-flex';
+        if(backBtn)backBtn.addEventListener('click',()=>navigate("messages"));
+        const chatStatus=document.getElementById('chatStatusText');
+        if(chatStatus)chatStatus.textContent='Online';
+        if(chatMessagesUnsub) chatMessagesUnsub();
+        chatMessagesUnsub=subscribeMessages(chatId);
+        markChatRead(chatId);
+        const input=document.getElementById('chatInput');
+        const sendBtn=document.getElementById('sendBtn');
+        const fileBtn=document.getElementById('msgFileBtn');
+        // Don't auto-focus on mobile — keyboard would obstruct messages
+        async function send(){const t=input.value.trim();if(t&&!sendBtn.disabled){sendBtn.disabled=true;sendBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';try{await sendMessage(chatId,t);input.value='';input.style.height='auto';input.focus();}finally{sendBtn.disabled=false;sendBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>';}}}
+        sendBtn.addEventListener('click',send);
+        input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+        input.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'});
+        if(fileBtn){
+            fileBtn.addEventListener('click',()=>{
+                const dialog=uploadcare.openDialog(null,{publicKey:UPLOADCARE_PUBLIC_KEY,multiple:false,imgOnly:false});
+                dialog.done((file)=>{
+                    file.promise().then((info)=>{
+                        if(info.size&&info.size>10*1024*1024){toast("File too large (max 10MB).","err");return;}
+                        const url=info.cdnUrl;
+                        sendMessage(chatId,'',url,info.name||'File');
+                    }).catch(()=>toast("Upload failed.","err"));
+                });
+                dialog.fail(()=>toast("Upload cancelled.","err"));
+            });
+        }
+        const svcBtn=document.getElementById('sendServiceOfferBtn');
+        if(svcBtn){
+            svcBtn.addEventListener('click',async()=>{
+                const uid=ROUTE.params.chatId ? allChats.find(c=>c.id===ROUTE.params.chatId)?.otherUid : null;
+                if(!uid){toast("Cannot identify user.","err");return;}
+                const msgText='🛎️ We have new assistance services available for you! Please check your dashboard → My Portal → Assistance Services section for details and payment options. Reply if you have any questions.';
+                sendMessage(chatId,msgText,'','');
+                toast("Service offer sent!","ok");
+            });
+        }
+        document.querySelectorAll('[data-chatid]').forEach(el=>el.addEventListener('click',function(e){
+            if(e.target.closest('.chat-del'))return;
+            const id=this.getAttribute('data-chatid'),name=this.getAttribute('data-chatname')||"Chat";
+            navigate("messages-chat",{chatId:id,otherName:name});
+        }));
+        document.querySelectorAll('.chat-del').forEach(b=>b.addEventListener('click',async function(e){
+            e.stopPropagation();
+            const id=this.getAttribute('data-delchat');
+            const name=this.getAttribute('data-chatname')||"Chat";
+            if(id)await deleteChatForever(id,name);
+        }));
+        const searchInput=document.getElementById('msgSearchInput');
+        if(searchInput)searchInput.addEventListener('input',function(){
+            const q=this.value.toLowerCase().trim();
+            (document.getElementById('msgListWrap')||document.querySelector('.msg-list-panel')).querySelectorAll('.msg-list-item').forEach(el=>{
+                const hay=el.getAttribute('data-search')||'';
+                el.style.display=q&&!hay.includes(q)?'none':'flex';
+            });
+        });
+        // Header delete button
+        document.getElementById('chatHeaderDelBtn')?.addEventListener('click',()=>deleteChatForever(chatId,otherName));
+        // Avatar click → show applicant details
+        document.querySelector('.msg-chat-header .msg-avatar')?.addEventListener('click',()=>showUserDetails(otherName));
+    }
+
+    function showUserDetails(userName){
+        const uid=ROUTE.params.chatId ? allChats.find(c=>c.id===ROUTE.params.chatId)?.otherUid : null;
+        if(!uid){toast("User details not available.","err");return;}
+        let app=allApps.find(a=>a.uid===uid);
+        if(!app){toast("No application found for this user.","err");return;}
+        const root=document.getElementById('modal-root');
+        root.innerHTML=`
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" style="max-width:500px">
+                <div class="modal-head"><h3>${esc(app.fullName||userName)}</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-body">
+                    <div style="display:flex;gap:20px;margin-bottom:16px;align-items:center">
+                        <div class="msg-avatar" style="width:52px;height:52px;font-size:22px">${esc((app.fullName||userName).charAt(0).toUpperCase())}</div>
+                        <div><div style="font-size:16px;font-weight:700;color:var(--blue-900)">${esc(app.fullName||userName)}</div><div style="font-size:13px;color:var(--slate-500)">${esc(app.email||'')}</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;line-height:1.8">
+                        <div><b>Phone:</b> ${esc(app.phone||'—')}</div>
+                        <div><b>Nationality:</b> ${esc(app.nationality||'—')}</div>
+                        <div><b>Position:</b> ${esc(app.jobTitle||'—')}</div>
+                        <div><b>Country:</b> ${esc(app.country||'—')}</div>
+                        <div><b>Status:</b> ${statusBadge(app.status)}</div>
+                        <div><b>Passport:</b> ${esc(app.passportNumber||'—')}</div>
+                    </div>
+                    ${app.cvUrl?`<div style="margin-top:14px"><a href="${app.cvUrl}" target="_blank" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-lines"></i> View CV</a></div>`:''}
+                    <div style="margin-top:14px"><button class="btn btn-primary btn-sm" data-openapp="${appId(app)}"><i class="fa-solid fa-arrow-right"></i> Open Full Application</button></div>
+                </div>
+                <div class="modal-foot"><button class="btn btn-outline btn-sm" id="modalCloseBtn2">Close</button></div>
+            </div>
+        </div>`;
+        document.getElementById('modalCloseBtn').addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalCloseBtn2')?.addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
+        const openBtn=root.querySelector('[data-openapp]');
+        if(openBtn)openBtn.addEventListener('click',()=>{root.innerHTML='';openAppModal(openBtn.getAttribute('data-openapp'));});
+    }
+
+    function fmtMsgTime(ts) {
+        if(!ts)return "";if(ts.toDate)ts=ts.toDate();
+        return new Date(ts).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+    }
+    function formatMsgDate(ts) {
+        if(!ts)return "";if(ts.toDate)ts=ts.toDate();
+        const d=new Date(ts),n=new Date(),t=new Date(n.getFullYear(),n.getMonth(),n.getDate()),y=new Date(t);y.setDate(y.getDate()-1);
+        const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+        if(dd.getTime()===t.getTime())return"Today";if(dd.getTime()===y.getTime())return"Yesterday";
+        if(d.getFullYear()===n.getFullYear())return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+        return d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+    }
+    function shouldShowDateSeparator(msg,prevMsg) {
+        if(!prevMsg)return true;
+        const g=(ts)=>{if(!ts)return null;const d=ts.toDate?ts.toDate():new Date(ts);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();};
+        return g(msg.timestamp)!==g(prevMsg.timestamp);
+    }
+    function renderMessagesChat(chatId,messages) {
+        const body=document.getElementById('msgChatBody');
+        if(!body)return;
+        currentChatMessages=messages||[];
+        const chatIdCapture=chatId;
+        body.innerHTML=currentChatMessages.length?(msgHasMore?`<div class="load-older-wrap" style="text-align:center;padding:10px 0"><button class="btn btn-outline btn-sm" id="loadOlderBtn"><i class="fa-solid fa-chevron-up"></i> Load older messages</button></div>`:'')+currentChatMessages.map((m,idx)=>{
+            const sent=(m.senderId||m.sender)===currentUser?.uid;
+            const senderDisplay=m.senderName||(sent?'Admin':(ROUTE.params.otherName||'User'));
+            const prevMsg=idx>0?currentChatMessages[idx-1]:null;
+            const showDate=shouldShowDateSeparator(m,prevMsg);
+            const dateSep=showDate?`<div class="msg-date-sep"><span>${formatMsgDate(m.timestamp)}</span></div>`:'';
+            return `${dateSep}<div class="msg-bubble ${sent?'sent':'rec'} msg-anim">${sent?'':`<div class="msg-sender-name">${esc(senderDisplay)}</div>`}<div>${esc(m.text||'')}${m.fileUrl?`<div class="msg-file"><i class="fa-solid fa-paperclip"></i><a href="${m.fileUrl}" target="_blank">${esc(m.fileName||'File')}</a></div>`:''}</div><div class="msg-time">${fmtMsgTime(m.timestamp)}${sent?' <span class="msg-read-check"><i class="fa-solid fa-check"></i><i class="fa-solid fa-check" style="margin-left:-6px"></i></span>':''}</div></div>`;
+        }).join(""):`<div class="msg-empty"><div><i class="fa-solid fa-comment-dots"></i><p>No messages yet. Start the conversation!</p></div></div>`;
+        const loadBtn=document.getElementById('loadOlderBtn');
+        if(loadBtn)loadBtn.addEventListener('click',()=>loadOlderMessages(chatIdCapture));
+        body.scrollTop=body.scrollHeight;
+    }
+
+    // ============= DATA & HELPERS =============
+    async function getAdminUser(uid) { try{const d=await getDoc(doc(db,"admins",uid));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
+    async function getApp(appId) { try{const d=await getDoc(doc(db,"applications",appId));if(d.exists())return{id:d.id,...d.data()};}catch(e){}return null; }
+
+    function _dedupApps(arr) {
+        const map = {};
+        arr.forEach(a => {
+            const key = a.uid || a.id;
+            const existing = map[key];
+            if (!existing) { map[key] = a; return; }
+            const s1 = (existing.fullName ? 2 : 0) + (existing.email ? 1 : 0) + (existing.nationality ? 1 : 0);
+            const s2 = (a.fullName ? 2 : 0) + (a.email ? 1 : 0) + (a.nationality ? 1 : 0);
+            if (s2 > s1) map[key] = a;
+        });
+        return Object.values(map).filter(a => a.uid || a.fullName || a.email);
+    }
+    async function loadApps() {
+        try {
+            const s=await getDocs(collection(db,"applications"));
+            const l=[]; s.forEach(d=>l.push({id:d.id,...d.data()}));
+            allApps=_dedupApps(l);
+            if(ROUTE.view==="dashboard")render();
+        } catch(e) {}
+    }
+    let unsubscribeApps=null;
+    function subscribeApps() {
+        if(unsubscribeApps)unsubscribeApps();
+        unsubscribeApps=onSnapshot(collection(db,"applications"),(snapshot)=>{const l=[];snapshot.forEach(d=>l.push({id:d.id,...d.data()}));allApps=_dedupApps(l);if(ROUTE.view==="dashboard")render();});
+    }
+
+    async function loadJobs() {
+        if(!allJobs.length){allJobs=[];computeCountryCounts();}
+        getDocs(collection(db,"jobs")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));if(l.length){allJobs=l;computeCountryCounts();if(["jobs","dashboard"].includes(ROUTE.view))render();}}).catch(()=>{});
+    }
+
+    async function loadFees() {
+        getDocs(collection(db,"fees")).then(s=>{const l=[];s.forEach(d=>l.push({id:d.id,...d.data()}));allFees=l;if(ROUTE.view==="fees")render();}).catch(()=>{});
+    }
+
+    async function addJob(d){const r=doc(collection(db,"jobs"));await setDoc(r,{...d,createdAt:serverTimestamp()});await loadJobs();}
+    async function deleteJob(i){await deleteDoc(doc(db,"jobs",i));await loadJobs();}
+    async function addFee(d){const r=doc(collection(db,"fees"));await setDoc(r,{...d,createdAt:serverTimestamp()});await loadFees();}
+    async function deleteFee(i){await deleteDoc(doc(db,"fees",i));await loadFees();}
+
+    function computeCountryCounts(){}
+
+    function _otherFromChat(docId,data) {
+        if (!data.participants) return {uid:null,name:"Unknown"};
+        const allUids=data.participants;
+        if (!currentUser || !allUids.includes(currentUser.uid)) {
+            const nonAdmin=allUids.find(u=>data.participantNames?.[u]&&data.participantNames[u]!=='Admin')||allUids[0];
+            return {uid:nonAdmin,name:data.participantNames?.[nonAdmin]||nonAdmin};
+        }
+        const uid=allUids.find(p=>p!==currentUser?.uid)||allUids[0];
+        return {uid:uid||null,name:uid?(data.participantNames?.[uid]||uid):"Unknown"};
+    }
+    function _deduplicateChats(arr) {
+        const seen = {};
+        return arr.filter(c => {
+            const key = c.otherName || c.otherUid || c.id;
+            if (seen[key]) {
+                const existing = seen[key];
+                const tNew = c.lastTimestamp ? new Date(c.lastTimestamp.seconds ? c.lastTimestamp.seconds * 1000 : c.lastTimestamp) : new Date(0);
+                const tOld = existing.lastTimestamp ? new Date(existing.lastTimestamp.seconds ? existing.lastTimestamp.seconds * 1000 : existing.lastTimestamp) : new Date(0);
+                if (tNew > tOld) {
+                    Object.assign(existing, c);
+                }
+                return false;
+            }
+            seen[key] = c;
+            return true;
+        });
+    }
+    function _visibleChats(arr){return _deduplicateChats(arr);}
+    async function loadChats() {
+        if(!currentUser)return;
+        return getDocs(collection(db,"chats")).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();return allChats;}).catch(()=>[]);
+    }
+
+    function subscribeChats() {
+        if(!currentUser)return;
+        if(allMessagesSub)allMessagesSub();
+        allMessagesSub=onSnapshot(collection(db,"chats"),(s)=>{allChats=[];s.forEach(d=>{const dt=d.data();if(dt.deleted)return;const ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
+    }
+
+    async function deleteChatForever(chatId,chatName) {
+        if(!currentUser)return;
+        if(currentUserData?.type!=='admin'){toast("Only admins can delete conversations.","err");return;}
+        if(!confirm(`Delete conversation with "${esc(chatName||'this user')}"? This will permanently remove the entire chat history for everyone. This cannot be undone.`))return;
+        if(!confirm(`⚠️ ARE YOU SURE? This cannot be undone.`))return;
+        try{
+            await updateDoc(doc(db,"chats",chatId),{deleted:true,deletedAt:serverTimestamp(),deletedBy:currentUser.uid});
+            allChats=allChats.filter(c=>c.id!==chatId);
+            toast('Conversation deleted.','ok');
+            if(ROUTE.view==='messages-chat'&&ROUTE.params.chatId===chatId)navigate("messages");
+            else render();
+        }catch(e){
+            console.error("deleteChatForever error:",e);
+            toast('Failed to delete: '+e.message,'err');
+        }
+    }
+
+    function subscribeMessages(chatId) {
+        olderMessages=[];msgEarliestTimestamp=null;msgHasMore=false;
+        const q=query(collection(db,"chats",chatId,"messages"),orderBy("timestamp","asc"),limitToLast(PAGE_SIZE));
+        return onSnapshot(q,(s)=>{const msgs=[];s.forEach(d=>msgs.push({id:d.id,...d.data()}));if(olderMessages.length===0){if(msgs.length===PAGE_SIZE)msgEarliestTimestamp=msgs[0].timestamp;msgHasMore=msgs.length===PAGE_SIZE;}renderMessagesChat(chatId,[...olderMessages,...msgs]);markChatRead(chatId);},(error)=>{console.error("Messages subscription error:",error);toast("Error loading messages. Please try again.","err");});
+    }
+
+    async function loadOlderMessages(chatId) {
+        if(!msgEarliestTimestamp)return;
+        const q=query(collection(db,"chats",chatId,"messages"),orderBy("timestamp","desc"),limit(PAGE_SIZE),startAfter(msgEarliestTimestamp));
+        const snap=await getDocs(q);
+        const older=[];snap.forEach(d=>older.push({id:d.id,...d.data()}));
+        if(!older.length){msgHasMore=false;return;}
+        older.reverse();msgEarliestTimestamp=older[0].timestamp;msgHasMore=older.length===PAGE_SIZE;
+        olderMessages=[...older,...olderMessages];
+        const body=document.getElementById('msgChatBody');
+        if(body)body.querySelector('.load-older-wrap')?.remove();
+        renderMessagesChat(chatId,[...olderMessages,...currentChatMessages]);
+    }
+
+    async function markChatRead(chatId) {
+        try{if(currentUser)await updateDoc(doc(db,"chats",chatId),{[`unread.${currentUser.uid}`]:0});}catch(e){}
+    }
+
+    function getUnreadCount() {
+        if(!currentUser||!allChats.length)return 0;
+        return allChats.reduce((s,c)=>s+((c.unread?.[currentUser.uid])||0),0);
+    }
+
+    async function getAllAdminUids(forceRefresh) {
+        if(cachedAdminUids&&!forceRefresh)return cachedAdminUids;
+        const snap=await getDocs(collection(db,"admins"));
+        const uids=[];snap.forEach(d=>uids.push(d.id));
+        cachedAdminUids=uids;
+        return uids;
+    }
+    async function getOrCreateChat(otherUid,otherName) {
+        if(!currentUser||!otherUid)return null;
+        const chatId=`client_${otherUid}`,chatRef=doc(db,"chats",chatId);
+        const existing=await getDoc(chatRef);
+        if(existing.exists())return{id:existing.id,...existing.data()};
+        // Double-check no duplicate chat exists for this user
+        const dup=await getDocs(query(collection(db,"chats"),where("participants","array-contains",otherUid)));
+        if(!dup.empty)return{id:dup.docs[0].id,...dup.docs[0].data()};
+        const adminUids=cachedAdminUids||await getAllAdminUids();
+        const allParticipants=[otherUid,...adminUids];
+        const participantNames={[otherUid]:otherName||'User'};
+        adminUids.forEach(uid=>{participantNames[uid]='Admin';});
+        const unread={};allParticipants.forEach(p=>{unread[p]=0;});
+        const data={participants:allParticipants,participantNames,unread,lastMessage:'',lastTimestamp:serverTimestamp(),createdAt:serverTimestamp()};
+        await setDoc(chatRef,data);
+        return {id:chatRef.id,...data};
+    }
+
+    async function sendMessage(chatId,text,fileUrl,fileName) {
+        const r=doc(collection(db,"chats",chatId,"messages"));
+        const msg={senderId:currentUser.uid,senderName:'Admin',text:text||'',type:fileUrl?'file':'text',fileUrl:fileUrl||'',fileName:fileName||'',read:false,timestamp:serverTimestamp()};
+        await setDoc(r,msg);
+        const cr=doc(db,"chats",chatId),cs=await getDoc(cr),cd=cs.data();
+        const updates={};
+        cd.participants.forEach(p=>{if(p&&p!==currentUser.uid)updates[`unread.${p}`]=increment(1);});
+        updates.lastMessage=text||(fileUrl?`📎 ${fileName||'File'}`:'');
+        updates.lastTimestamp=serverTimestamp();
+        updates.lastSender=currentUser.uid;
+        await updateDoc(cr,updates);
+    }
+
+    // ============= AUTH =============
+    async function verifyAdminWithRetry(uid, attempts = 3) {
+        for (let i = 0; i < attempts; i++) {
+            const admin = await getAdminUser(uid);
+            if (admin) return admin;
+            if (i < attempts - 1) await new Promise(r => setTimeout(r, 800 * (i + 1)));
+        }
+        return null;
+    }
+    onAuthStateChanged(auth,async(user)=>{
+        try{
+            currentUser=user;
+            if(user){
+                const fsAdmin=await verifyAdminWithRetry(user.uid);
+                if(fsAdmin){
+                    currentUserData={...fsAdmin,type:'admin'};
+                    document.getElementById('topbarUser').textContent=user.email;
+                    const saved=sessionStorage.getItem('lastRoute');
+                    if(saved){try{const r=JSON.parse(saved);if(r.view&&r.view!=='login'){ROUTE=r;render();restoreScrollPos();return;}}catch(e){}}
+                    if(ROUTE.view==='login'||!ROUTE.view)navigate("dashboard");
+                    getAllAdminUids().catch(()=>{});
+                    loadApps();loadJobs();loadFees();
+                    fixAdminChatNames().finally(()=>{loadChats();subscribeChats();});
+                    subscribeApps();
+                }else{
+                    currentUserData=null;allChats=[];currentChatMessages=[];
+                    if(allMessagesSub){allMessagesSub();allMessagesSub=null;}
+                    if(chatMessagesUnsub){chatMessagesUnsub();chatMessagesUnsub=null;}
+                    if(unsubscribeApps){unsubscribeApps();unsubscribeApps=null;}
+                    toast("Admin account not found. Contact support.","err");
+                    await signOut(auth);
+                    navigate("login");
+                }
+            }else{
+                currentUserData=null;allChats=[];currentChatMessages=[];
+                document.getElementById('topbarUser').textContent='';
+                if(allMessagesSub){allMessagesSub();allMessagesSub=null;}
+                if(chatMessagesUnsub){chatMessagesUnsub();chatMessagesUnsub=null;}
+                if(unsubscribeApps){unsubscribeApps();unsubscribeApps=null;}
+                navigate("login");
+            }
+        }catch(e){console.error("Auth error:",e);}
+    });
+
+    // Boot
+    initHistoryState();
+    try{
+        const saved=sessionStorage.getItem('lastRoute');
+        if(saved){const r=JSON.parse(saved);if(r.view&&r.view!=='login'){ROUTE=r;}}
+    }catch(e){}
+    try{await Promise.all([loadJobs(),loadFees()]);}catch(e){}
+    // Network stability monitor
+    let wasOffline = false;
+    window.addEventListener('online',()=>{if(wasOffline){toast('Connection restored.','ok');wasOffline=false;}});
+    window.addEventListener('offline',()=>{wasOffline=true;toast('Network lost — working offline. Reconnect to sync.','err');});
