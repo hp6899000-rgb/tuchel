@@ -1842,26 +1842,18 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
     function subscribeChats() {
         if(!currentUser)return;
         if(allMessagesSub)allMessagesSub();
-        allMessagesSub=onSnapshot(collection(db,"chats"),(s)=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
+        allMessagesSub=onSnapshot(collection(db,"chats"),(s)=>{allChats=[];s.forEach(d=>{const dt=d.data();if(dt.deleted)return;const ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(ROUTE.view==="messages"||ROUTE.view==="messages-chat")render();});
     }
 
     async function deleteChatForever(chatId,chatName) {
         if(!currentUser)return;
         if(currentUserData?.type!=='admin'){toast("Only admins can delete conversations.","err");return;}
         if(!confirm(`Delete conversation with "${esc(chatName||'this user')}"? This will permanently remove the entire chat history for everyone. This cannot be undone.`))return;
-        if(!confirm(`⚠️ ARE YOU SURE? All messages in this conversation will be permanently deleted. This cannot be undone.`))return;
+        if(!confirm(`⚠️ ARE YOU SURE? This cannot be undone.`))return;
         try{
-            const msgsSnap=await getDocs(collection(db,"chats",chatId,"messages"));
-            const batchSize=50;let deleted=0;let failed=0;
-            for(let i=0;i<msgsSnap.docs.length;i+=batchSize){
-                const chunk=msgsSnap.docs.slice(i,i+batchSize);
-                const results=await Promise.allSettled(chunk.map(d=>d.ref.delete()));
-                results.forEach(r=>{if(r.status==='fulfilled')deleted++;else failed++;});
-            }
-            await deleteDoc(doc(db,"chats",chatId));
-            const msg=`Conversation deleted (${deleted} messages removed${failed?`, ${failed} failed`:''}).`;
-            toast(msg,'ok');
+            await updateDoc(doc(db,"chats",chatId),{deleted:true,deletedAt:serverTimestamp(),deletedBy:currentUser.uid});
             allChats=allChats.filter(c=>c.id!==chatId);
+            toast('Conversation deleted.','ok');
             if(ROUTE.view==='messages-chat'&&ROUTE.params.chatId===chatId)navigate("messages");
             else render();
         }catch(e){

@@ -1383,6 +1383,7 @@
                 allChats = [];
                 snapshot.forEach(d => {
                     const data = d.data();
+                    if (data.deleted) return;
                     let otherUid, otherName;
                     if (isAdmin) {
                         otherUid = _findOtherUidForAdmin(data);
@@ -4117,19 +4118,11 @@ async function deleteChatForever(chatId,chatName) {
     if(!currentUser)return;
     if(currentUserData?.type!=='admin'){toast("Only admins can delete conversations.","err");return;}
     if(!confirm(`Delete conversation with "${esc(chatName||'this user')}"? This will permanently remove the entire chat history for everyone. This cannot be undone.`))return;
-    if(!confirm(`⚠️ ARE YOU SURE? All messages in this conversation will be permanently deleted. This cannot be undone.`))return;
+    if(!confirm(`⚠️ ARE YOU SURE? This cannot be undone.`))return;
     try{
-        const msgsSnap=await getDocs(collection(db,"chats",chatId,"messages"));
-        const batchSize=50;let deleted=0;let failed=0;
-        for(let i=0;i<msgsSnap.docs.length;i+=batchSize){
-            const chunk=msgsSnap.docs.slice(i,i+batchSize);
-            const results=await Promise.allSettled(chunk.map(d=>d.ref.delete()));
-            results.forEach(r=>{if(r.status==='fulfilled')deleted++;else failed++;});
-        }
-        await deleteDoc(doc(db,"chats",chatId));
-        const msg=`Conversation deleted (${deleted} messages removed${failed?`, ${failed} failed`:''}).`;
-        toast(msg,'ok');
+        await updateDoc(doc(db,"chats",chatId),{deleted:true,deletedAt:serverTimestamp(),deletedBy:currentUser.uid});
         allChats=allChats.filter(c=>c.id!==chatId);
+        toast('Conversation deleted.','ok');
         if(ROUTE.view==='messages-chat'&&ROUTE.params.chatId===chatId)navigate("messages");
         else renderCurrentView();
     }catch(e){
