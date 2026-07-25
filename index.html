@@ -1528,9 +1528,8 @@
                     if (live.length > 0) {
                         allJobs = live;
                         usingFallbackJobs = false;
-                    } else if (!usingFallbackJobs) {
+                    } else {
                         allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
-                        usingFallbackJobs = true;
                     }
                     computeCountryCounts();
                     if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
@@ -3674,7 +3673,6 @@
             const f = document.getElementById('newJobForm');
             if (f) f.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (usingFallbackJobs) { toast("Firestore unavailable — cannot add jobs.", "err"); return; }
                 const fd = new FormData(e.target);
                 await addJob({ title: fd.get('title'), country: fd.get('country'), category: fd.get('category'), salary: fd.get('salary'), desc: fd.get('desc') });
                 toast("Job listing added.", "ok"); renderCurrentView();
@@ -3689,7 +3687,6 @@
         }
 
         async function seedAllJobs() {
-            if (usingFallbackJobs) { toast("Firestore is unavailable — cannot seed to database.", "err"); return; }
             if (!confirm(`Add ${JOBS_SEED.length} sample jobs to the database? Existing jobs will remain - duplicates may occur.`)) return;
             const btn = document.getElementById('seedJobsBtn');
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Seeding...';
@@ -3707,7 +3704,6 @@
         }
 
         async function clearAllJobs() {
-            if (usingFallbackJobs) { toast("Firestore is unavailable — cannot clear from database.", "err"); return; }
             if (!confirm('DELETE ALL jobs from the database? This cannot be undone!')) return;
             if (!confirm('ARE YOU SURE? Every job listing will be permanently removed.')) return;
             const btn = document.getElementById('clearJobsBtn');
