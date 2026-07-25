@@ -1167,6 +1167,14 @@
             }
         }
 
+        function mergeJobs(live) {
+            const seed = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
+            if (live.length === 0) return seed;
+            const map = new Map();
+            seed.forEach(j => map.set(j.title + '|' + j.country, j));
+            live.forEach(j => map.set(j.title + '|' + j.country, j));
+            return Array.from(map.values());
+        }
         function computeCountryCounts() {
             const c = {};
             COUNTRIES.forEach(cn => c[cn] = 0);
@@ -1176,20 +1184,18 @@
         async function loadJobs() {
             if (allJobs.length === 0) {
                 allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
-                usingFallbackJobs = true;
                 computeCountryCounts();
             }
             getDocs(collection(db, "jobs")).then(snapshot => {
                 const live = [];
                 snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
                 if (live.length > 0) {
-                    allJobs = live;
-                    usingFallbackJobs = false;
+                    allJobs = mergeJobs(live);
                     computeCountryCounts();
                     if (["jobs", "home", "apply", "applicant-dashboard"].includes(ROUTE.view)) renderCurrentView();
                 }
             }).catch(e => {
-                if (usingFallbackJobs) console.warn("Using fallback jobs:", e.message);
+                console.warn("loadJobs fetch error:", e.message);
             });
             return allJobs;
         }
@@ -1525,12 +1531,7 @@
                 unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
                     const live = [];
                     snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
-                    if (live.length > 0) {
-                        allJobs = live;
-                        usingFallbackJobs = false;
-                    } else {
-                        allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
-                    }
+                    allJobs = mergeJobs(live);
                     computeCountryCounts();
                     if (["jobs", "admin-jobs", "home", "apply"].includes(ROUTE.view)) renderCurrentView();
                 }, (err) => {
@@ -3172,11 +3173,9 @@
             document.querySelectorAll('[data-afstatus]').forEach(b => b.addEventListener('click', () => { adminFilters.status = b.getAttribute('data-afstatus'); saveAdminFilters(); renderCurrentView(); }));
             document.querySelectorAll('[data-openapp]').forEach(b => b.addEventListener('click', () => openAdminAppModal(b.getAttribute('data-openapp'))));
             document.querySelectorAll('[data-action="seed-jobs"]').forEach(b => b.addEventListener('click', async () => {
-                if (usingFallbackJobs) { toast("Firestore is not available — cannot seed jobs.", "err"); return; }
                 await seedAllJobs(); await loadJobs(); renderCurrentView();
             }));
             document.querySelectorAll('[data-action="clear-jobs"]').forEach(b => b.addEventListener('click', async () => {
-                if (usingFallbackJobs) { toast("Firestore is not available — cannot clear jobs.", "err"); return; }
                 if (!confirm("Clear ALL jobs from the database?")) return;
                 await clearAllJobs(); await loadJobs(); renderCurrentView();
             }));
