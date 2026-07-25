@@ -4,6 +4,10 @@
     {
       "src": "*.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -11,6 +15,8 @@
     { "src": "/admin", "dest": "/admin.html" },
     { "src": "/admin.html", "dest": "/admin.html" },
     { "src": "/index.html", "dest": "/index.html" },
+    { "src": "/app.min.js", "dest": "/app.min.js" },
+    { "src": "/admin.min.js", "dest": "/admin.min.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
