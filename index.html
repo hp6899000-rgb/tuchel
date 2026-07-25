@@ -1171,10 +1171,9 @@
         function mergeJobs(live) {
             const seed = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
             if (live.length === 0) return seed;
-            const map = new Map();
-            seed.forEach(j => map.set(j.title + '|' + j.country, j));
-            live.forEach(j => map.set(j.title + '|' + j.country, j));
-            return Array.from(map.values());
+            const dbJobs = live.filter(j => !j.id || !String(j.id).startsWith('fallback_'));
+            if (dbJobs.length === 0) return seed;
+            return [...seed, ...dbJobs];
         }
         function computeCountryCounts() {
             const c = {};
