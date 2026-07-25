@@ -765,7 +765,7 @@
             "Healthcare", "Security & Safety", "Logistics & Warehousing",
             "Construction & Manual Labor", "Cleaning & Maintenance",
             "Health, Safety & Environment", "Hospitality & Tourism",
-            "Agriculture & Farming"
+            "Agriculture & Farming", "Driving"
         ];
         const CATEGORY_ICON = {
             "Healthcare": "fa-solid fa-notes-medical",
@@ -775,7 +775,8 @@
             "Cleaning & Maintenance": "fa-solid fa-broom",
             "Health, Safety & Environment": "fa-solid fa-leaf",
             "Hospitality & Tourism": "fa-solid fa-concierge-bell",
-            "Agriculture & Farming": "fa-solid fa-wheat-awn"
+            "Agriculture & Farming": "fa-solid fa-wheat-awn",
+            "Driving": "fa-solid fa-truck"
         };
         const STATUS_STEPS = [
             "Application Received",
@@ -895,7 +896,8 @@
             { title: "Greenhouse Worker", salary: "£2,000 / month", category: "Agriculture & Farming", desc: "Work in modern greenhouse facilities managing plant care, irrigation systems, climate control, and harvesting. Knowledge of horticulture and crop management practices preferred." },
             { title: "Fruit & Vegetable Harvester", salary: "£1,900 / month", category: "Agriculture & Farming", desc: "Harvest fruits and vegetables by hand during seasonal peaks. Sort, grade, and package produce for distribution. Physically demanding role suitable for hard-working individuals. Accommodation often provided." },
             { title: "Livestock Farm Assistant", salary: "£2,100 / month", category: "Agriculture & Farming", desc: "Assist with feeding, watering, and caring for livestock including cattle, sheep, pigs, or poultry. Maintain animal housing and monitor herd health. Previous livestock experience required." },
-            { title: "Agricultural Laborer", salary: "£2,250 / month", category: "Agriculture & Farming", desc: "Operate farm machinery, assist with crop spraying, irrigation management, and general farm maintenance. Tractor driving experience and mechanical aptitude required." }
+            { title: "Agricultural Laborer", salary: "£2,250 / month", category: "Agriculture & Farming", desc: "Operate farm machinery, assist with crop spraying, irrigation management, and general farm maintenance. Tractor driving experience and mechanical aptitude required." },
+            { title: "Driver", salary: "£2,250 / month", category: "Driving", desc: "Transport goods and passengers safely across European routes. Maintain vehicle logs, perform pre-trip inspections, and ensure timely deliveries. Valid EU/UK driving license and clean driving record required." }
         ];
         const JOBS_SEED = COUNTRIES.flatMap(c => JOB_ROLES.map((r, i) => ({ ...r, country: c, id: "fallback_" + i + "_" + c })));
         allJobs = JOBS_SEED.map((j, i) => ({ id: "fallback_" + i, ...j }));
@@ -2486,8 +2488,7 @@
                 <form id="loginForm">
                   <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" placeholder="you@example.com" required></div>
                   <div class="field"><label>Password <span class="req">*</span></label><input type="password" name="password" placeholder="Minimum 6 characters" required minlength="6"></div>
-                  ${loginMode === 'register' ? `<div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" placeholder="Your full name" required></div>
-                  <div class="field" style="margin-top:6px"><label class="checkbox-label"><input type="checkbox" name="registerAsAdmin" style="width:auto;margin-right:8px"> Register as platform admin</label></div>` : ''}
+                  ${loginMode === 'register' ? `<div class="field"><label>Full Name <span class="req">*</span></label><input type="text" name="fullName" placeholder="Your full name" required></div>` : ''}
                   <button class="btn btn-primary btn-block" type="submit">${loginMode === 'signin' ? '<i class="fa-solid fa-right-to-bracket"></i> Sign In' : '<i class="fa-solid fa-user-plus"></i> Create Account'}</button>
                 </form>
                 <p class="hint" style="text-align:center;margin-top:14px">
@@ -2538,21 +2539,15 @@
                     if (loginMode === 'register') {
                         const fullName = fd.get('fullName').trim();
                         if (!fullName) { toast("Please enter your full name.", "err"); if (btn) { btn.disabled = false; btn.innerHTML = 'Create Account'; } return; }
-                        const asAdmin = fd.get('registerAsAdmin') === 'on';
                         const cred = await createUserWithEmailAndPassword(auth, email, password);
                         const uid = cred.user.uid;
                         await updateProfile(cred.user, { displayName: fullName });
-                        if (asAdmin) {
-                            await setDoc(doc(db, "admins", uid), { displayName: fullName, email, createdAt: serverTimestamp() });
-                            toast("Admin account created! Signing in...", "ok");
-                        } else {
-                            await setDoc(doc(db, "applications", uid), {
-                                uid, fullName, email, role: 'applicant', status: "No Application",
-                                timeline: [], internalNotes: [], fees: [], archived: false,
-                                createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-                            });
-                            toast("Account created! Welcome.", "ok");
-                        }
+                        await setDoc(doc(db, "applications", uid), {
+                            uid, fullName, email, role: 'applicant', status: "No Application",
+                            timeline: [], internalNotes: [], fees: [], archived: false,
+                            createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+                        });
+                        toast("Account created! Welcome.", "ok");
                     } else {
                         await signInWithEmailAndPassword(auth, email, password);
                         toast("Signed in successfully!", "ok");
