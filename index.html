@@ -619,10 +619,11 @@
             .doc-row .di { font-size: 12px; }
             .mpesa-paybill { font-size: 28px; padding: 6px 16px; }
             .modal { margin: 4px; border-radius: 8px; }
-            .modal-body { padding: 10px; }
+            .modal-body { padding: 10px; max-height: 85vh; }
             .modal-head { padding: 10px 12px; }
             .modal-head h3 { font-size: 13px; }
-            .modal-foot { padding: 10px 12px; }
+            .modal-foot { padding: 10px 12px; gap: 4px; }
+            .modal-foot .btn { font-size: 11px; padding: 6px 8px; min-height: 32px; }
             table { font-size: 11px; }
             th, td { padding: 6px 6px; }
             .progress-stages .stage { min-width: 48px; font-size: 8px; padding: 4px 1px; }
@@ -3582,11 +3583,11 @@
                     const id = app.id || app.uid;
                     if (id) await deleteDoc(doc(db, "applications", id)).catch(() => {});
                     const chatsSnap = await getDocs(query(collection(db,"chats"), where("participants","array-contains",app.uid)));
-                    for (const chatDoc of chatsSnap.docs) {
-                        const msgsSnap = await getDocs(collection(db,"chats",chatDoc.id,"messages"));
-                        msgsSnap.forEach(m => m.ref.delete().catch(()=>{}));
-                        chatDoc.ref.delete().catch(()=>{});
-                    }
+                    await Promise.allSettled(chatsSnap.docs.map(async cd=>{
+                        const msgsSnap = await getDocs(collection(db,"chats",cd.id,"messages"));
+                        await Promise.allSettled(msgsSnap.docs.map(m=>m.ref.delete().catch(()=>{})));
+                        await cd.ref.delete().catch(()=>{});
+                    }));
                     try{addAuditLog(`Deleted application`,`${displayName(app)} (${displayId(app)})`);}catch(e){}
                     toast("Application permanently deleted.","ok");
                     loadApps(); closeModal();

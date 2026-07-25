@@ -316,6 +316,11 @@
             .nav-link { min-height: 44px; }
             .msg-list-item { min-height: 56px; }
             .dash-side .side-link { min-height: 44px; }
+            .modal-foot .btn { flex: 1 1 auto; min-width: 0; font-size: 12px; padding: 8px 10px; }
+            .fee-row .btn { font-size: 11px; padding: 5px 10px; }
+            .fee-row > * { min-width: 0; flex: 1 1 auto; }
+            .doc-row { flex-direction: column; align-items: stretch; }
+            .doc-row .di { margin-bottom: 6px; }
         }
         @media (max-width: 360px) {
             .wrap { padding: 0 6px; }
@@ -338,10 +343,13 @@
             .dash-topbar h2 { font-size: 14px; }
             th, td { padding: 6px 4px; }
             .modal { margin: 4px; }
-            .modal-body { padding: 8px; }
+            .modal-body { padding: 8px; max-height: 85vh; }
             .modal-head { padding: 8px 10px; }
             .modal-head h3 { font-size: 13px; }
-            .modal-foot { padding: 8px 10px; }
+            .modal-foot { padding: 8px 10px; gap: 4px; }
+            .modal-foot .btn { font-size: 11px; padding: 6px 8px; min-height: 32px; }
+            .fee-row .btn { font-size: 10px; padding: 4px 8px; }
+            .svc-progress { max-width: 100px; }
             footer { padding: 24px 10px 16px; }
             .auth-shell { padding: 12px 8px; }
             .auth-shell .card { padding: 16px 12px; }
@@ -1081,11 +1089,11 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 const id=app.id||app.uid;
                 if(id)await deleteDoc(doc(db,"applications",id)).catch(()=>{});
                 const chatsSnap=await getDocs(query(collection(db,"chats"),where("participants","array-contains",app.uid)));
-                for(const chatDoc of chatsSnap.docs){
-                    const msgsSnap=await getDocs(collection(db,"chats",chatDoc.id,"messages"));
-                    msgsSnap.forEach(m=>m.ref.delete().catch(()=>{}));
-                    chatDoc.ref.delete().catch(()=>{});
-                }
+                await Promise.allSettled(chatsSnap.docs.map(async cd=>{
+                    const msgsSnap=await getDocs(collection(db,"chats",cd.id,"messages"));
+                    await Promise.allSettled(msgsSnap.docs.map(m=>m.ref.delete().catch(()=>{})));
+                    await cd.ref.delete().catch(()=>{});
+                }));
                 try{addAuditLog(`Deleted application`,`${appName(app)} (${displayId(app)})`);}catch(e){}
                 toast("Application permanently deleted.","ok");
                 root.innerHTML='';await loadApps();
