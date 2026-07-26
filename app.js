@@ -655,6 +655,7 @@
                 allChats = [];
                 snap.forEach(d => {
                     const data = d.data();
+                    if (data.deleted) return;
                     let otherUid, otherName;
                     if (isAdmin) {
                         otherUid = _findOtherUidForAdmin(data);

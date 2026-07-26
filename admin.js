@@ -1462,7 +1462,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
     function _visibleChats(arr){return _deduplicateChats(arr);}
     async function loadChats() {
         if(!currentUser)return;
-        return getDocs(collection(db,"chats")).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data(),ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();return allChats;}).catch(()=>[]);
+        return getDocs(collection(db,"chats")).then(s=>{allChats=[];s.forEach(d=>{const dt=d.data();if(dt.deleted)return;const ot=_otherFromChat(d.id,dt);allChats.push({id:d.id,...dt,otherUid:ot.uid,otherName:ot.name});});allChats.sort((a,b)=>{const ta=a.lastTimestamp?new Date(a.lastTimestamp.seconds?a.lastTimestamp.seconds*1000:a.lastTimestamp):new Date(0),tb=b.lastTimestamp?new Date(b.lastTimestamp.seconds?b.lastTimestamp.seconds*1000:b.lastTimestamp):new Date(0);return tb-ta;});if(["messages","messages-chat"].includes(ROUTE.view))render();return allChats;}).catch(()=>[]);
     }
 
     function subscribeChats() {
