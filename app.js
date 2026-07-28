@@ -1207,6 +1207,7 @@
                 case "terms": html = viewTerms(); break;
                 case "privacy": html = viewPrivacy(); break;
                 case "about-demo": html = viewAboutDemo(); break;
+                case "job-detail": html = viewJobDetail(); break;
                 default: html = viewNotFound();
             }
             appEl.innerHTML = html + renderFooter();
@@ -1221,6 +1222,7 @@
             if (ROUTE.view === "messages") wireMessages();
             if (ROUTE.view === "messages-chat") wireMessagesChat();
             if (ROUTE.view === "jobs") wireJobsFilters();
+            if (ROUTE.view === "job-detail") wireJobDetail();
         }
 
         function wireGlobalNav() {
@@ -1441,11 +1443,8 @@
 
         function jobCard(j) {
             const meta = COUNTRY_META[j.country] || {};
-            const cd = COUNTRY_DETAILS[j.country] || {};
-            const benefits = cd.benefits || [];
             return `
-            <div class="job-card">
-              <button class="jc-expand" aria-label="Toggle details"><i class="fa-solid fa-chevron-down"></i></button>
+            <div class="job-card" data-jobid="${j.id}">
               <div class="jc-head">
                 <div class="jc-icon"><i class="${CATEGORY_ICON[j.category]}"></i></div>
                 <div class="jc-title-wrap">
@@ -1457,38 +1456,10 @@
                 <span class="badge badge-blue"><img src="${flagUrl(meta.flag)}" alt="" loading="lazy" style="width:15px;height:11px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:5px"> ${esc(j.country)}</span>
                 <span class="badge badge-indigo">${esc(j.category)}</span>
               </div>
-              <p class="jc-desc">${esc(j.desc || '')}</p>
-              <div class="jc-details">
-                <div class="jc-section">
-                  <div class="jc-sec-title"><i class="fa-solid fa-gift"></i> Benefits &amp; Perks — ${esc(j.country)}</div>
-                  <div class="benefits-grid">
-                    ${benefits.map(b => `
-                    <div class="ben-item">
-                      <div class="ben-icon"><i class="fa-solid fa-${b.icon}"></i></div>
-                      <div class="ben-info">
-                        <div class="ben-label">${b.label}</div>
-                        <div class="ben-value">${b.value}</div>
-                      </div>
-                    </div>`).join("")}
-                  </div>
-                </div>
-                <div class="jc-section jc-overview">
-                  <div class="jc-sec-title"><i class="fa-solid fa-globe"></i> About ${esc(j.country)}</div>
-                  <p>${cd.overview || ''}</p>
-                  ${cd.facts ? `<div class="jc-facts"><i class="fa-solid fa-star"></i> ${cd.facts}</div>` : ''}
-                </div>
-                <div class="jc-section jc-quickfacts">
-                  <div class="jc-sec-title"><i class="fa-solid fa-chart-simple"></i> Quick Facts</div>
-                  <div class="qf-grid">
-                    ${cd.minWage ? `<div class="qf-item"><span class="qf-label">Min Wage</span><span class="qf-val">${cd.minWage}</span></div>` : ''}
-                    ${cd.employeeCount ? `<div class="qf-item"><span class="qf-label">Workforce</span><span class="qf-val">${cd.employeeCount}</span></div>` : ''}
-                    <div class="qf-item"><span class="qf-label">Currency</span><span class="qf-val">${meta.currency || cd.currency || ''}</span></div>
-                  </div>
-                </div>
-              </div>
+              <p class="jc-desc">${esc((j.desc || '').slice(0, 120))}${(j.desc || '').length > 120 ? '&hellip;' : ''}</p>
               <div class="jc-foot">
+                <button class="btn btn-outline jc-view-btn" data-jobid="${j.id}"><i class="fa-regular fa-eye"></i> View Details</button>
                 ${currentUserData?.type === 'admin' ? '' : `<a class="btn btn-primary" data-nav="apply" data-jobid="${j.id}">Apply Now <i class="fa-solid fa-arrow-right"></i></a>`}
-                <span class="jc-expand-hint"><i class="fa-regular fa-hand-pointer"></i> Click card for details</span>
               </div>
             </div>`;
         }
@@ -1498,16 +1469,102 @@
         function wireJobsFilters() {
             document.querySelectorAll('[data-country]').forEach(b => b.addEventListener('click', () => { jobFilter.country = b.getAttribute('data-country'); saveJobFilter(); renderCurrentView(); }));
             document.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { jobFilter.category = b.getAttribute('data-cat'); saveJobFilter(); renderCurrentView(); }));
+            document.querySelectorAll('.jc-view-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const jobId = btn.getAttribute('data-jobid');
+                if (jobId) navigate('job-detail', { jobId });
+            }));
             document.querySelector('.job-grid')?.addEventListener('click', (e) => {
                 const card = e.target.closest('.job-card');
                 if (!card) return;
-                if (e.target.closest('a, button, .btn, [data-nav]')) return;
-                e.stopPropagation();
-                card.classList.toggle('expanded');
-                const icon = card.querySelector('.jc-expand i');
-                if (icon) icon.className = card.classList.contains('expanded') ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+                if (e.target.closest('a, button, .btn, [data-nav], .jc-view-btn')) return;
+                const jobId = card.getAttribute('data-jobid');
+                if (jobId) navigate('job-detail', { jobId });
             });
         }
+        function viewJobDetail() {
+            const jobId = ROUTE.params.jobId;
+            const job = allJobs.find(j => j.id === jobId);
+            if (!job) return `<div class="section"><div class="wrap"><div class="empty-state" style="padding:80px 20px"><i class="fa-solid fa-briefcase-slash"></i><p>Job not found.</p><a class="btn btn-primary" data-nav="jobs">Browse Jobs</a></div></div></div>`;
+            const meta = COUNTRY_META[job.country] || {};
+            const cd = COUNTRY_DETAILS[job.country] || {};
+            const benefits = cd.benefits || [];
+            return `
+            <section class="jd-section">
+              <div class="jd-hero">
+                <div class="wrap">
+                  <button class="jd-back btn btn-outline btn-sm" data-nav="jobs"><i class="fa-solid fa-arrow-left"></i> All Jobs</button>
+                  <div class="jd-hero-body">
+                    <div class="jd-hero-icon"><i class="${CATEGORY_ICON[job.category]}"></i></div>
+                    <div>
+                      <h1 class="jd-title">${esc(job.title)}</h1>
+                      <div class="jd-salary">${esc(job.salary)}</div>
+                      <div class="jd-badges">
+                        <span class="badge badge-blue"><img src="${flagUrl(meta.flag)}" alt="" loading="lazy" style="width:18px;height:13px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:6px"> ${esc(job.country)}</span>
+                        <span class="badge badge-indigo">${esc(job.category)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="jd-actions">
+                    ${currentUserData?.type === 'admin' ? '' : `<a class="btn btn-primary btn-lg" data-nav="apply" data-jobid="${job.id}">Apply Now <i class="fa-solid fa-arrow-right"></i></a>`}
+                    <button class="btn btn-outline btn-lg jd-share"><i class="fa-solid fa-share-nodes"></i> Share</button>
+                  </div>
+                </div>
+              </div>
+              <div class="wrap jd-body">
+                <div class="jd-main">
+                  <div class="jd-card">
+                    <h2><i class="fa-solid fa-file-lines"></i> Job Description</h2>
+                    <p>${esc(job.desc || 'No description provided.')}</p>
+                  </div>
+                  <div class="jd-card">
+                    <h2><i class="fa-solid fa-gift"></i> Benefits &amp; Perks — ${esc(job.country)}</h2>
+                    <div class="benefits-grid">
+                      ${benefits.map(b => `
+                      <div class="ben-item">
+                        <div class="ben-icon"><i class="fa-solid fa-${b.icon}"></i></div>
+                        <div class="ben-info">
+                          <div class="ben-label">${b.label}</div>
+                          <div class="ben-value">${b.value}</div>
+                        </div>
+                      </div>`).join("")}
+                    </div>
+                  </div>
+                  <div class="jd-card">
+                    <h2><i class="fa-solid fa-globe"></i> About ${esc(job.country)}</h2>
+                    <p>${cd.overview || 'Information not available.'}</p>
+                    ${cd.facts ? `<div class="jd-facts"><i class="fa-solid fa-star"></i> ${cd.facts}</div>` : ''}
+                  </div>
+                </div>
+                <div class="jd-sidebar">
+                  <div class="jd-card jd-sticky">
+                    <h3>Quick Facts</h3>
+                    <div class="qf-grid">
+                      ${cd.minWage ? `<div class="qf-item"><span class="qf-label">Min Wage</span><span class="qf-val">${cd.minWage}</span></div>` : ''}
+                      ${cd.employeeCount ? `<div class="qf-item"><span class="qf-label">Workforce</span><span class="qf-val">${cd.employeeCount}</span></div>` : ''}
+                      <div class="qf-item"><span class="qf-label">Currency</span><span class="qf-val">${meta.currency || cd.currency || ''}</span></div>
+                    </div>
+                    <hr style="margin:16px 0;border:none;border-top:1px solid var(--slate-200)">
+                    <h3>Quick Apply</h3>
+                    <p style="font-size:14px;color:var(--slate-600);margin-bottom:14px">Ready to take the next step? Apply now and our team will get back to you.</p>
+                    ${currentUserData?.type === 'admin' ? '' : `<a class="btn btn-primary btn-block" data-nav="apply" data-jobid="${job.id}">Apply Now <i class="fa-solid fa-arrow-right"></i></a>`}
+                    <button class="btn btn-outline btn-block jd-share" style="margin-top:8px"><i class="fa-solid fa-share-nodes"></i> Share</button>
+                  </div>
+                </div>
+              </div>
+            </section>`;
+        }
+
+        function wireJobDetail() {
+            document.querySelectorAll('.jd-share').forEach(btn => btn.addEventListener('click', () => {
+                if (navigator.share) {
+                    navigator.share({ title: document.title, url: window.location.href }).catch(() => {});
+                } else {
+                    navigator.clipboard.writeText(window.location.href).then(() => toast('Link copied!', 'ok')).catch(() => {});
+                }
+            }));
+        }
+
         restoreJobFilter();
 
         function viewApply() {
