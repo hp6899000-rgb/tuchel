@@ -3620,6 +3620,7 @@ function showChatUserDetails(userName, chatId) {
             if (!mpesaTarget) return;
             const { type, index } = mpesaTarget;
             const txnCode = document.getElementById('mpesaTxnCode').value.trim();
+            if (!txnCode) { toast('Please enter the M-Pesa transaction code.', 'err'); return; }
             const app = allApps.find(a => a.uid === currentUser.uid);
             if (!app) { toast('Application not found.', 'err'); return; }
             const id = app.id || app.uid;
