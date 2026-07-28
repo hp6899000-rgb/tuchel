@@ -63,6 +63,176 @@
             "France": { flag: "fr", dial: "+33", currency: "EUR" },
             "Poland": { flag: "pl", dial: "+48", currency: "PLN" }
         };
+        const COUNTRY_DETAILS = {
+            "Germany": {
+                overview: "Germany combines strong worker protections with a robust economy and excellent work-life balance. Employees enjoy comprehensive social security, generous leave, and extensive contractual benefits.",
+                facts: "~45M employed | Kindergeld €250/child/mo | Dual vocational training | Strong collective bargaining",
+                employeeCount: "~45 million",
+                minWage: "€12.41/hr",
+                currency: "EUR",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "28–30 days/year" },
+                    { icon: "gavel", label: "Public Holidays", value: "9–13 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "Mandatory public/private coverage" },
+                    { icon: "baby", label: "Parental Leave", value: "14 wks full maternity + 14 months parental leave" },
+                    { icon: "clock", label: "Work Hours", value: "35–40 hrs/week" },
+                    { icon: "shield", label: "Social Security", value: "Pension + unemployment + care insurance" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Up to €500/yr professional development" },
+                    { icon: "bus", label: "Transport", value: "Jobticket subsidy, often employer-paid" },
+                    { icon: "wifi", label: "WiFi & Perks", value: "Company pension scheme, team events, gym discounts" },
+                    { icon: "utensils", label: "Meals", value: "Subsidized canteen at most companies" },
+                    { icon: "gamepad", label: "Social", value: "Firmenevents, sports groups, after-work" },
+                    { icon: "house-chimney", label: "Relocation", value: "Visa support + initial accommodation help" }
+                ]
+            },
+            "United Kingdom": {
+                overview: "The UK offers a flexible labour market with strong employment rights, a world-class healthcare system (NHS), and diverse job opportunities across multiple industries.",
+                facts: "~33M employed | Minimum wage £11.44/hr (2024) | Auto-enrolment pension | Strong startup scene",
+                employeeCount: "~33 million",
+                minWage: "£11.44/hr",
+                currency: "GBP",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "28 days/year (incl. bank holidays)" },
+                    { icon: "gavel", label: "Public Holidays", value: "8 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "NHS (free at point of use)" },
+                    { icon: "baby", label: "Parental Leave", value: "52 wks maternity (39 wks paid)" },
+                    { icon: "clock", label: "Work Hours", value: "37.5–40 hrs/week" },
+                    { icon: "shield", label: "Social Security", value: "National Insurance + workplace pension" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Many firms offer L&D budget £500-2000/yr" },
+                    { icon: "bicycle", label: "Transport", value: "Cycle to Work scheme + rail season loan" },
+                    { icon: "wifi", label: "WiFi & Perks", value: "Hybrid working, gym membership, private medical" },
+                    { icon: "utensils", label: "Meals", value: "Many offices provide free snacks/drinks" },
+                    { icon: "gamepad", label: "Social", value: "Team outings, pub nights, quarterly events" },
+                    { icon: "house-chimney", label: "Relocation", value: "Some employers offer relocation allowance" }
+                ]
+            },
+            "Netherlands": {
+                overview: "The Netherlands is known for excellent work-life balance, a highly educated workforce, favourable tax treatment for expats, and progressive labour policies.",
+                facts: "~9.5M employed | 30% tax ruling for expats | 13th month common | Best work-life balance globally",
+                employeeCount: "~9.5 million",
+                minWage: "€13.27/hr",
+                currency: "EUR",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "20–25 days/year + 13th month possible" },
+                    { icon: "gavel", label: "Public Holidays", value: "8–10 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "Mandatory private (€150-200/mo)" },
+                    { icon: "baby", label: "Parental Leave", value: "16 wks maternity + 9 wks partner leave" },
+                    { icon: "clock", label: "Work Hours", value: "36–40 hrs/week (4-day week common)" },
+                    { icon: "tent", label: "Probation", value: "2 months (max)" },
+                    { icon: "shield", label: "Social Security", value: "AOW pension + unemployment + disability" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Study budget, conferences, courses" },
+                    { icon: "bicycle", label: "Transport", value: "Bike scheme + public transport fully covered" },
+                    { icon: "wifi", label: "WiFi & Perks", value: "Home office budget, internet allowance" },
+                    { icon: "utensils", label: "Meals", value: "Subsidized lunch, daily team lunch culture" },
+                    { icon: "house-chimney", label: "Relocation", value: "30% tax ruling + moving cost compensation" }
+                ]
+            },
+            "Sweden": {
+                overview: "Sweden offers one of the world's most generous parental leave systems, strong collective agreements, a collaborative work culture with daily fika breaks, and high living standards.",
+                facts: "~5.2M employed | 480 days parental leave | Fika daily break culture | Strong unions",
+                employeeCount: "~5.2 million",
+                minWage: "Set by collective agreements (~SEK 150-170/hr)",
+                currency: "SEK",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "25 days/year" },
+                    { icon: "gavel", label: "Public Holidays", value: "11 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "Low-cost universal healthcare" },
+                    { icon: "baby", label: "Parental Leave", value: "480 days (390 at 80% pay)" },
+                    { icon: "clock", label: "Work Hours", value: "40 hrs/week (6-hr day experimented)" },
+                    { icon: "tent", label: "Probation", value: "Up to 6 months" },
+                    { icon: "shield", label: "Social Security", value: "Pension + parental + sickness benefits" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Generous study leave + tuition aid" },
+                    { icon: "dumbbell", label: "Wellness", value: "Friskvårdsbidrag (wellness grant) ~SEK 3000/yr" },
+                    { icon: "mug-saucer", label: "Culture", value: "Daily fika break (coffee + social)" },
+                    { icon: "gamepad", label: "Social", value: "After-work events, kick-offs, team days" },
+                    { icon: "house-chimney", label: "Relocation", value: "Employer handles work permit + housing search" }
+                ]
+            },
+            "Ireland": {
+                overview: "Ireland boasts a dynamic economy with major multinational employers, a competitive tax regime, and a warm culture. English-speaking with strong worker protections and growing minimum wage.",
+                facts: "~2.6M employed | Min wage €12.70/hr | 10 public holidays | Multinational hub",
+                employeeCount: "~2.6 million",
+                minWage: "€12.70/hr",
+                currency: "EUR",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "20 days/year (min)" },
+                    { icon: "gavel", label: "Public Holidays", value: "10 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "Public healthcare + optional private" },
+                    { icon: "baby", label: "Parental Leave", value: "26 wks maternity + 2 wks paternity" },
+                    { icon: "clock", label: "Work Hours", value: "39 hrs/week" },
+                    { icon: "tent", label: "Probation", value: "Up to 6 months" },
+                    { icon: "shield", label: "Social Security", value: "PRSI (pension + benefits)" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Tuition reimbursement common" },
+                    { icon: "bus", label: "Transport", value: "TaxSaver commuter tickets" },
+                    { icon: "wifi", label: "WiFi & Perks", value: "Flexible/remote work, bike-to-work scheme" },
+                    { icon: "utensils", label: "Meals", value: "Many offices provide lunch/snacks" },
+                    { icon: "house-chimney", label: "Relocation", value: "Visa sponsorship + relocation package typical" }
+                ]
+            },
+            "Luxembourg": {
+                overview: "Luxembourg offers the highest minimum wage in the EU, a very generous social security system, high salaries across all sectors, and a truly international work environment.",
+                facts: "~500K employed | Highest EU min wage (€15.86 skilled) | Free public transport | 13th month common",
+                employeeCount: "~500,000",
+                minWage: "€15.86/hr (skilled)",
+                currency: "EUR",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "26 days/year" },
+                    { icon: "gavel", label: "Public Holidays", value: "11 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "Sécurité Sociale (excellent coverage)" },
+                    { icon: "baby", label: "Parental Leave", value: "16 wks full maternity + parental leave" },
+                    { icon: "clock", label: "Work Hours", value: "38–40 hrs/week" },
+                    { icon: "coins", label: "13th Month", value: "Common (often mandatory)" },
+                    { icon: "shield", label: "Social Security", value: "Comprehensive (pension + health + unemployment)" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Congé individuel de formation (training leave)" },
+                    { icon: "train", label: "Transport", value: "Free nationwide public transport" },
+                    { icon: "wifi", label: "WiFi & Perks", value: "Meal vouchers (€15/day), company car common" },
+                    { icon: "utensils", label: "Meals", value: "Meal vouchers or subsidized canteen" },
+                    { icon: "house-chimney", label: "Relocation", value: "Accommodation support + expat-friendly" }
+                ]
+            },
+            "France": {
+                overview: "France has a strong labour code with excellent social protections, the 35-hour work week, extensive leave policies, and a rich culture of employee benefits including profit-sharing.",
+                facts: "~30M employed | 35-hr work week | 5+ weeks leave + RTT | Profit-sharing (intéressement)",
+                employeeCount: "~30 million",
+                minWage: "€11.65/hr (SMIC)",
+                currency: "EUR",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "25 days + RTT (up to 12 more)" },
+                    { icon: "gavel", label: "Public Holidays", value: "11 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "Sécurité Sociale + mutuelle (top-up)" },
+                    { icon: "baby", label: "Parental Leave", value: "16 wks full maternity + 25 days paternity" },
+                    { icon: "clock", label: "Work Hours", value: "35 hrs/week (legal max)" },
+                    { icon: "coins", label: "13th Month", value: "Common in many sectors" },
+                    { icon: "shield", label: "Social Security", value: "Extensive (health + pension + family + unemployment)" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Compte Personnel de Formation (training credits)" },
+                    { icon: "bus", label: "Transport", value: "50% of public transport paid by employer" },
+                    { icon: "utensils", label: "Meals", value: "Tickets restaurant (meal vouchers) ~€10-12/day" },
+                    { icon: "gamepad", label: "Culture", value: "After-work, team building, comité d'entreprise" },
+                    { icon: "house-chimney", label: "Relocation", value: "Visa assistance + integration support" }
+                ]
+            },
+            "Poland": {
+                overview: "Poland is a rapidly growing economy with competitive labour costs, improving social benefits, a skilled workforce, and increasing foreign investment driving demand for international talent.",
+                facts: "~17M employed | Fastest-growing EU economy | PPK pension system | Strong IT/engineering sector",
+                employeeCount: "~17 million",
+                minWage: "4242 PLN/mo (2024)",
+                currency: "PLN",
+                benefits: [
+                    { icon: "calendar-check", label: "Paid Leave", value: "20–26 days/year (based on experience)" },
+                    { icon: "gavel", label: "Public Holidays", value: "13 days/year" },
+                    { icon: "heart-pulse", label: "Health Insurance", value: "NFZ public healthcare" },
+                    { icon: "baby", label: "Parental Leave", value: "20 wks maternity + 41 wks parental" },
+                    { icon: "clock", label: "Work Hours", value: "40 hrs/week" },
+                    { icon: "tent", label: "Probation", value: "3 months (max)" },
+                    { icon: "shield", label: "Social Security", value: "ZUS (pension + disability + health)" },
+                    { icon: "graduation-cap", label: "Education Support", value: "Language courses, certifications funded" },
+                    { icon: "bus", label: "Transport", value: "Partial commuting subsidy common" },
+                    { icon: "wifi", label: "WiFi & Perks", value: "Private medical (Medicover/Lux Med), Multisport card" },
+                    { icon: "utensils", label: "Meals", value: "Lunch card/subsidy common in cities" },
+                    { icon: "gamepad", label: "Culture", value: "Team integration events, holiday bonuses" }
+                ]
+            }
+        };
         const CATEGORIES = [
             "Healthcare", "Security & Safety", "Logistics & Warehousing",
             "Construction & Manual Labor", "Cleaning & Maintenance",
@@ -1271,19 +1441,54 @@
 
         function jobCard(j) {
             const meta = COUNTRY_META[j.country] || {};
-            const desc = j.desc ? (j.desc.length > 120 ? j.desc.slice(0, 117) + '...' : j.desc) : '';
+            const cd = COUNTRY_DETAILS[j.country] || {};
+            const benefits = cd.benefits || [];
             return `
             <div class="job-card">
-              <div class="job-cat-icon"><i class="${CATEGORY_ICON[j.category]}"></i></div>
-              <h4 class="job-title">${esc(j.title)}</h4>
-              <div class="job-meta">
-                <span class="badge badge-blue"><img src="${flagUrl(meta.flag)}" alt="" style="width:16px;height:12px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px"> ${esc(j.country)}</span>
-                <span class="badge badge-slate">${esc(j.category)}</span>
+              <button class="jc-expand" aria-label="Toggle details"><i class="fa-solid fa-chevron-down"></i></button>
+              <div class="jc-head">
+                <div class="jc-icon"><i class="${CATEGORY_ICON[j.category]}"></i></div>
+                <div class="jc-title-wrap">
+                  <h4 class="jc-title">${esc(j.title)}</h4>
+                  <div class="jc-salary">${esc(j.salary)}</div>
+                </div>
               </div>
-              <p class="job-desc">${esc(desc)}</p>
-              <div class="job-foot">
-                <span class="job-salary">${esc(j.salary)}</span>
-                ${currentUserData?.type === 'admin' ? '' : `<a class="btn btn-primary btn-sm" data-nav="apply" data-jobid="${j.id}">Apply <i class="fa-solid fa-arrow-right"></i></a>`}
+              <div class="jc-badges">
+                <span class="badge badge-blue"><img src="${flagUrl(meta.flag)}" alt="" loading="lazy" style="width:15px;height:11px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:5px"> ${esc(j.country)}</span>
+                <span class="badge badge-indigo">${esc(j.category)}</span>
+              </div>
+              <p class="jc-desc">${esc(j.desc || '')}</p>
+              <div class="jc-details">
+                <div class="jc-section">
+                  <div class="jc-sec-title"><i class="fa-solid fa-gift"></i> Benefits &amp; Perks — ${esc(j.country)}</div>
+                  <div class="benefits-grid">
+                    ${benefits.map(b => `
+                    <div class="ben-item">
+                      <div class="ben-icon"><i class="fa-solid fa-${b.icon}"></i></div>
+                      <div class="ben-info">
+                        <div class="ben-label">${b.label}</div>
+                        <div class="ben-value">${b.value}</div>
+                      </div>
+                    </div>`).join("")}
+                  </div>
+                </div>
+                <div class="jc-section jc-overview">
+                  <div class="jc-sec-title"><i class="fa-solid fa-globe"></i> About ${esc(j.country)}</div>
+                  <p>${cd.overview || ''}</p>
+                  ${cd.facts ? `<div class="jc-facts"><i class="fa-solid fa-star"></i> ${cd.facts}</div>` : ''}
+                </div>
+                <div class="jc-section jc-quickfacts">
+                  <div class="jc-sec-title"><i class="fa-solid fa-chart-simple"></i> Quick Facts</div>
+                  <div class="qf-grid">
+                    ${cd.minWage ? `<div class="qf-item"><span class="qf-label">Min Wage</span><span class="qf-val">${cd.minWage}</span></div>` : ''}
+                    ${cd.employeeCount ? `<div class="qf-item"><span class="qf-label">Workforce</span><span class="qf-val">${cd.employeeCount}</span></div>` : ''}
+                    <div class="qf-item"><span class="qf-label">Currency</span><span class="qf-val">${meta.currency || cd.currency || ''}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="jc-foot">
+                ${currentUserData?.type === 'admin' ? '' : `<a class="btn btn-primary" data-nav="apply" data-jobid="${j.id}">Apply Now <i class="fa-solid fa-arrow-right"></i></a>`}
+                <span class="jc-expand-hint"><i class="fa-regular fa-hand-pointer"></i> Click card for details</span>
               </div>
             </div>`;
         }
@@ -1293,6 +1498,15 @@
         function wireJobsFilters() {
             document.querySelectorAll('[data-country]').forEach(b => b.addEventListener('click', () => { jobFilter.country = b.getAttribute('data-country'); saveJobFilter(); renderCurrentView(); }));
             document.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => { jobFilter.category = b.getAttribute('data-cat'); saveJobFilter(); renderCurrentView(); }));
+            document.querySelector('.job-grid')?.addEventListener('click', (e) => {
+                const card = e.target.closest('.job-card');
+                if (!card) return;
+                if (e.target.closest('a, button, .btn, [data-nav]')) return;
+                e.stopPropagation();
+                card.classList.toggle('expanded');
+                const icon = card.querySelector('.jc-expand i');
+                if (icon) icon.className = card.classList.contains('expanded') ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+            });
         }
         restoreJobFilter();
 

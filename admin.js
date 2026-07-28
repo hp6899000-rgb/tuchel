@@ -329,21 +329,28 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
             <div class="dash-main">
+                <!-- Header -->
                 <div class="dash-topbar">
                     <h2>Applications Dashboard</h2>
-                    <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search..." value="${esc(adminFilters.search)}"></div>
+                    <div class="dash-actions">
+                        <button class="btn btn-outline btn-sm" data-action="seed"><i class="fa-solid fa-seedling"></i> Seed Jobs</button>
+                        <button class="btn btn-outline btn-sm" data-action="clear"><i class="fa-solid fa-broom"></i> Clear Jobs</button>
+                        <button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
                 </div>
+                <!-- Stats -->
                 <div class="stat-grid">
-                    <div class="stat-card"><div class="n">${stats.total}</div><div class="l">Total Applications</div></div>
+                    <div class="stat-card"><div class="n">${stats.total}</div><div class="l">Total</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--blue-500)"><div class="n">${stats.received}</div><div class="l">New</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--amber-600)"><div class="n">${stats.inProgress}</div><div class="l">In Progress</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n">${stats.placed}</div><div class="l">Placed</div></div>
                     <div class="stat-card" style="border-left:3px solid var(--rose-500)"><div class="n">${stats.rejected}</div><div class="l">Rejected</div></div>
                 </div>
-                <div class="stat-grid stat-grid-3" style="margin-bottom:20px">
-                    <div class="stat-card"><div class="n" style="font-size:18px;color:var(--blue-800)">€${esc(totalFees.toFixed(0))}</div><div class="l">Total Invoiced</div></div>
-                    <div class="stat-card" style="border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:18px;color:var(--emerald-600)">€${esc(totalPaid.toFixed(0))}</div><div class="l">Total Collected</div></div>
-                    <div class="stat-card" style="border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:18px;color:var(--maroon-600)">€${esc((totalFees-totalPaid).toFixed(0))}</div><div class="l">Outstanding</div></div>
+                <!-- Financial summary -->
+                <div class="finance-bar">
+                    <span><i class="fa-solid fa-file-invoice" style="color:var(--blue-600)"></i> Invoiced <b>€${esc(totalFees.toFixed(0))}</b></span>
+                    <span><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> Collected <b>€${esc(totalPaid.toFixed(0))}</b></span>
+                    <span><i class="fa-solid fa-clock" style="color:var(--maroon-600)"></i> Outstanding <b>€${esc((totalFees-totalPaid).toFixed(0))}</b></span>
                 </div>
                 ${(()=>{
                     const allSvcs=apps.flatMap(a=>(a.clientServices||[]).map(s=>({...s,applicant:a.fullName,appId:displayId(a),uid:a.uid||a.id})));
@@ -352,69 +359,75 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const ip=allSvcs.filter(s=>s.status==='in-progress').length;
                     const done=allSvcs.filter(s=>s.status==='completed').length;
                     const totPaid=allSvcs.filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-                    return `<div style="background:#fff;border:1px solid var(--slate-200);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px">
-                        <div style="font-weight:700;font-size:13px;color:var(--blue-900);margin-bottom:10px"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Active Services (${allSvcs.length})</div>
-                        <div class="stat-grid stat-grid-5" style="margin-bottom:10px">
-                            <div class="stat-card" style="padding:10px"><div class="n" style="font-size:16px;color:var(--slate-700)">${allSvcs.length}</div><div class="l" style="font-size:10px">Total</div></div>
-                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--amber-500)"><div class="n" style="font-size:16px;color:var(--amber-600)">${pend}</div><div class="l" style="font-size:10px">Pending</div></div>
-                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--blue-500)"><div class="n" style="font-size:16px;color:var(--blue-600)">${ip}</div><div class="l" style="font-size:10px">In Progress</div></div>
-                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--emerald-500)"><div class="n" style="font-size:16px;color:var(--emerald-600)">${done}</div><div class="l" style="font-size:10px">Completed</div></div>
-                            <div class="stat-card" style="padding:10px;border-left:3px solid var(--maroon-500)"><div class="n" style="font-size:16px;color:var(--maroon-600)">€${totPaid.toFixed(0)}</div><div class="l" style="font-size:10px">Collected</div></div>
+                    return `<div class="services-panel">
+                        <div class="svc-head"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Active Services (${allSvcs.length})</div>
+                        <div class="svc-stats">
+                            <div class="svc-stat"><b>${allSvcs.length}</b><span>Total</span></div>
+                            <div class="svc-stat" style="border-left:3px solid var(--amber-500)"><b style="color:var(--amber-600)">${pend}</b><span>Pending</span></div>
+                            <div class="svc-stat" style="border-left:3px solid var(--blue-500)"><b style="color:var(--blue-600)">${ip}</b><span>In Progress</span></div>
+                            <div class="svc-stat" style="border-left:3px solid var(--emerald-500)"><b style="color:var(--emerald-600)">${done}</b><span>Done</span></div>
+                            <div class="svc-stat" style="border-left:3px solid var(--maroon-500)"><b style="color:var(--maroon-600)">€${totPaid.toFixed(0)}</b><span>Collected</span></div>
                         </div>
                         <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th></tr></thead><tbody>${allSvcs.slice(0,10).map(s=>{
-                            const t=SERVICE_TYPES.find(st=>st.id===s.type);
                             return `<tr><td><b style="font-size:12px">${esc(s.applicant)}</b></td><td>${esc(s.label)}</td><td>${esc(s.amount||'—')}</td><td><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td>${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td></tr>`;
                         }).join("")}</tbody></table></div>
                     </div>`;
                 })()}
-                <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-                    <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:var(--slate-600)"><input type="checkbox" id="showBlockedCb" ${adminFilters.showBlocked?'checked':''}> Show blocked accounts</label>
+                <!-- Search + Blocked toggle -->
+                <div class="filters-row">
+                    <div class="search-input" style="flex:1;max-width:360px"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search name, email, ID, job..." value="${esc(adminFilters.search)}"></div>
+                    <label class="blocked-toggle"><input type="checkbox" id="showBlockedCb" ${adminFilters.showBlocked?'checked':''}> Show blocked</label>
                 </div>
-                <div class="filter-bar">${["All","Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
-                <div class="filter-bar">${["All",...ALL_STATUSES].map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${s}</button>`).join("")}</div>
+                <!-- Country filters -->
+                <div class="filter-bar" style="margin-bottom:8px">${["All","Germany","United Kingdom","Netherlands","Sweden","Ireland","Luxembourg","France","Poland"].map(c=>`<button class="chip ${adminFilters.country===c?'active':''}" data-afcountry="${esc(c)}">${c}</button>`).join("")}</div>
+                <!-- Status filters -->
+                <div class="status-bar">
+                    <button class="chip ${adminFilters.status==='All'?'active':''}" data-afstatus="All">All Statuses</button>
+                    ${STATUS_STEPS.slice(0,4).map(s=>`<button class="chip ${adminFilters.status===s?'active':''}" data-afstatus="${esc(s)}">${esc(s)}</button>`).join("")}
+                    <select class="status-select" id="statusSelect">
+                        <option value="">More...</option>
+                        ${ALL_STATUSES.map(s=>`<option value="${s}" ${adminFilters.status===s?'selected':''}>${esc(s)}</option>`).join("")}
+                    </select>
+                </div>
+                <!-- Applications table -->
                 <div class="card">
                     <div class="table-wrap">
                     <table class="app-table">
-                        <thead><tr><th>Applicant</th><th>Phone</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th></tr></thead>
+                        <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th></tr></thead>
                         <tbody>${filtered.length?filtered.map(a=>{
                             const cmp=calcCompleteness(a);
                             const fees=a.fees||[];
-                            const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-                            const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            const totalAmt=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
                             return `<tr>
-                                            <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:11px;color:var(--slate-500)">${displayId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}</td>
-                                <td style="font-size:12px;color:var(--slate-600)">${esc(a.phone||'—')}</td>
-                                <td>${esc(a.jobTitle)||'—'}<br>${a.country?`<span style="font-size:12px;color:var(--slate-500)"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}</span>`:'<span style="font-size:12px;color:var(--slate-400)">—</span>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
+                                <td><div class="appl-name">${esc(a.fullName)}</div><div class="appl-id">${displayId(a)}</div>${a.email?`<div class="appl-email">${esc(a.email)}</div>`:''}</td>
+                                <td><div class="appl-job">${esc(a.jobTitle)||'—'}</div>${a.country?`<div class="appl-country"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy">${esc(a.country)}</div>`:'<div class="appl-country" style="color:var(--slate-400)">—</div>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                                 <td>${statusBadge(a.status)}</td>
                                 <td style="white-space:nowrap">${completenessBar(cmp)}</td>
-                                <td style="font-size:11px;white-space:nowrap"><span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span> / <span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></td>
-                                <td style="font-size:11px;color:var(--slate-500);white-space:nowrap">${fmtDate(a.updatedAt)}</td>
+                                <td style="white-space:nowrap"><span class="fee-paid">€${paidAmt.toFixed(0)}</span><span class="fee-total">€${totalAmt.toFixed(0)}</span></td>
+                                <td class="date-cell">${fmtDate(a.updatedAt)}</td>
                                 <td><button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
                             </tr>`;
-                        }).join(""):`<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match.</p></div></td></tr>`}</tbody>
+                        }).join(""):`<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-inbox"></i></div></td></tr>`}</tbody>
                     </table>
                     </div>
-                    <!-- Mobile card layout -->
+                    <!-- Mobile cards -->
                     <div class="app-card-row">${filtered.length?filtered.map(a=>{
                         const cmp=calcCompleteness(a);
                         const fees=a.fees||[];
-                        const totalFees=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-                        const paidFees=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        const totalAmt=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
                         return `<div class="app-card">
                             <div class="ac-head">
-                                <div>
-                                    <div class="ac-name">${esc(a.fullName)}</div>
-                                    <div class="ac-id">${displayId(a)}</div>
-                                </div>
+                                <div><div class="ac-name">${esc(a.fullName)}</div><div class="ac-id">${displayId(a)}</div></div>
                                 ${statusBadge(a.status)}
                             </div>
                             <div class="ac-meta">
                                 <span><i class="fa-solid fa-envelope"></i> ${esc(a.email||'—')}</span>
-                                <span><i class="fa-solid fa-phone"></i> ${esc(a.phone||'—')}</span>
                                 <span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)||'—'}${a.blocked?' <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>':''}</span>
-                                <span><i class="fa-solid fa-location-dot"></i> ${a.country?`<img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}`:'—'}</span>
+                                <span><i class="fa-solid fa-location-dot"></i> ${a.country?`<img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}`:'—'}</span>
                                 <span><i class="fa-solid fa-file"></i> ${completenessBar(cmp)}</span>
-                                <span><i class="fa-solid fa-coins"></i> <span style="color:var(--emerald-600)">€${paidFees.toFixed(0)}</span>/<span style="color:var(--slate-500)">€${totalFees.toFixed(0)}</span></span>
+                                <span><i class="fa-solid fa-coins"></i> <span class="fee-paid">€${paidAmt.toFixed(0)}</span>/<span class="fee-total">€${totalAmt.toFixed(0)}</span></span>
                                 <span><i class="fa-regular fa-clock"></i> ${fmtDate(a.updatedAt)}</span>
                             </div>
                             <div class="ac-foot">
@@ -433,6 +446,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         document.querySelectorAll('[data-afcountry]').forEach(b=>b.addEventListener('click',()=>{adminFilters.country=b.getAttribute('data-afcountry');saveAdminFilters();render()}));
         document.querySelectorAll('[data-afstatus]').forEach(b=>b.addEventListener('click',()=>{adminFilters.status=b.getAttribute('data-afstatus');saveAdminFilters();render()}));
         document.querySelectorAll('[data-openapp]').forEach(b=>b.addEventListener('click',()=>openAppModal(b.getAttribute('data-openapp'))));
+        document.getElementById('statusSelect')?.addEventListener('change',function(){adminFilters.status=this.value||'All';saveAdminFilters();render()});
+        document.querySelectorAll('[data-action="seed"],[data-action="clear"],[data-action="refresh"]')?.forEach(b=>b.addEventListener('click',function(){toast('Functionality coming soon.','ok');render();}));
     }
 
     async function openAppModal(appId) {
