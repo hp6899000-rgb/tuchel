@@ -1,0 +1,17 @@
+{
+  "name": "tuchel",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000t\u0000u\u0000c\u0000h\u0000e\u0000l\u0000\r\u0000 \u0000",
+  "main": "admin.js",
+  "scripts": {
+    "build": "javascript-obfuscator app.js --output app.min.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.75 --numbers-to-expressions true --simplify true --string-array-encoding rc4 --string-array-threshold 0.8 && javascript-obfuscator admin.js --output admin.min.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.75 --numbers-to-expressions true --simplify true --string-array-encoding rc4 --string-array-threshold 0.8",
+    "build:app": "javascript-obfuscator app.js --output app.min.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.75 --numbers-to-expressions true --simplify true --string-array-encoding rc4 --string-array-threshold 0.8",
+    "build:admin": "javascript-obfuscator admin.js --output admin.min.js --compact true --control-flow-flattening true --control-flow-flattening-threshold 0.75 --numbers-to-expressions true --simplify true --string-array-encoding rc4 --string-array-threshold 0.8"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "javascript-obfuscator": "^5.5.0"
+  }
+}
