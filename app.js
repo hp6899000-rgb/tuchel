@@ -2204,8 +2204,8 @@
             const filled = fields.filter(f => app[f]).length;
             const pct = Math.round((filled / fields.length) * 100);
             const appFees = app.fees||[];
-            const totalOwed = appFees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-            const totalPaid = appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+            const totalOwed = appFees.reduce((s,f)=>{const p=parseAmountKES(f.amount);return s+p.kes},0);
+            const totalPaid = appFees.filter(f=>f.paid).reduce((s,f)=>{const p=parseAmountKES(f.amount);return s+p.kes},0);
             const curStageIdx = STATUS_STEPS.indexOf(app.status);
             const isTerminal = TERMINAL_ALT.includes(app.status);
             return `
@@ -2280,8 +2280,8 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
                   <h4 style="margin:0;color:var(--blue-900);font-size:14px"><i class="fa-solid fa-coins" style="color:var(--maroon-500)"></i> Fee Status</h4>
                   <div style="display:flex;gap:14px;font-size:12px">
-                    <span><b style="color:var(--emerald-600)">Paid:</b> ${esc(String(totalPaid))}</span>
-                    <span><b style="color:var(--maroon-600)">Outstanding:</b> ${esc(String(totalOwed - totalPaid))}</span>
+                    <span><b style="color:var(--emerald-600)">Paid:</b> KES ${totalPaid.toLocaleString()}</span>
+                    <span><b style="color:var(--maroon-600)">Outstanding:</b> KES ${(totalOwed - totalPaid).toLocaleString()}</span>
                   </div>
                 </div>
                 ${appFees.length ? appFees.map((f,i)=>`
@@ -2776,8 +2776,8 @@
             const root = document.getElementById('modal-root');
             const natFlag = app.nationalityCode ? NATIONALITIES.find(n => n.code === app.nationalityCode) : null;
             const appFees = app.fees || [];
-            const totalOwed = appFees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-            const totalPaid = appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+            const totalOwed = appFees.reduce((s,f)=>{const p=parseAmountKES(f.amount);return s+p.kes},0);
+            const totalPaid = appFees.filter(f=>f.paid).reduce((s,f)=>{const p=parseAmountKES(f.amount);return s+p.kes},0);
             root.innerHTML = `
           <div class="modal-overlay" id="modalOverlay">
             <div class="modal">
@@ -2871,7 +2871,7 @@
                    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
                     <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--blue-900)">${(app.clientServices||[]).length}</div><div style="font-size:10px;color:var(--slate-500)">Total</div></div>
                     <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--emerald-600)">${(app.clientServices||[]).filter(s=>s.status==='completed').length}</div><div style="font-size:10px;color:var(--slate-500)">Completed</div></div>
-                    <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--maroon-600)">${(app.clientServices||[]).filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0).toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">EUR</div></div>
+                    <div class="card pad" style="flex:1;min-width:80px;text-align:center;padding:8px"><div style="font-size:16px;font-weight:800;color:var(--maroon-600)">${(app.clientServices||[]).filter(s=>s.paid).reduce((s,f)=>{const p=parseAmountKES(f.amount);return s+p.kes},0).toLocaleString()}</div><div style="font-size:10px;color:var(--slate-500)">KES</div></div>
                    </div>
                    <div id="idxSvcList">${(app.clientServices||[]).length?(app.clientServices||[]).map((s,i)=>{
                     const t=SERVICE_TYPES.find(st=>st.id===s.type);
@@ -2916,8 +2916,8 @@
                   <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;font-weight:700"><i class="fa-solid fa-coins" style="color:var(--maroon-500)"></i> Fee Status</div>
                   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
                     <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--blue-900)">${appFees.length}</div><div style="font-size:10px;color:var(--slate-500)">Items</div></div>
-                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--emerald-600)">€${totalPaid.toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">Paid</div></div>
-                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--maroon-600)">€${(totalOwed-totalPaid).toFixed(0)}</div><div style="font-size:10px;color:var(--slate-500)">Outstanding</div></div>
+                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--emerald-600)">KES ${totalPaid.toLocaleString()}</div><div style="font-size:10px;color:var(--slate-500)">Paid (KES)</div></div>
+                    <div class="card pad" style="flex:1;min-width:100px;text-align:center;padding:10px"><div style="font-size:18px;font-weight:800;color:var(--maroon-600)">KES ${(totalOwed-totalPaid).toLocaleString()}</div><div style="font-size:10px;color:var(--slate-500)">Outstanding (KES)</div></div>
                   </div>
                   <div style="display:flex;flex-direction:column;gap:6px">${appFees.length?appFees.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--slate-50);border-radius:6px;flex-wrap:wrap;font-size:12px"><span style="flex:1;min-width:80px;font-weight:600">${esc(f.label)}</span><span style="font-weight:700;color:var(--blue-800)">${esc(f.amount)}</span><span class="badge ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (Client)':'Paid'):'Unpaid'}</span>${f.paidDate?`<span style="font-size:10px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}${f.paidByClient?`<span style="font-size:9px;color:var(--indigo-500);font-weight:600;background:var(--indigo-50);padding:2px 6px;border-radius:3px">Client</span>`:''}${f.transactionCode?`<span style="font-size:9px;color:var(--slate-500)">${esc(f.transactionCode)}</span>`:''}</div>`).join(""):'<div style="padding:12px;text-align:center;color:var(--slate-400);font-size:12px">No fees recorded.</div>'}</div>
                 </div>
