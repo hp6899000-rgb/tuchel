@@ -1545,6 +1545,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div style="display:flex;gap:8px;flex-wrap:wrap">
                         <button class="btn btn-outline btn-sm" data-action="refresh-finance"><i class="fa-solid fa-rotate"></i> Refresh</button>
                         <button class="btn btn-primary btn-sm" data-action="export-finance"><i class="fa-solid fa-download"></i> Export</button>
+                        <button class="btn btn-outline btn-sm" data-action="fix-amounts" style="border-color:var(--maroon-400);color:var(--maroon-600)"><i class="fa-solid fa-wrench"></i> Fix Amounts</button>
                     </div>
                 </div>
                 <!-- Stats Cards -->
@@ -1839,6 +1840,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         });
         // Open payment request modal
         document.querySelector('[data-action="open-pay-modal"]')?.addEventListener('click', () => showPaymentRequestModal());
+        // Fix amounts modal
+        document.querySelector('[data-action="fix-amounts"]')?.addEventListener('click', () => showFixAmountsModal());
         // Open app from finance table
         document.querySelectorAll('[data-finance-openapp]')?.forEach(btn => btn.addEventListener('click', function() {
             const uid = this.getAttribute('data-finance-openapp');
@@ -1950,6 +1953,84 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         });
         document.getElementById('modalCloseBtn')?.addEventListener('click', () => root.innerHTML='');
         document.getElementById('modalOverlay')?.addEventListener('click', e => { if(e.target.id==='modalOverlay') root.innerHTML=''; });
+    }
+    function showFixAmountsModal() {
+        const root = document.getElementById('modal-root');
+        let issues = [];
+        allApps.forEach(a => {
+            const appIdVal = a.id || a.uid || '';
+            const appName = a.fullName || 'Unknown';
+            (a.fees||[]).forEach((f, fi) => {
+                const pk = parseAmountKES(f.amount);
+                if (!pk.valid && f.amount && f.amount.trim()) {
+                    issues.push({ appId: appIdVal, appName, type: 'fee', idx: fi, field: 'fees', label: f.label, current: f.amount });
+                }
+            });
+            (a.clientServices||[]).forEach((s, si) => {
+                const pk = parseAmountKES(s.amount);
+                if (!pk.valid && s.amount && s.amount.trim()) {
+                    issues.push({ appId: appIdVal, appName, type: 'service', idx: si, field: 'clientServices', label: s.label, current: s.amount });
+                }
+            });
+        });
+        if (!issues.length) {
+            root.innerHTML = `<div class="modal-overlay" id="modalOverlay"><div class="modal" style="max-width:500px"><div class="modal-head"><h3>Fix Amounts</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body" style="text-align:center;padding:40px"><i class="fa-solid fa-check-circle" style="font-size:48px;color:var(--emerald-500);margin-bottom:16px"></i><p style="font-size:14px;color:var(--slate-600)">All amounts have clear currency prefixes. No fixes needed.</p></div></div></div>`;
+            document.getElementById('modalCloseBtn')?.addEventListener('click',()=>root.innerHTML='');
+            document.getElementById('modalOverlay')?.addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
+            return;
+        }
+        root.innerHTML = `
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" style="max-width:700px">
+                <div class="modal-head"><h3><i class="fa-solid fa-wrench" style="color:var(--maroon-500)"></i> Fix Amounts (${issues.length} issues)</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-body">
+                    <p style="font-size:12px;color:var(--slate-500);margin-bottom:14px">These amounts don't have a clear currency prefix (KES, USD, EUR). Enter the correct value with the proper currency prefix.</p>
+                    <div style="display:flex;flex-direction:column;gap:10px">${issues.map((item, i) => `
+                    <div style="background:var(--slate-50);border-radius:8px;padding:12px 14px">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+                            <div><b style="font-size:13px;color:var(--blue-900)">${esc(item.appName)}</b> <span style="font-size:11px;color:var(--slate-400)">${esc(item.label)}</span></div>
+                            <span style="font-size:11px;color:var(--slate-500)">Current: <code style="background:var(--amber-50);padding:2px 6px;border-radius:4px">${esc(item.current)}</code></span>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="fixAmt_${i}" placeholder="e.g. USD 79, KES 15000, EUR 500" value="${esc(item.current)}" style="flex:1;font-size:13px">
+                            <button class="btn btn-primary btn-sm" data-fixsave="${i}" style="white-space:nowrap">Save</button>
+                        </div>
+                    </div>`).join('')}</div>
+                </div>
+                <div class="modal-foot">
+                    <button class="btn btn-outline" data-modal-close>Close</button>
+                </div>
+            </div>
+        </div>`;
+        document.getElementById('modalCloseBtn')?.addEventListener('click',()=>root.innerHTML='');
+        document.getElementById('modalOverlay')?.addEventListener('click',e=>{if(e.target.id==='modalOverlay')root.innerHTML=''});
+        document.querySelector('[data-modal-close]')?.addEventListener('click',()=>root.innerHTML='');
+        issues.forEach((item, i) => {
+            document.querySelector(`[data-fixsave="${i}"]`)?.addEventListener('click', async function() {
+                const input = document.getElementById(`fixAmt_${i}`);
+                const newVal = input.value.trim();
+                if (!newVal) { toast("Enter a valid amount.", "err"); return; }
+                const pk = parseAmountKES(newVal);
+                if (!pk.valid) { toast("Amount must include currency prefix (KES, USD, or EUR).", "err"); return; }
+                this.disabled = true; this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                try {
+                    const ref = doc(db, "applications", item.appId);
+                    const snap = await getDoc(ref);
+                    if (!snap.exists()) { toast("Application not found.", "err"); this.disabled = false; this.innerHTML = 'Save'; return; }
+                    const data = snap.data();
+                    const arr = [...(data[item.field] || [])];
+                    if (!arr[item.idx]) { toast("Item not found.", "err"); this.disabled = false; this.innerHTML = 'Save'; return; }
+                    arr[item.idx].amount = newVal;
+                    await setDoc(ref, { [item.field]: arr, updatedAt: serverTimestamp() }, { merge: true });
+                    toast(`Updated "${item.label}" → ${newVal}`, "ok");
+                    this.innerHTML = '<i class="fa-solid fa-check"></i> Saved';
+                    this.style.borderColor = 'var(--emerald-500)'; this.style.color = 'var(--emerald-600)';
+                } catch (e) {
+                    toast("Error saving: " + e.message, "err");
+                    this.disabled = false; this.innerHTML = 'Save';
+                }
+            });
+        });
     }
     function parseAmt(v) { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; }
 
