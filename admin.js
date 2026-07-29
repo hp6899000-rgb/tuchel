@@ -316,7 +316,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const parseAmt=v=>{if(!v)return 0;const m=v.match(/[\d,.]+/);return m?parseFloat(m[0].replace(/,/g,'')):0;};
         const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmt(f.amount),0),0);
         const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmt(f.amount):0),0),0);
-        let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort((a,b)=>{const da=a.updatedAt?new Date(a.updatedAt):new Date(0),db=b.updatedAt?new Date(b.updatedAt):new Date(0);return db-da;});
+        const tsToDate=(ts)=>{if(!ts)return new Date(0);if(ts.toDate)return ts.toDate();return new Date(ts);};
+        let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort((a,b)=>{const da=tsToDate(a.updatedAt),db=tsToDate(b.updatedAt);return db-da;});
         const unread=getUnreadCount();
         return `
         <div class="dash-shell">
@@ -376,6 +377,24 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         }).join("")}</tbody></table></div>
                     </div>`;
                 })()}
+                <!-- Recent Applications -->
+                <div class="recent-panel">
+                    <div class="recent-head"><i class="fa-solid fa-clock-rotate-left" style="color:var(--blue-700)"></i> Recent Applications</div>
+                    <div class="recent-grid">${filtered.slice(0,6).map(a=>{
+                        const rcls=a.jobTitle?'':'no-job';
+                        return `<div class="recent-card ${rcls}">
+                            <div class="rc-top">
+                                <span class="rc-name">${esc(a.fullName||a.email||appId(a))}</span>
+                                <span class="rc-status">${statusBadge(a.status)}</span>
+                            </div>
+                            <div class="rc-mid">${a.jobTitle?`<span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)}</span>`:''}${a.country?`<span><i class="fa-solid fa-location-dot"></i> ${esc(a.country)}</span>`:''}</div>
+                            <div class="rc-bot">
+                                <span class="rc-date"><i class="fa-regular fa-clock"></i> ${fmtDateShort(a.updatedAt)}</span>
+                                <button class="btn btn-outline btn-sm" data-openapp="${appId(a)}" style="padding:3px 10px;font-size:11px">View</button>
+                            </div>
+                        </div>`;
+                    }).join("")}</div>
+                </div>
                 <!-- Search + Blocked toggle -->
                 <div class="filters-row">
                     <div class="search-input" style="flex:1;max-width:360px"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search name, email, ID, job..." value="${esc(adminFilters.search)}"></div>
