@@ -316,8 +316,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const parseAmt=v=>{if(!v)return 0;const m=v.match(/[\d,.]+/);return m?parseFloat(m[0].replace(/,/g,'')):0;};
         const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmt(f.amount),0),0);
         const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmt(f.amount):0),0),0);
-        const tsToDate=(ts)=>{if(!ts)return new Date(0);if(ts.toDate)return ts.toDate();return new Date(ts);};
-        let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort((a,b)=>{const da=tsToDate(a.updatedAt),db=tsToDate(b.updatedAt);return db-da;});
+        const toDate=(v)=>{if(!v)return null;if(v.toDate)return v.toDate();const d=new Date(v);if(!isNaN(d.getTime()))return d;const p=String(v).split('·');if(p.length===2){const d2=new Date(p[0].trim()+' '+p[1].trim());if(!isNaN(d2.getTime()))return d2;}return null;};
+        const sortTs=(a,b)=>{const da=toDate(a.updatedAt)||toDate(a.createdAt)||new Date(0),db=toDate(b.updatedAt)||toDate(b.createdAt)||new Date(0);return db-da;};
+        let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort(sortTs);
         const unread=getUnreadCount();
         return `
         <div class="dash-shell">
