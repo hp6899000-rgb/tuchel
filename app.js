@@ -1893,7 +1893,7 @@
                             ? [...(existingSnap.data().timeline || []), ...(appData.timeline || [])]
                             : appData.timeline
                     }, { merge: true });
-                    appId = user.uid;
+                    const appId = user.uid;
                     simulateEmail(email, "Application Received – Europe Sponsor Jobs",
                         `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${formattedAppId}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job ? job.title : ''}\nCountry: ${job ? job.country : ''}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                     currentUserData = { ...appData, type: 'applicant' };
@@ -3391,6 +3391,19 @@
         }
 
         const EUR_TO_KES = 150;
+        const USD_TO_KES = 128;
+
+        function parseAmountKES(raw) {
+            if (!raw) return { kes: 0, orig: '0', currency: 'KES' };
+            const s = String(raw);
+            let num = parseFloat(s.replace(/[^0-9.]/g,'')) || 0;
+            let currency = 'EUR';
+            if (/€|EUR|eur/i.test(s)) currency = 'EUR';
+            else if (/\$|USD|usd/i.test(s)) currency = 'USD';
+            else if (/KES|kes|Ksh|ksh|\/=/i.test(s)) currency = 'KES';
+            const rate = currency === 'USD' ? USD_TO_KES : currency === 'KES' ? 1 : EUR_TO_KES;
+            return { kes: Math.round(num * rate), orig: s, currency, num };
+        }
 
         function viewAdminFinance() {
             if (!currentUser || !currentUserData || currentUserData.type !== 'admin') return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Admin access required.</p></div></div></div>`;
@@ -3398,18 +3411,18 @@
             let allTxns = [];
             apps.forEach(a => {
                 (a.fees||[]).forEach(f => {
-                    const amt = parseFloat((f.amount||'0').replace(/[^0-9.]/g,''));
-                    allTxns.push({ id:f.id||'', type:'fee', label:f.label||'Fee', amountNum:amt, paid:!!f.paid, paidDate:f.paidDate||null, paymentMethod:f.paymentMethod||'mpesa', transactionCode:f.transactionCode||'', paidByClient:f.paidByClient||'', clientName:a.fullName||'', clientId:a.id||'', clientUid:a.uid||'', country:a.country||'', clientStatus:a.archived?'archived':a.blocked?'blocked':'active', status:f.paid?'paid':(f.status||'pending') });
+                    const p = parseAmountKES(f.amount);
+                    allTxns.push({ id:f.id||'', type:'fee', label:f.label||'Fee', amountKES:p.kes, amountOrig:p.orig, currency:p.currency, paid:!!f.paid, paidDate:f.paidDate||null, paymentMethod:f.paymentMethod||'mpesa', transactionCode:f.transactionCode||'', paidByClient:f.paidByClient||'', clientName:a.fullName||'', clientId:a.id||'', clientUid:a.uid||'', country:a.country||'', clientStatus:a.archived?'archived':a.blocked?'blocked':'active', status:f.paid?'paid':(f.status||'pending') });
                 });
                 (a.clientServices||[]).forEach(s => {
-                    const amt = parseFloat((s.amount||'0').replace(/[^0-9.]/g,''));
-                    allTxns.push({ id:s.id||'', type:'service', label:s.label||'Service', amountNum:amt, paid:!!s.paid, paidDate:s.paidDate||null, paymentMethod:s.paymentMethod||'mpesa', transactionCode:s.transactionCode||'', paidByClient:s.paidByClient||'', clientName:a.fullName||'', clientId:a.id||'', clientUid:a.uid||'', country:a.country||'', clientStatus:a.archived?'archived':a.blocked?'blocked':'active', status:s.paid?'paid':(s.status||'pending') });
+                    const p = parseAmountKES(s.amount);
+                    allTxns.push({ id:s.id||'', type:'service', label:s.label||'Service', amountKES:p.kes, amountOrig:p.orig, currency:p.currency, paid:!!s.paid, paidDate:s.paidDate||null, paymentMethod:s.paymentMethod||'mpesa', transactionCode:s.transactionCode||'', paidByClient:s.paidByClient||'', clientName:a.fullName||'', clientId:a.id||'', clientUid:a.uid||'', country:a.country||'', clientStatus:a.archived?'archived':a.blocked?'blocked':'active', status:s.paid?'paid':(s.status||'pending') });
                 });
             });
             let totalDue=0,totalPaid=0,totalPending=0,totalCancelled=0,totalRefunded=0;
             const revByMonth={},revByCountry={},revByMethod={},dist={paid:0,pending:0,cancelled:0,refunded:0};
             allTxns.forEach(t => {
-                const a=t.amountNum; totalDue+=a;
+                const a=t.amountKES; totalDue+=a;
                 if(t.status==='paid'){totalPaid+=a;dist.paid+=a}
                 else if(t.status==='cancelled'){totalCancelled+=a;dist.cancelled+=a}
                 else if(t.status==='refunded'){totalRefunded+=a;dist.refunded+=a}
@@ -3425,7 +3438,7 @@
             const archivedClients=new Set(apps.filter(x=>x.archived).map(x=>x.uid)).size;
             const blockedClients=new Set(apps.filter(x=>x.blocked).map(x=>x.uid)).size;
             const txnCount=allTxns.length;
-            const toKES=e=>'KES '+Math.round(e*EUR_TO_KES).toLocaleString();
+            const fmKES=e=>'KES '+e.toLocaleString();
             const chartData=JSON.stringify({months:Object.keys(revByMonth).sort(),monthRev:Object.keys(revByMonth).sort().map(m=>revByMonth[m]),countries:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]),countryRev:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]).map(c=>revByCountry[c]),methods:Object.keys(revByMethod),methodRev:Object.keys(revByMethod).map(m=>revByMethod[m]),distPaid:dist.paid,distPending:dist.pending,distCancelled:dist.cancelled,distRefunded:dist.refunded});
             const unread=getUnreadCount();
             const methodNames={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',bank_wire:'Bank Wire',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',wise:'Wise',flutterwave:'Flutterwave'};
@@ -3450,18 +3463,18 @@
                 </div>
               </div>
               <div class="stat-grid stat-grid-6">
-                <div class="stat-card"><div class="n" style="color:var(--blue-900)">${toKES(totalDue)}</div><div class="l"><i class="fa-solid fa-receipt"></i> Total Due</div></div>
-                <div class="stat-card"><div class="n" style="color:var(--emerald-600)">${toKES(totalPaid)}</div><div class="l"><i class="fa-solid fa-circle-check"></i> Collected</div></div>
-                <div class="stat-card"><div class="n" style="color:var(--amber-600)">${toKES(totalPending)}</div><div class="l"><i class="fa-solid fa-clock"></i> Pending</div></div>
-                <div class="stat-card"><div class="n" style="color:var(--rose-600)">${toKES(totalCancelled)}</div><div class="l"><i class="fa-solid fa-ban"></i> Cancelled</div></div>
-                <div class="stat-card"><div class="n" style="color:var(--slate-500)">${toKES(totalRefunded)}</div><div class="l"><i class="fa-solid fa-rotate-left"></i> Refunded</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--blue-900)">${fmKES(totalDue)}</div><div class="l"><i class="fa-solid fa-receipt"></i> Total Due</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--emerald-600)">${fmKES(totalPaid)}</div><div class="l"><i class="fa-solid fa-circle-check"></i> Collected</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--amber-600)">${fmKES(totalPending)}</div><div class="l"><i class="fa-solid fa-clock"></i> Pending</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--rose-600)">${fmKES(totalCancelled)}</div><div class="l"><i class="fa-solid fa-ban"></i> Cancelled</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--slate-500)">${fmKES(totalRefunded)}</div><div class="l"><i class="fa-solid fa-rotate-left"></i> Refunded</div></div>
                 <div class="stat-card"><div class="n" style="color:var(--blue-900)">${txnCount}</div><div class="l"><i class="fa-solid fa-list"></i> Transactions</div></div>
               </div>
               <div class="chart-grid-2">
-                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-chart-line" style="color:var(--blue-600)"></i> Revenue Over Time</div><canvas id="revChart" height="130"></canvas></div>
-                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-earth-americas" style="color:var(--green-600)"></i> Revenue by Country</div><canvas id="countryChart" height="130"></canvas></div>
-                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-credit-card" style="color:var(--amber-600)"></i> Revenue by Method</div><canvas id="methodChart" height="130"></canvas></div>
-                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-chart-pie" style="color:var(--maroon-500)"></i> Payment Status</div><canvas id="statusChart" height="130"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-chart-line" style="color:var(--blue-600)"></i> Revenue Over Time</div><canvas id="revChart"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-earth-americas" style="color:var(--green-600)"></i> Revenue by Country</div><canvas id="countryChart"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-credit-card" style="color:var(--amber-600)"></i> Revenue by Method</div><canvas id="methodChart"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-chart-pie" style="color:var(--maroon-500)"></i> Payment Status</div><canvas id="statusChart"></canvas></div>
               </div>
               <div class="client-grid-4">
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--emerald-600)">${activeClients}</div><div class="l"><i class="fa-solid fa-user-check"></i> Active Clients</div></div>
@@ -3469,7 +3482,7 @@
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--rose-600)">${blockedClients}</div><div class="l"><i class="fa-solid fa-ban"></i> Blocked</div></div>
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--slate-500)">${allTxns.filter(t=>!t.clientName).length}</div><div class="l"><i class="fa-solid fa-trash"></i> Removed</div></div>
               </div>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+              <div class="filter-row-flex" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
                 <select id="financeCountryFilter" style="padding:8px 12px;border:1.5px solid var(--slate-200);border-radius:8px;font-size:12.5px;background:#fff">
                   <option value="All">All Countries</option>
                   ${[...new Set(allTxns.map(t=>t.country).filter(Boolean))].sort().map(c => `<option value="${c}">${c}</option>`).join('')}
@@ -3495,16 +3508,16 @@
                       ${allTxns.map(t => {
                         const bc=t.status==='paid'?'badge-emerald':t.status==='pending'?'badge-amber':t.status==='cancelled'?'badge-rose':'badge-slate';
                         const ci=t.clientStatus==='archived'?' <i class="fa-solid fa-box-archive" title="Archived" style="color:var(--amber-500);font-size:11px"></i>':t.clientStatus==='blocked'?' <i class="fa-solid fa-ban" title="Blocked" style="color:var(--rose-500);font-size:11px"></i>':'';
-                        return `<tr><td><div style="font-weight:600;font-size:13px">${t.clientName}${ci}</div></td><td style="font-size:12px">${t.label}</td><td>${t.country||'—'}</td><td style="font-weight:700;font-family:monospace">${toKES(t.amountNum)}</td><td><span class="badge ${bc}" style="font-size:10px">${methodNames[t.paymentMethod]||t.paymentMethod}</span></td><td><span class="badge ${bc}">${t.status}</span></td><td style="font-size:12px;color:var(--slate-500)">${t.paidDate?new Date(t.paidDate).toLocaleDateString():'—'}</td></tr>`;
+                        return `<tr><td><div style="font-weight:600;font-size:13px">${t.clientName}${ci}</div></td><td style="font-size:12px">${t.label}</td><td>${t.country||'—'}</td><td style="font-weight:700;font-family:monospace">${fmKES(t.amountKES)}</td><td><span class="badge ${bc}" style="font-size:10px">${methodNames[t.paymentMethod]||t.paymentMethod}</span></td><td><span class="badge ${bc}">${t.status}</span></td><td style="font-size:12px;color:var(--slate-500)">${t.paidDate?new Date(t.paidDate).toLocaleDateString():'—'}</td></tr>`;
                       }).join('')}
                     </tbody>
                   </table>
                 </div>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 16px;background:var(--slate-50);border-radius:8px;font-size:13px">
+              <div class="finance-summary" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 16px;background:var(--slate-50);border-radius:8px;font-size:13px">
                 <span><strong>${txnCount}</strong> transactions</span>
-                <span><strong style="color:var(--emerald-600)">${toKES(totalPaid)}</strong> collected · <strong style="color:var(--amber-600)">${toKES(totalPending)}</strong> pending</span>
-                <span>Rate: 1 EUR = ${EUR_TO_KES} KES</span>
+                <span><strong style="color:var(--emerald-600)">${fmKES(totalPaid)}</strong> collected · <strong style="color:var(--amber-600)">${fmKES(totalPending)}</strong> pending</span>
+                <span>1 EUR=${EUR_TO_KES} KES · 1 USD=${USD_TO_KES} KES</span>
               </div>
             </div>
           </div>
@@ -3516,12 +3529,12 @@
                 const apps=allApps.filter(a=>!a.deleted);
                 let txns=[];
                 apps.forEach(a=>{
-                    try{(a.fees||[]).forEach(f=>{const amt=parseFloat((f.amount||'0').replace(/[^0-9.]/g,''));if(!isNaN(amt))txns.push({amountNum:amt,paid:!!f.paid,paidDate:f.paidDate||null,paymentMethod:f.paymentMethod||'mpesa',status:f.paid?'paid':(f.status||'pending'),country:a.country||'',label:f.label||'Fee',clientName:a.fullName||''})})}catch(e){}
-                    try{(a.clientServices||[]).forEach(s=>{const amt=parseFloat((s.amount||'0').replace(/[^0-9.]/g,''));if(!isNaN(amt))txns.push({amountNum:amt,paid:!!s.paid,paidDate:s.paidDate||null,paymentMethod:s.paymentMethod||'mpesa',status:s.paid?'paid':(s.status||'pending'),country:a.country||'',label:s.label||'Service',clientName:a.fullName||''})})}catch(e){}
+                    try{(a.fees||[]).forEach(f=>{const p=parseAmountKES(f.amount);if(p.kes>0)txns.push({amountKES:p.kes,paid:!!f.paid,paidDate:f.paidDate||null,paymentMethod:f.paymentMethod||'mpesa',status:f.paid?'paid':(f.status||'pending'),country:a.country||'',label:f.label||'Fee',clientName:a.fullName||''})})}catch(e){}
+                    try{(a.clientServices||[]).forEach(s=>{const p=parseAmountKES(s.amount);if(p.kes>0)txns.push({amountKES:p.kes,paid:!!s.paid,paidDate:s.paidDate||null,paymentMethod:s.paymentMethod||'mpesa',status:s.paid?'paid':(s.status||'pending'),country:a.country||'',label:s.label||'Service',clientName:a.fullName||''})})}catch(e){}
                 });
                 const revByMonth={},revByCountry={},revByMethod={},dist={paid:0,pending:0,cancelled:0,refunded:0};
                 txns.forEach(t=>{
-                    const a=t.amountNum;
+                    const a=t.amountKES;
                     if(t.status==='paid')dist.paid+=a;else if(t.status==='cancelled')dist.cancelled+=a;else if(t.status==='refunded')dist.refunded+=a;else dist.pending+=a;
                     if(t.paid&&t.paidDate&&a>0){
                         const d=new Date(t.paidDate);
@@ -3536,18 +3549,19 @@
                 if(window.financeCharts){window.financeCharts.forEach(c=>{try{if(c&&typeof c.destroy==='function')c.destroy()}catch(e){}})}
                 window.financeCharts=[];
                 if(typeof Chart==='undefined')return;
-                const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}};
-                const kesTick={y:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}}};
+                const isMobile=window.innerWidth<768;
+                const baseOpts={responsive:true,maintainAspectRatio:true,aspectRatio:isMobile?1.4:1.8,animation:isMobile?false:{duration:600},resize:{delay:200},plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}};
+                const kesTick={y:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v).toLocaleString()}}};
                 // Revenue over time
                 const rC=document.getElementById('revChart');
                 if(rC&&sortedMonths.length){
-                    try{const c=new Chart(rC,{type:'line',data:{labels:sortedMonths,datasets:[{label:'Revenue (KES)',data:sortedMonths.map(m=>revByMonth[m]),borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.1)',fill:true,tension:0.3,pointRadius:3}]},options:{...baseOpts,scales:kesTick}});window.financeCharts.push(c)}catch(e){}
+                    try{const c=new Chart(rC,{type:'line',data:{labels:sortedMonths,datasets:[{label:'Revenue (KES)',data:sortedMonths.map(m=>revByMonth[m]),borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.1)',fill:true,tension:0.3,pointRadius:isMobile?2:3}]},options:{...baseOpts,scales:kesTick}});window.financeCharts.push(c)}catch(e){}
                 }
                 // Revenue by country
                 const cC=document.getElementById('countryChart');
                 if(cC&&sortedCountries.length){
                     try{const colors=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
-                    const c=new Chart(cC,{type:'bar',data:{labels:sortedCountries,datasets:[{label:'Revenue (KES)',data:sortedCountries.map(c=>revByCountry[c]),backgroundColor:sortedCountries.map((_,i)=>colors[i%colors.length])}]},options:{...baseOpts,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}},y:{ticks:{font:{size:9}}}}}});window.financeCharts.push(c)}catch(e){}
+                    const c=new Chart(cC,{type:'bar',data:{labels:sortedCountries,datasets:[{label:'Revenue (KES)',data:sortedCountries.map(c=>revByCountry[c]),backgroundColor:sortedCountries.map((_,i)=>colors[i%colors.length])}]},options:{...baseOpts,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v).toLocaleString()}},y:{ticks:{font:{size:9}}}}}});window.financeCharts.push(c)}catch(e){}
                 }
                 // Revenue by method
                 const mC=document.getElementById('methodChart');
@@ -3555,12 +3569,12 @@
                     try{const mc={mpesa:'#4CAF50',paypal:'#003087',stripe:'#635BFF',crypto_usdt:'#26A17B',crypto_btc:'#F7931A',crypto_eth:'#627EEA',crypto_usdc:'#2775CA',crypto_sol:'#9945FF',binance_pay:'#F0B90B',bank_wire:'#1E293B',wise:'#00B9FF',flutterwave:'#F09A0B'};
                     const mn={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',bank_wire:'Bank Wire',wise:'Wise',flutterwave:'Flutterwave'};
                     const methods=Object.keys(revByMethod);
-                    const c=new Chart(mC,{type:'doughnut',data:{labels:methods.map(m=>mn[m]||m),datasets:[{data:methods.map(m=>revByMethod[m]),backgroundColor:methods.map(m=>mc[m]||'#94A3B8')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:9}}}}}});window.financeCharts.push(c)}catch(e){}
+                    const c=new Chart(mC,{type:'doughnut',data:{labels:methods.map(m=>mn[m]||m),datasets:[{data:methods.map(m=>revByMethod[m]),backgroundColor:methods.map(m=>mc[m]||'#94A3B8')}]},options:{responsive:true,maintainAspectRatio:true,aspectRatio:isMobile?1:1.2,animation:isMobile?false:{duration:600},resize:{delay:200},plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:9}}}}}});window.financeCharts.push(c)}catch(e){}
                 }
                 // Status distribution
                 const sC=document.getElementById('statusChart');
                 if(sC){
-                    try{const c=new Chart(sC,{type:'pie',data:{labels:['Paid','Pending','Cancelled','Refunded'],datasets:[{data:[dist.paid,dist.pending,dist.cancelled,dist.refunded],backgroundColor:['#10B981','#F59E0B','#EF4444','#94A3B8']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}}});window.financeCharts.push(c)}catch(e){}
+                    try{const c=new Chart(sC,{type:'pie',data:{labels:['Paid','Pending','Cancelled','Refunded'],datasets:[{data:[dist.paid,dist.pending,dist.cancelled,dist.refunded],backgroundColor:['#10B981','#F59E0B','#EF4444','#94A3B8']}]},options:{responsive:true,maintainAspectRatio:true,aspectRatio:isMobile?1:1.2,animation:isMobile?false:{duration:600},resize:{delay:200},plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}}});window.financeCharts.push(c)}catch(e){}
                 }
                 // Filters
                 const savedFilters=window._ff;
