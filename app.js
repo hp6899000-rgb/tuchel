@@ -3442,7 +3442,7 @@
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
             <div class="dash-main">
-              <div class="dash-topbar">
+              <div class="dash-topbar finance-topbar">
                 <h2><i class="fa-solid fa-chart-line" style="color:var(--maroon-500)"></i> Finance Dashboard</h2>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button class="btn btn-outline btn-sm" id="financeRefreshBtn"><i class="fa-solid fa-rotate"></i> Refresh</button>
@@ -3458,10 +3458,10 @@
                 <div class="stat-card"><div class="n" style="color:var(--blue-900)">${txnCount}</div><div class="l"><i class="fa-solid fa-list"></i> Transactions</div></div>
               </div>
               <div class="chart-grid-2">
-                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-chart-line" style="color:var(--blue-600)"></i> Revenue Over Time</div><canvas id="revChart" height="200"></canvas></div>
-                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-earth-americas" style="color:var(--green-600)"></i> Revenue by Country</div><canvas id="countryChart" height="200"></canvas></div>
-                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-credit-card" style="color:var(--amber-600)"></i> Revenue by Method</div><canvas id="methodChart" height="200"></canvas></div>
-                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-chart-pie" style="color:var(--maroon-500)"></i> Payment Status</div><canvas id="statusChart" height="200"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-chart-line" style="color:var(--blue-600)"></i> Revenue Over Time</div><canvas id="revChart" height="130"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-earth-americas" style="color:var(--green-600)"></i> Revenue by Country</div><canvas id="countryChart" height="130"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-credit-card" style="color:var(--amber-600)"></i> Revenue by Method</div><canvas id="methodChart" height="130"></canvas></div>
+                <div class="stat-card" style="padding:14px"><div style="font-size:12px;font-weight:700;color:var(--blue-900);margin-bottom:8px"><i class="fa-solid fa-chart-pie" style="color:var(--maroon-500)"></i> Payment Status</div><canvas id="statusChart" height="130"></canvas></div>
               </div>
               <div class="client-grid-4">
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--emerald-600)">${activeClients}</div><div class="l"><i class="fa-solid fa-user-check"></i> Active Clients</div></div>
@@ -3489,7 +3489,7 @@
               </div>
               <div class="stat-card" style="padding:0;overflow:hidden">
                 <div class="table-wrap">
-                  <table>
+                  <table class="finance-table">
                     <thead><tr><th>Client</th><th>Service/Fee</th><th>Country</th><th>Amount (KES)</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
                     <tbody id="financeTxnBody">
                       ${allTxns.map(t => {
@@ -4098,7 +4098,7 @@ function showChatUserDetails(userName, chatId) {
         // INTERNATIONAL PAYMENT FLOW
         // =============================================================
         const PAYMENT_METHODS = [
-            { id:'mpesa', name:'M-Pesa', icon:'<svg viewBox="0 0 70 24" width="20" height="20"><rect width="70" height="24" rx="4" fill="#4CAF50"/><text x="35" y="16" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="12">MPESA</text></svg>', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa', badge:'MPESA' },
+            { id:'mpesa', name:'M-Pesa', icon:'<svg viewBox="0 0 48 48" width="20" height="20" fill-rule="evenodd" clip-rule="evenodd"><path fill="#aed580" d="M31.003,7.001l-0.001-5.5c0-0.828,0.672-1.5,1.5-1.5c0.828,0,1.5,0.672,1.5,1.5v5.5H31.003z"/><path fill="#aed580" d="M14.964,47.999h18.073c0.533,0,0.965-0.432,0.965-0.965V4.964c0-0.533-0.432-0.965-0.965-0.965H14.964c-0.533,0-0.965,0.432-0.965,0.965v42.07C13.999,47.567,14.431,47.999,14.964,47.999z"/><path fill="#fff" d="M17.739,29.001h12.524c0.962,0,1.741-0.78,1.741-1.741V10.743c0-0.962-0.78-1.741-1.741-1.741H17.739c-0.962,0-1.741,0.78-1.741,1.741V27.26C15.997,28.222,16.777,29.001,17.739,29.001z"/><path fill="#9b2310" d="M12.001,22.001c3.643-0.7,5.865-2.448,7-5c1.135,2.552,3.357,4.3,7,5H12.001z"/><path fill="#e60023" d="M12.001,22.001c4.273,0.867,6.476,1,11,1c5.076,0,11.712-1.939,14-6l-9-4C24.039,18.139,21.863,22.001,12.001,22.001z"/></svg>', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa', badge:'MPESA' },
             { id:'paypal', name:'PayPal', icon:'fa-brands fa-paypal', color:'#003087', desc:'Global — Visa, MC, Amex, Discover' },
             { id:'stripe', name:'Stripe', icon:'fa-brands fa-stripe-s', color:'#635BFF', desc:'Global — Cards, Apple Pay, Google Pay' },
             { id:'crypto_usdt', name:'USDT (Crypto)', icon:'fa-brands fa-bitcoin', color:'#26A17B', desc:'Tether — ERC20/TRC20/BEP20' },
