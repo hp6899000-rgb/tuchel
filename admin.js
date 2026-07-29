@@ -429,7 +429,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 <td style="white-space:nowrap">${completenessBar(cmp)}</td>
                                 <td style="white-space:nowrap"><span class="fee-paid">€${paidAmt.toFixed(0)}</span><span class="fee-total">€${totalAmt.toFixed(0)}</span></td>
                                 <td class="date-cell">${fmtDate(a.updatedAt)}</td>
-                                <td><button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
+                                <td style="white-space:nowrap">${a.phone?`<a href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn-wa" title="WhatsApp ${esc(a.fullName)}"><i class="fa-brands fa-whatsapp"></i></a> `:''}<button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
                             </tr>`;
                         }).join(""):`<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-inbox"></i></div></td></tr>`}</tbody>
                     </table>
