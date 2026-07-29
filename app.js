@@ -2227,10 +2227,10 @@
                 ${statusBadge(app.status)}
               </div>
 
-              ${allApps.length > 1 ? `
+              ${userApps.length > 1 ? `
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:#fff;border:1px solid var(--slate-200);border-radius:8px;align-items:center">
                 <span style="font-size:12px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.03em">Applications</span>
-                ${allApps.map((a,i)=>{
+                ${userApps.map((a,i)=>{
                     const isActive = a.id === app.id;
                     return `<button class="chip ${isActive?'active':''}" data-switchapp="${a.id}" style="font-size:11px">${esc(a.jobTitle||'App '+(i+1))}</button>`;
                 }).join("")}
@@ -2287,7 +2287,7 @@
                     <span class="amt">${esc(f.amount)}</span>
                     <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (You)':'Paid'):'Unpaid'}</span>
                     ${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}
-                    ${!f.paid && f.amount ? `<button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="fee" data-pay-index="${i}" data-pay-amount="${esc(f.amount)}" data-pay-label="${esc(f.label)}" style="font-size:11px;padding:6px 14px;margin-left:auto"><i class="fa-solid fa-hand-holding-dollar"></i> Pay Now</button>` : ''}
+                    ${!f.paid && f.amount ? `<button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="fee" data-pay-index="${i}" data-pay-appid="${app.id||app.appId||app.uid}" data-pay-amount="${esc(f.amount)}" data-pay-label="${esc(f.label)}" style="font-size:11px;padding:6px 14px;margin-left:auto"><i class="fa-solid fa-hand-holding-dollar"></i> Pay Now</button>` : ''}
                   </div>`).join("") : '<div style="padding:16px 0;text-align:center;color:var(--slate-400);font-size:13px">No fees recorded yet.</div>'}
               </div>
 
@@ -2314,7 +2314,7 @@
                         ${s.paid
                           ? `<div style="margin-top:8px;padding:6px 10px;background:var(--emerald-50);border-radius:6px;font-size:12px;color:var(--emerald-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-check"></i> Paid${s.paidByClient?' (You)':''}${s.paidDate?` · ${fmtDate(s.paidDate)}`:''}</div>`
                           : s.amount
-                            ? `<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><div style="flex:1;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div><button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="service" data-pay-index="${i}" data-pay-amount="${esc(s.amount)}" data-pay-label="${esc(s.label)}" style="font-size:11px;padding:6px 14px"><i class="fa-solid fa-hand-holding-dollar"></i> Pay Now</button></div>`
+                            ? `<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><div style="flex:1;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div><button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="service" data-pay-index="${i}" data-pay-appid="${app.id||app.appId||app.uid}" data-pay-amount="${esc(s.amount)}" data-pay-label="${esc(s.label)}" style="font-size:11px;padding:6px 14px"><i class="fa-solid fa-hand-holding-dollar"></i> Pay Now</button></div>`
                             : ''}
                       </div>`;
                     }).join("")}
@@ -3904,8 +3904,8 @@ function showChatUserDetails(userName, chatId) {
             return map[methodId] || 'Follow the instructions provided by admin. Enter your reference code below.';
         }
 
-        function openPaymentModal(type, index, amount, label) {
-            payTarget = { type, index };
+        function openPaymentModal(type, index, amount, label, appId) {
+            payTarget = { type, index, appId };
             selectedPayMethod = null;
             selectedPayChain = null;
             document.getElementById('payAmount').textContent = amount;
@@ -3984,17 +3984,18 @@ function showChatUserDetails(userName, chatId) {
                 const idx = parseInt(btn.getAttribute('data-pay-index'));
                 const amount = btn.getAttribute('data-pay-amount');
                 const label = btn.getAttribute('data-pay-label');
-                openPaymentModal(type, idx, amount, label);
+                const appId = btn.getAttribute('data-pay-appid');
+                openPaymentModal(type, idx, amount, label, appId);
             }
         });
 
         document.getElementById('payConfirmBtn')?.addEventListener('click', async function() {
             if (!payTarget) return;
             if (!selectedPayMethod) { toast('Please select a payment method.', 'err'); return; }
-            const { type, index } = payTarget;
+            const { type, index, appId } = payTarget;
             const txnCode = document.getElementById('payTxnCode').value.trim();
             if (!txnCode) { toast('Please enter the transaction or reference code.', 'err'); return; }
-            const app = allApps.find(a => a.uid === currentUser.uid);
+            const app = allApps.find(a => (a.id === appId) || (a.appId === appId) || (a.uid === appId));
             if (!app) { toast('Application not found.', 'err'); return; }
             const id = app.id || app.uid;
             const pmName = PAYMENT_METHODS.find(p => p.id === selectedPayMethod)?.name || selectedPayMethod;
