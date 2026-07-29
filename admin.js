@@ -266,6 +266,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             case "messages": html=viewMessages(); break;
             case "messages-chat": html=viewMessagesChat(); break;
             case "audit": html=viewAuditLog(); break;
+            case "finance": html=viewFinance(); break;
             default: html=viewLogin();
         }
         document.getElementById('app').innerHTML=html;
@@ -277,6 +278,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         if(ROUTE.view==='fees') wireFees();
         if(ROUTE.view==='messages') wireMessages();
         if(ROUTE.view==='messages-chat') wireMessagesChat();
+        if(ROUTE.view==='finance') wireFinance();
     }
 
     function viewLogin() {
@@ -324,6 +326,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
                 <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
                 <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread?` <span class="msg-count">${unread}</span>`:''}</a>
+                <a class="side-link" data-nav="finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
                 <a class="side-link" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
                 <div class="side-title" style="margin-top:20px">Account</div>
                 <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -1091,6 +1094,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <a class="side-link active" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
                 <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
                 <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <a class="side-link" data-nav="finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
                 <div class="side-title" style="margin-top:20px">Account</div>
                 <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
@@ -1143,6 +1147,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
                 <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
                 <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <a class="side-link" data-nav="finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
                 <a class="side-link active" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
                 <div class="side-title" style="margin-top:20px">Account</div>
                 <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -1165,6 +1170,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
                 <a class="side-link active" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
                 <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <a class="side-link" data-nav="finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
                 <div class="side-title" style="margin-top:20px">Account</div>
                 <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
             </div>
@@ -1365,6 +1371,549 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const openBtn=root.querySelector('[data-openapp]');
         if(openBtn)openBtn.addEventListener('click',()=>{root.innerHTML='';openAppModal(openBtn.getAttribute('data-openapp'));});
     }
+
+    // ============= FINANCE DASHBOARD =============
+    const PAYMENT_METHODS = [
+        { id:'mpesa', name:'M-Pesa', icon:'fa-mobile-screen-button', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa' },
+        { id:'paypal', name:'PayPal', icon:'fa-brands fa-paypal', color:'#003087', desc:'Global — Visa, MC, Amex, Discover' },
+        { id:'stripe', name:'Stripe', icon:'fa-brands fa-stripe-s', color:'#635BFF', desc:'Global — Cards, Apple Pay, Google Pay' },
+        { id:'crypto_usdt', name:'USDT (Crypto)', icon:'fa-brands fa-bitcoin', color:'#26A17B', desc:'Tether — ERC20/TRC20/BEP20' },
+        { id:'crypto_btc', name:'Bitcoin', icon:'fa-brands fa-bitcoin', color:'#F7931A', desc:'BTC — Bitcoin Network' },
+        { id:'crypto_eth', name:'Ethereum', icon:'fa-brands fa-ethereum', color:'#627EEA', desc:'ETH — ERC20 Network' },
+        { id:'crypto_usdc', name:'USDC', icon:'fa-brands fa-bitcoin', color:'#2775CA', desc:'USD Coin — Eth/Sol/Polygon' },
+        { id:'crypto_sol', name:'Solana', icon:'fa-brands fa-bitcoin', color:'#9945FF', desc:'SOL — Fast & low fee' },
+        { id:'binance_pay', name:'Binance Pay', icon:'fa-brands fa-btc', color:'#F0B90B', desc:'Binance Pay ID / QR' },
+        { id:'bank_wire', name:'Bank Wire (SWIFT)', icon:'fa-building-columns', color:'#1E293B', desc:'SWIFT/IBAN — large transfers' },
+        { id:'wise', name:'Wise', icon:'fa-money-bill-transfer', color:'#00B9FF', desc:'International bank transfer' },
+        { id:'flutterwave', name:'Flutterwave', icon:'fa-globe', color:'#F09A0B', desc:'Cards + Mobile Money Africa' }
+    ];
+    const CRYPTO_CHAINS = {
+        USDT: ['ERC20 (Ethereum)', 'TRC20 (Tron)', 'BEP20 (Binance)', 'Solana', 'Polygon'],
+        USDC: ['Ethereum (ERC20)', 'Solana', 'Polygon'],
+        BTC: ['Bitcoin Network'],
+        ETH: ['Ethereum (ERC20)'],
+        SOL: ['Solana']
+    };
+    let financeCharts = [];
+    function destroyFinanceCharts() {
+        financeCharts.forEach(c => { try { c.destroy(); } catch(e) {} });
+        financeCharts = [];
+    }
+    let financeFilters = { country: 'All', status: 'All', paymentMethod: 'All', search: '', dateRange: 'all' };
+    function viewFinance() {
+        if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const apps = allApps; // Include ALL apps (archived, blocked, deleted, active)
+        const parseAmt = v => { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; };
+        // Collect all financial transactions: fees + services from all apps
+        let allTxns = [];
+        apps.forEach(a => {
+            const clientStatus = a.archived ? 'archived' : a.blocked ? 'blocked' : Object.keys(a).includes('deletedAt') ? 'deleted' : 'active';
+            (a.fees||[]).forEach(f => {
+                allTxns.push({
+                    id: f.id, type: 'fee', label: f.label, amount: f.amount, amountNum: parseAmt(f.amount),
+                    paid: !!f.paid, paidDate: f.paidDate, paymentMethod: f.paymentMethod||'mpesa',
+                    transactionCode: f.transactionCode, paidByClient: !!f.paidByClient,
+                    clientName: a.fullName||'Unknown', clientId: displayId(a), clientUid: a.uid||a.id,
+                    country: a.country||'', serviceCategory: 'Fee',
+                    clientStatus, status: f.paid ? 'paid' : 'pending'
+                });
+            });
+            (a.clientServices||[]).forEach(s => {
+                allTxns.push({
+                    id: s.id, type: 'service', label: s.label, amount: s.amount, amountNum: parseAmt(s.amount),
+                    paid: !!s.paid, paidDate: s.paidDate, paymentMethod: s.paymentMethod||'mpesa',
+                    transactionCode: s.transactionCode, paidByClient: !!s.paidByClient,
+                    clientName: a.fullName||'Unknown', clientId: displayId(a), clientUid: a.uid||a.id,
+                    country: a.country||'', serviceCategory: s.type||'other',
+                    clientStatus, status: s.status||'pending'
+                });
+            });
+        });
+        // Apply filters
+        let filtered = allTxns.filter(t => {
+            if(financeFilters.country !== 'All' && t.country !== financeFilters.country) return false;
+            if(financeFilters.status !== 'All' && t.status !== financeFilters.status && !(financeFilters.status === 'paid' && t.paid)) return false;
+            if(financeFilters.paymentMethod !== 'All' && t.paymentMethod !== financeFilters.paymentMethod) return false;
+            if(financeFilters.search && !(t.clientName+t.label+t.clientId).toLowerCase().includes(financeFilters.search.toLowerCase())) return false;
+            if(financeFilters.dateRange === 'today') {
+                const today = new Date(); today.setHours(0,0,0,0);
+                if(!t.paidDate || new Date(t.paidDate) < today) return false;
+            }
+            if(financeFilters.dateRange === 'month') {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                if(!t.paidDate || new Date(t.paidDate) < start) return false;
+            }
+            return true;
+        });
+        // Stats
+        const totalDue = filtered.reduce((s,t) => s + t.amountNum, 0);
+        const totalPaid = filtered.filter(t => t.paid).reduce((s,t) => s + t.amountNum, 0);
+        const totalPending = filtered.filter(t => !t.paid && t.status !== 'cancelled').reduce((s,t) => s + t.amountNum, 0);
+        const totalCancelled = filtered.filter(t => t.status === 'cancelled').reduce((s,t) => s + t.amountNum, 0);
+        const totalRefunded = filtered.filter(t => t.status === 'refunded').reduce((s,t) => s + t.amountNum, 0);
+        const txnCount = filtered.length;
+        const paidCount = filtered.filter(t => t.paid).length;
+        const pendingCount = filtered.filter(t => !t.paid && t.status !== 'cancelled').length;
+        // Revenue by country
+        const revByCountry = {};
+        filtered.filter(t => t.paid).forEach(t => {
+            const c = t.country || 'Unknown';
+            revByCountry[c] = (revByCountry[c]||0) + t.amountNum;
+        });
+        // Revenue by payment method
+        const revByMethod = {};
+        filtered.filter(t => t.paid).forEach(t => {
+            const m = t.paymentMethod || 'other';
+            revByMethod[m] = (revByMethod[m]||0) + t.amountNum;
+        });
+        // Revenue over time (by month)
+        const revByMonth = {};
+        filtered.filter(t => t.paid && t.paidDate).forEach(t => {
+            const d = new Date(t.paidDate);
+            const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+            revByMonth[key] = (revByMonth[key]||0) + t.amountNum;
+        });
+        // Payment status distribution
+        const dist = {
+            paid: totalPaid,
+            pending: totalPending,
+            cancelled: totalCancelled,
+            refunded: totalRefunded
+        };
+        const sortedMonths = Object.keys(revByMonth).sort();
+        const countryList = [...new Set(apps.map(a => a.country).filter(Boolean))].sort();
+        const methodList = [...new Set(allTxns.map(t => t.paymentMethod).filter(Boolean))].sort();
+        // Client status counts
+        const activeClients = apps.filter(a => !a.archived && !a.blocked).length;
+        const archivedClients = apps.filter(a => a.archived).length;
+        const blockedClients = apps.filter(a => a.blocked).length;
+        // Build the HTML
+        return `
+        <div class="dash-shell">
+            <div class="dash-side">
+                <div class="side-title">Admin Console</div>
+                <a class="side-link" data-nav="dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+                <a class="side-link" data-nav="jobs"><i class="fa-solid fa-briefcase"></i> Jobs</a>
+                <a class="side-link" data-nav="fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+                <a class="side-link active" data-nav="finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
+                <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+                <a class="side-link" data-nav="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Log</a>
+                <div class="side-title" style="margin-top:20px">Account</div>
+                <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main finance-dashboard">
+                <div class="dash-topbar">
+                    <h2><i class="fa-solid fa-chart-line" style="color:var(--maroon-500)"></i> Finance Dashboard</h2>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-outline btn-sm" data-action="refresh-finance"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                        <button class="btn btn-primary btn-sm" data-action="export-finance"><i class="fa-solid fa-download"></i> Export</button>
+                    </div>
+                </div>
+                <!-- Stats Cards -->
+                <div class="finance-cards">
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--blue-50);color:var(--blue-700)"><i class="fa-solid fa-coins"></i></div><div class="fc-value">€${totalDue.toFixed(0)}</div><div class="fc-label">Total Due</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--emerald-50);color:var(--emerald-600)"><i class="fa-solid fa-circle-check"></i></div><div class="fc-value">€${totalPaid.toFixed(0)}</div><div class="fc-label">Collected</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--amber-50);color:var(--amber-600)"><i class="fa-solid fa-clock"></i></div><div class="fc-value">€${totalPending.toFixed(0)}</div><div class="fc-label">Pending</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--rose-50);color:var(--rose-600)"><i class="fa-solid fa-ban"></i></div><div class="fc-value">€${totalCancelled.toFixed(0)}</div><div class="fc-label">Cancelled</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--slate-100);color:var(--slate-600)"><i class="fa-solid fa-arrow-rotate-left"></i></div><div class="fc-value">€${totalRefunded.toFixed(0)}</div><div class="fc-label">Refunded</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--indigo-50);color:var(--indigo-600)"><i class="fa-solid fa-receipt"></i></div><div class="fc-value">${txnCount}</div><div class="fc-label">Total Transactions</div></div>
+                </div>
+                <!-- Client Status Summary -->
+                <div class="finance-cards client-status-cards">
+                    <div class="finance-card" style="border-left:3px solid var(--emerald-500)"><div class="fc-value">${activeClients}</div><div class="fc-label">Active Clients</div></div>
+                    <div class="finance-card" style="border-left:3px solid var(--amber-500)"><div class="fc-value">${archivedClients}</div><div class="fc-label">Archived</div></div>
+                    <div class="finance-card" style="border-left:3px solid var(--rose-500)"><div class="fc-value">${blockedClients}</div><div class="fc-label">Blocked</div></div>
+                    <div class="finance-card" style="border-left:3px solid var(--slate-500)"><div class="fc-value">${apps.length - activeClients - archivedClients - blockedClients < 0 ? 0 : apps.length - activeClients - archivedClients - blockedClients}</div><div class="fc-label">Deleted</div></div>
+                </div>
+                <!-- Charts -->
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-chart-simple" style="color:var(--blue-600)"></i> Revenue Over Time</h4>
+                        <div class="chart-wrap"><canvas id="revChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-globe" style="color:var(--emerald-600)"></i> Revenue by Country</h4>
+                        <div class="chart-wrap"><canvas id="countryChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-credit-card" style="color:var(--maroon-500)"></i> Revenue by Payment Method</h4>
+                        <div class="chart-wrap"><canvas id="methodChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-chart-pie" style="color:var(--amber-600)"></i> Payment Status Distribution</h4>
+                        <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+                    </div>
+                </div>
+                <!-- International Payment Methods Info -->
+                <div class="card pad" style="margin-bottom:16px">
+                    <h4 style="margin:0 0 12px;color:var(--blue-900);font-size:14px"><i class="fa-solid fa-globe" style="color:var(--maroon-500)"></i> International Payment Methods</h4>
+                    <p style="font-size:12px;color:var(--slate-500);margin-bottom:12px">Clients can use any of these methods. When they request payment details, a WhatsApp message is sent to +254703935936.</p>
+                    <div class="pay-method-grid">
+                        ${PAYMENT_METHODS.map(pm => `
+                        <div class="pay-method-card" title="${esc(pm.desc)}">
+                            <div class="pm-icon" style="color:${pm.color}"><i class="${pm.icon}"></i></div>
+                            <div class="pm-name">${esc(pm.name)}</div>
+                            <div class="pm-desc">${esc(pm.desc)}</div>
+                            <span class="pm-badge" style="background:${pm.color}15;color:${pm.color}">${pm.id}</span>
+                        </div>`).join('')}
+                    </div>
+                </div>
+                <!-- WhatsApp Payment Request Flow Info -->
+                <div class="whatsapp-request">
+                    <div class="wa-head"><i class="fa-brands fa-whatsapp" style="color:#25D366"></i> Payment Request via WhatsApp</div>
+                    <div class="wa-body">When a client clicks <strong>"Request Payment Details"</strong> for any payment method, a pre-filled WhatsApp message is sent to <strong>+254703935936</strong> with their service details, chosen payment method, and amount. You receive the request instantly and can respond with the correct payment details (e.g., wallet address, bank account, PayPal email).</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-outline btn-sm" data-action="test-whatsapp"><i class="fa-brands fa-whatsapp" style="color:#25D366"></i> Test WhatsApp Request</button>
+                        <button class="btn btn-outline btn-sm" data-action="open-pay-modal"><i class="fa-solid fa-hand-holding-dollar"></i> Simulate Payment Request</button>
+                    </div>
+                </div>
+                <!-- Filters -->
+                <div class="finance-filter-row">
+                    <select id="financeCountryFilter"><option value="All">All Countries</option>${countryList.map(c => `<option value="${c}" ${financeFilters.country===c?'selected':''}>${c}</option>`).join('')}</select>
+                    <select id="financeStatusFilter"><option value="All">All Statuses</option><option value="paid" ${financeFilters.status==='paid'?'selected':''}>Paid</option><option value="pending" ${financeFilters.status==='pending'?'selected':''}>Pending</option><option value="cancelled" ${financeFilters.status==='cancelled'?'selected':''}>Cancelled</option><option value="refunded" ${financeFilters.status==='refunded'?'selected':''}>Refunded</option></select>
+                    <select id="financeMethodFilter"><option value="All">All Methods</option>${methodList.map(m => `<option value="${m}" ${financeFilters.paymentMethod===m?'selected':''}>${m}</option>`).join('')}</select>
+                    <select id="financeDateFilter"><option value="all" ${financeFilters.dateRange==='all'?'selected':''}>All Time</option><option value="today" ${financeFilters.dateRange==='today'?'selected':''}>Today</option><option value="month" ${financeFilters.dateRange==='month'?'selected':''}>This Month</option></select>
+                    <div class="search-input" style="flex:1;min-width:160px"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="financeSearch" placeholder="Search client or service..." value="${esc(financeFilters.search)}"></div>
+                </div>
+                <!-- Transactions Table -->
+                <div class="card">
+                    <div class="finance-table-wrap">
+                        <table>
+                            <thead><tr>
+                                <th>Client</th><th>Service / Fee</th><th>Country</th><th>Amount</th><th>Payment Method</th><th>Status</th><th>Client Status</th><th>Date</th><th></th>
+                            </tr></thead>
+                            <tbody>${filtered.length ? filtered.map(t => {
+                                const pm = PAYMENT_METHODS.find(p => p.id === t.paymentMethod);
+                                const pmName = pm ? pm.name : t.paymentMethod;
+                                const pmColor = pm ? pm.color : 'var(--slate-500)';
+                                const statusLabel = t.paid ? 'Paid' : t.status === 'cancelled' ? 'Cancelled' : t.status === 'refunded' ? 'Refunded' : 'Pending';
+                                const statusClass = t.paid ? 'badge-green' : t.status === 'cancelled' ? 'badge-rose' : t.status === 'refunded' ? 'badge-slate' : 'badge-amber';
+                                const csLabel = t.clientStatus;
+                                const csClass = t.clientStatus === 'active' ? 'finance-client-status active' : t.clientStatus === 'archived' ? 'finance-client-status archived' : t.clientStatus === 'blocked' ? 'finance-client-status blocked' : 'finance-client-status deleted';
+                                const pmIcon = pm ? pm.icon : 'fa-credit-card';
+                                return `<tr>
+                                    <td><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
+                                    <td><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
+                                    <td>${t.country ? esc(t.country) : '—'}</td>
+                                    <td style="font-weight:700;color:var(--blue-900)">€${t.amountNum.toFixed(0)}</td>
+                                    <td><span style="color:${pmColor};font-size:12px"><i class="${pmIcon}"></i> ${esc(pmName)}</span>${t.transactionCode ? `<br><span style="font-size:9px;color:var(--slate-400)">Txn: ${esc(t.transactionCode)}</span>` : ''}</td>
+                                    <td><span class="badge ${statusClass}" style="font-size:10px">${statusLabel}</span></td>
+                                    <td><span class="${csClass}">${csLabel}</span></td>
+                                    <td style="font-size:11px;color:var(--slate-400);white-space:nowrap">${t.paidDate ? fmtDate(t.paidDate) : '—'}</td>
+                                    <td><button class="btn btn-outline btn-sm" data-finance-openapp="${esc(t.clientUid)}" style="font-size:10px;padding:4px 10px">View</button></td>
+                                </tr>`;
+                            }).join('') : `<tr><td colspan="9"><div class="empty-state" style="padding:30px"><i class="fa-solid fa-inbox"></i><p>No transactions match filters.</p></div></td></tr>`}</tbody>
+                        </table>
+                    </div>
+                    <div class="finance-totals-row">
+                        <span>Total Transactions: <b>${filtered.length}</b></span>
+                        <span>Paid: <b style="color:var(--emerald-600)">€${totalPaid.toFixed(0)}</b></span>
+                        <span>Pending: <b style="color:var(--amber-600)">€${totalPending.toFixed(0)}</b></span>
+                        <span>Cancelled: <b style="color:var(--rose-600)">€${totalCancelled.toFixed(0)}</b></span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+    function wireFinance() {
+        destroyFinanceCharts();
+        // Build chart data from the same calculations
+        const apps = allApps;
+        const parseAmt = v => { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; };
+        let allTxns = [];
+        apps.forEach(a => {
+            (a.fees||[]).forEach(f => {
+                allTxns.push({
+                    amountNum: parseAmt(f.amount), paid: !!f.paid, paidDate: f.paidDate,
+                    paymentMethod: f.paymentMethod||'mpesa', status: f.paid ? 'paid' : 'pending',
+                    country: a.country||'', clientStatus: a.archived?'archived':a.blocked?'blocked':'active'
+                });
+            });
+            (a.clientServices||[]).forEach(s => {
+                allTxns.push({
+                    amountNum: parseAmt(s.amount), paid: !!s.paid, paidDate: s.paidDate,
+                    paymentMethod: s.paymentMethod||'mpesa', status: s.status||'pending',
+                    country: a.country||'', clientStatus: a.archived?'archived':a.blocked?'blocked':'active'
+                });
+            });
+        });
+        // Revenue by month
+        const revByMonth = {};
+        const revByCountry = {};
+        const revByMethod = {};
+        const statusDist = { paid: 0, pending: 0, cancelled: 0, refunded: 0 };
+        allTxns.forEach(t => {
+            if(t.paid && t.paidDate) {
+                const d = new Date(t.paidDate);
+                const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+                revByMonth[key] = (revByMonth[key]||0) + t.amountNum;
+                const c = t.country || 'Unknown';
+                revByCountry[c] = (revByCountry[c]||0) + t.amountNum;
+                const m = t.paymentMethod || 'other';
+                revByMethod[m] = (revByMethod[m]||0) + t.amountNum;
+            }
+            if(t.paid) statusDist.paid += t.amountNum;
+            else if(t.status === 'cancelled') statusDist.cancelled += t.amountNum;
+            else if(t.status === 'refunded') statusDist.refunded += t.amountNum;
+            else statusDist.pending += t.amountNum;
+        });
+        const sortedMonths = Object.keys(revByMonth).sort();
+        // Chart: Revenue over time
+        const revCtx = document.getElementById('revChart');
+        if(revCtx) {
+            const chart = new Chart(revCtx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths.length ? sortedMonths : ['No Data'],
+                    datasets: [{
+                        label: 'Revenue (€)',
+                        data: sortedMonths.length ? sortedMonths.map(m => revByMonth[m]) : [0],
+                        borderColor: '#1B4F99',
+                        backgroundColor: 'rgba(27,79,153,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#1B4F99',
+                        pointRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => '€'+v } } } }
+            });
+            financeCharts.push(chart);
+        }
+        // Chart: Revenue by Country
+        const countryCtx = document.getElementById('countryChart');
+        if(countryCtx) {
+            const countries = Object.keys(revByCountry).sort();
+            const colors = ['#1B4F99','#A8172F','#0F9D58','#F59E0B','#4F46E5','#BE123C','#0E2C5C','#D97706'];
+            const chart = new Chart(countryCtx, {
+                type: 'bar',
+                data: {
+                    labels: countries.length ? countries : ['No Data'],
+                    datasets: [{
+                        label: 'Revenue (€)',
+                        data: countries.length ? countries.map(c => revByCountry[c]) : [0],
+                        backgroundColor: countries.map((_,i) => colors[i % colors.length]),
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => '€'+v } } } }
+            });
+            financeCharts.push(chart);
+        }
+        // Chart: Revenue by Payment Method
+        const methodCtx = document.getElementById('methodChart');
+        if(methodCtx) {
+            const methods = Object.keys(revByMethod);
+            const methodColors = { mpesa: '#4CAF50', paypal: '#003087', stripe: '#635BFF', crypto_usdt: '#26A17B',
+                crypto_btc: '#F7931A', crypto_eth: '#627EEA', crypto_usdc: '#2775CA', crypto_sol: '#9945FF',
+                binance_pay: '#F0B90B', bank_wire: '#1E293B', wise: '#00B9FF', flutterwave: '#F09A0B' };
+            const methodLabels = { mpesa: 'M-Pesa', paypal: 'PayPal', stripe: 'Stripe', crypto_usdt: 'USDT',
+                crypto_btc: 'BTC', crypto_eth: 'ETH', crypto_usdc: 'USDC', crypto_sol: 'SOL',
+                binance_pay: 'Binance Pay', bank_wire: 'Bank Wire', wise: 'Wise', flutterwave: 'Flutterwave' };
+            const chart = new Chart(methodCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: methods.length ? methods.map(m => methodLabels[m]||m) : ['No Data'],
+                    datasets: [{
+                        data: methods.length ? methods.map(m => revByMethod[m]) : [1],
+                        backgroundColor: methods.map(m => methodColors[m]||'#94A3B8'),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } } }
+            });
+            financeCharts.push(chart);
+        }
+        // Chart: Payment Status Distribution
+        const statusCtx = document.getElementById('statusChart');
+        if(statusCtx) {
+            const chart = new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Paid', 'Pending', 'Cancelled', 'Refunded'],
+                    datasets: [{
+                        data: [statusDist.paid, statusDist.pending, statusDist.cancelled, statusDist.refunded],
+                        backgroundColor: ['#0F9D58', '#F59E0B', '#F43F5E', '#64748B'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } } }
+            });
+            financeCharts.push(chart);
+        }
+        // Wire up filter events
+        document.getElementById('financeCountryFilter')?.addEventListener('change', function() {
+            financeFilters.country = this.value; wireFinance();
+        });
+        document.getElementById('financeStatusFilter')?.addEventListener('change', function() {
+            financeFilters.status = this.value; wireFinance();
+        });
+        document.getElementById('financeMethodFilter')?.addEventListener('change', function() {
+            financeFilters.paymentMethod = this.value; wireFinance();
+        });
+        document.getElementById('financeDateFilter')?.addEventListener('change', function() {
+            financeFilters.dateRange = this.value; wireFinance();
+        });
+        document.getElementById('financeSearch')?.addEventListener('input', function() {
+            financeFilters.search = this.value;
+        });
+        // Debounced search
+        let searchTimer;
+        document.getElementById('financeSearch')?.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => { financeFilters.search = this.value; wireFinance(); }, 400);
+        });
+        // Refresh
+        document.querySelector('[data-action="refresh-finance"]')?.addEventListener('click', async () => {
+            await loadApps(); wireFinance(); toast("Finance data refreshed.", "ok");
+        });
+        // Export
+        document.querySelector('[data-action="export-finance"]')?.addEventListener('click', () => {
+            const rows = [['Client','Service','Country','Amount','Payment Method','Status','Client Status','Date']];
+            const apps2 = allApps;
+            apps2.forEach(a => {
+                const cs = a.archived ? 'Archived' : a.blocked ? 'Blocked' : 'Active';
+                (a.fees||[]).forEach(f => {
+                    rows.push([a.fullName||'Unknown', f.label, a.country||'', parseAmt(f.amount).toFixed(2), f.paymentMethod||'mpesa', f.paid?'Paid':'Pending', cs, f.paidDate||'']);
+                });
+                (a.clientServices||[]).forEach(s => {
+                    rows.push([a.fullName||'Unknown', s.label, a.country||'', parseAmt(s.amount).toFixed(2), s.paymentMethod||'mpesa', s.status||'pending', cs, s.paidDate||'']);
+                });
+            });
+            const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'finance_export.csv'; a.click();
+            URL.revokeObjectURL(url);
+            toast("Finance data exported.","ok");
+        });
+        // Test WhatsApp
+        document.querySelector('[data-action="test-whatsapp"]')?.addEventListener('click', () => {
+            const msg = encodeURIComponent(`Hello AMEXAN.\n\nI would like payment details.\n\nService: Test Service\nCountry: USA\nPreferred Payment: USDT (TRC20)\nAmount: $75\n\nPlease provide the correct payment details.`);
+            window.open(`https://wa.me/254703935936?text=${msg}`, '_blank');
+            toast("WhatsApp test message opened.","ok");
+        });
+        // Open payment request modal
+        document.querySelector('[data-action="open-pay-modal"]')?.addEventListener('click', () => showPaymentRequestModal());
+        // Open app from finance table
+        document.querySelectorAll('[data-finance-openapp]')?.forEach(btn => btn.addEventListener('click', function() {
+            const uid = this.getAttribute('data-finance-openapp');
+            openAppModal(uid);
+        }));
+        toast("Finance dashboard loaded.","ok");
+    }
+    function showPaymentRequestModal() {
+        const root = document.getElementById('modal-root');
+        root.innerHTML = `
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" style="max-width:600px">
+                <div class="modal-head"><h3><i class="fa-solid fa-hand-holding-dollar" style="color:var(--maroon-500)"></i> Payment Request</h3><button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="modal-body">
+                    <p style="font-size:13px;color:var(--slate-600);margin-bottom:16px">Select a client and payment method. A WhatsApp message will be sent to +254703935936 with the request.</p>
+                    <div class="field"><label>Select Client <span class="req">*</span></label>
+                        <select id="payreqClient" style="width:100%">
+                            <option value="">Choose a client...</option>
+                            ${allApps.filter(a => a.fullName).map(a => `<option value="${a.uid||a.id}">${esc(a.fullName)} — ${esc(a.country||'')} — ${displayId(a)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="field"><label>Service / Fee <span class="req">*</span></label>
+                        <select id="payreqService" style="width:100%">
+                            <option value="">Select service...</option>
+                            <optgroup label="Fees">
+                                ${allApps.flatMap(a => (a.fees||[]).filter(f => !f.paid).map(f => ({id:f.id, label:f.label, amount:parseAmt(f.amount), app:a}))).map(item => `<option value="fee_${item.id}" data-amount="${item.amount}" data-label="${esc(item.label)}">${esc(item.label)} — €${item.amount}</option>`).join('')}
+                            </optgroup>
+                            <optgroup label="Services">
+                                ${allApps.flatMap(a => (a.clientServices||[]).filter(s => !s.paid).map(s => ({id:s.id, label:s.label, amount:parseAmt(s.amount), app:a}))).map(item => `<option value="svc_${item.id}" data-amount="${item.amount}" data-label="${esc(item.label)}">${esc(item.label)} — €${item.amount}</option>`).join('')}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="field"><label>Payment Method <span class="req">*</span></label>
+                        <div id="payreqMethods">${PAYMENT_METHODS.map(pm => `
+                            <div class="payreq-option" data-method="${pm.id}">
+                                <div class="pro-icon" style="color:${pm.color}"><i class="${pm.icon}"></i></div>
+                                <div><div class="pro-name">${esc(pm.name)}</div><div class="pro-desc">${esc(pm.desc)}</div></div>
+                            </div>`).join('')}
+                        </div>
+                    </div>
+                    <div id="payreqCryptoChains" style="display:none;margin-bottom:16px">
+                        <label style="font-size:12px;font-weight:700;color:var(--slate-700);margin-bottom:6px;display:block">Select Network / Chain <span class="req">*</span></label>
+                        <div class="crypto-chain-select" id="cryptoChainList"></div>
+                    </div>
+                </div>
+                <div class="modal-foot" style="justify-content:space-between">
+                    <button class="btn btn-outline" data-modal-close>Cancel</button>
+                    <button class="btn btn-primary" id="sendPayreqBtn"><i class="fa-brands fa-whatsapp" style="color:#fff"></i> Send via WhatsApp</button>
+                </div>
+            </div>
+        </div>`;
+        let selectedMethod = null;
+        let selectedChain = null;
+        document.getElementById('payreqMethods')?.querySelectorAll('.payreq-option').forEach(el => {
+            el.addEventListener('click', function() {
+                document.querySelectorAll('.payreq-option').forEach(x => x.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedMethod = this.getAttribute('data-method');
+                selectedChain = null;
+                // Show crypto chains if crypto
+                const chainDiv = document.getElementById('payreqCryptoChains');
+                const chainList = document.getElementById('cryptoChainList');
+                if (selectedMethod && selectedMethod.startsWith('crypto_')) {
+                    const asset = selectedMethod.replace('crypto_', '').toUpperCase();
+                    const chains = CRYPTO_CHAINS[asset] || [];
+                    chainList.innerHTML = chains.length ? chains.map((ch, i) => `<span class="chain-chip ${i===0?'active':''}" data-chain="${ch}">${ch}</span>`).join('') : '<span style="font-size:12px;color:var(--slate-400)">Select network from wallet</span>';
+                    chainDiv.style.display = 'block';
+                    selectedChain = chains[0] || null;
+                    chainList.querySelectorAll('.chain-chip').forEach(ch => {
+                        ch.addEventListener('click', function() {
+                            chainList.querySelectorAll('.chain-chip').forEach(x => x.classList.remove('active'));
+                            this.classList.add('active');
+                            selectedChain = this.getAttribute('data-chain');
+                        });
+                    });
+                } else {
+                    chainDiv.style.display = 'none';
+                }
+            });
+        });
+        document.getElementById('sendPayreqBtn')?.addEventListener('click', function() {
+            const clientEl = document.getElementById('payreqClient');
+            const svcEl = document.getElementById('payreqService');
+            const clientName = clientEl.options[clientEl.selectedIndex]?.text?.split('—')[0]?.trim() || '';
+            const clientId = clientEl.value;
+            const svcOption = svcEl.options[svcEl.selectedIndex];
+            const svcLabel = svcOption?.getAttribute('data-label') || '';
+            const svcAmount = svcOption?.getAttribute('data-amount') || '0';
+            if (!clientId || !svcLabel || !selectedMethod) { toast("Please select client, service, and payment method.", "err"); return; }
+            const pm = PAYMENT_METHODS.find(p => p.id === selectedMethod);
+            const pmName = pm ? pm.name : selectedMethod;
+            let extraInfo = '';
+            if (selectedMethod.startsWith('crypto_')) {
+                extraInfo = selectedChain ? `\nPreferred Network: ${selectedChain}` : '\nPlease provide network details';
+            } else if (selectedMethod === 'bank_wire') {
+                extraInfo = '\nPlease provide SWIFT/IBAN details';
+            } else if (selectedMethod === 'paypal') {
+                extraInfo = '\nPlease provide PayPal email';
+            } else if (selectedMethod === 'binance_pay') {
+                extraInfo = '\nPlease provide Binance Pay ID';
+            }
+            const country = allApps.find(a => (a.uid||a.id) === clientId)?.country || '';
+            const msg = encodeURIComponent(
+                `Hello AMEXAN.\n\nI would like payment details.\n\nClient: ${clientName}\nService: ${svcLabel}\nCountry: ${country}\nPreferred Payment: ${pmName}\nAmount: €${svcAmount}${extraInfo}\n\nRequest ID: ${clientId}\n\nPlease provide the correct payment details. Thank you.`
+            );
+            window.open(`https://wa.me/254703935936?text=${msg}`, '_blank');
+            toast(`WhatsApp payment request sent to +254703935936 for ${clientName}.`, 'ok');
+            root.innerHTML = '';
+        });
+        document.getElementById('modalCloseBtn')?.addEventListener('click', () => root.innerHTML='');
+        document.getElementById('modalOverlay')?.addEventListener('click', e => { if(e.target.id==='modalOverlay') root.innerHTML=''; });
+    }
+    function parseAmt(v) { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; }
+    function fmtDate(ts) { if(!ts)return'—'; if(ts.toDate)ts=ts.toDate(); return new Date(ts).toLocaleDateString(void 0,{year:'numeric',month:'short',day:'numeric'}); }
 
     function fmtMsgTime(ts) {
         if(!ts)return "";if(ts.toDate)ts=ts.toDate();
@@ -1624,3 +2173,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
     let wasOffline = false;
     window.addEventListener('online',()=>{if(wasOffline){toast('Connection restored.','ok');wasOffline=false;}});
     window.addEventListener('offline',()=>{wasOffline=true;toast('Network lost — working offline. Reconnect to sync.','err');});
+
+    // Global data-nav handler (for topbar nav links outside #app)
+    document.addEventListener('click', function(e) {
+        const navEl = e.target.closest('[data-nav]');
+        if (navEl) { e.preventDefault(); navigate(navEl.getAttribute('data-nav')); }
+    });

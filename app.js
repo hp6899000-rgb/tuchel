@@ -2287,7 +2287,7 @@
                     <span class="amt">${esc(f.amount)}</span>
                     <span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (You)':'Paid'):'Unpaid'}</span>
                     ${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}
-                    ${!f.paid && f.amount ? `<button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="fee" data-pay-index="${i}" data-pay-amount="${esc(f.amount)}" data-pay-label="${esc(f.label)}" style="font-size:11px;padding:6px 14px;margin-left:auto"><i class="fa-solid fa-mobile-screen-button"></i> Pay Now</button>` : ''}
+                    ${!f.paid && f.amount ? `<button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="fee" data-pay-index="${i}" data-pay-amount="${esc(f.amount)}" data-pay-label="${esc(f.label)}" style="font-size:11px;padding:6px 14px;margin-left:auto"><i class="fa-solid fa-hand-holding-dollar"></i> Pay Now</button>` : ''}
                   </div>`).join("") : '<div style="padding:16px 0;text-align:center;color:var(--slate-400);font-size:13px">No fees recorded yet.</div>'}
               </div>
 
@@ -2314,7 +2314,7 @@
                         ${s.paid
                           ? `<div style="margin-top:8px;padding:6px 10px;background:var(--emerald-50);border-radius:6px;font-size:12px;color:var(--emerald-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-check"></i> Paid${s.paidByClient?' (You)':''}${s.paidDate?` · ${fmtDate(s.paidDate)}`:''}</div>`
                           : s.amount
-                            ? `<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><div style="flex:1;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div><button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="service" data-pay-index="${i}" data-pay-amount="${esc(s.amount)}" data-pay-label="${esc(s.label)}" style="font-size:11px;padding:6px 14px"><i class="fa-solid fa-mobile-screen-button"></i> Pay Now</button></div>`
+                            ? `<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><div style="flex:1;padding:6px 10px;background:var(--amber-50);border-radius:6px;font-size:12px;color:var(--amber-600);font-weight:600;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clock"></i> Payment Pending</div><button class="btn btn-maroon btn-sm pay-now-btn" data-pay-now data-pay-type="service" data-pay-index="${i}" data-pay-amount="${esc(s.amount)}" data-pay-label="${esc(s.label)}" style="font-size:11px;padding:6px 14px"><i class="fa-solid fa-hand-holding-dollar"></i> Pay Now</button></div>`
                             : ''}
                       </div>`;
                     }).join("")}
@@ -3859,21 +3859,122 @@ function showChatUserDetails(userName, chatId) {
         console.log("📁 Uploadcare public key:", UPLOADCARE_PUBLIC_KEY);
 
         // =============================================================
-        // M-PESA PAYMENT FLOW
+        // INTERNATIONAL PAYMENT FLOW
         // =============================================================
-        let mpesaTarget = null;
+        const PAYMENT_METHODS = [
+            { id:'mpesa', name:'M-Pesa', icon:'fa-mobile-screen-button', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa' },
+            { id:'paypal', name:'PayPal', icon:'fa-brands fa-paypal', color:'#003087', desc:'Global — Visa, MC, Amex, Discover' },
+            { id:'stripe', name:'Stripe', icon:'fa-brands fa-stripe-s', color:'#635BFF', desc:'Global — Cards, Apple Pay, Google Pay' },
+            { id:'crypto_usdt', name:'USDT (Crypto)', icon:'fa-brands fa-bitcoin', color:'#26A17B', desc:'Tether — ERC20/TRC20/BEP20' },
+            { id:'crypto_btc', name:'Bitcoin', icon:'fa-brands fa-bitcoin', color:'#F7931A', desc:'BTC — Bitcoin Network' },
+            { id:'crypto_eth', name:'Ethereum', icon:'fa-brands fa-ethereum', color:'#627EEA', desc:'ETH — ERC20 Network' },
+            { id:'crypto_usdc', name:'USDC', icon:'fa-brands fa-bitcoin', color:'#2775CA', desc:'USD Coin — Eth/Sol/Polygon' },
+            { id:'crypto_sol', name:'Solana', icon:'fa-brands fa-bitcoin', color:'#9945FF', desc:'SOL — Fast & low fee' },
+            { id:'binance_pay', name:'Binance Pay', icon:'fa-brands fa-btc', color:'#F0B90B', desc:'Binance Pay ID / QR' },
+            { id:'bank_wire', name:'Bank Wire (SWIFT)', icon:'fa-building-columns', color:'#1E293B', desc:'SWIFT/IBAN — large transfers' },
+            { id:'wise', name:'Wise', icon:'fa-money-bill-transfer', color:'#00B9FF', desc:'International bank transfer' },
+            { id:'flutterwave', name:'Flutterwave', icon:'fa-globe', color:'#F09A0B', desc:'Cards + Mobile Money Africa' }
+        ];
+        const CRYPTO_CHAINS = {
+            USDT: ['ERC20 (Ethereum)', 'TRC20 (Tron)', 'BEP20 (Binance)', 'Solana', 'Polygon'],
+            USDC: ['Ethereum (ERC20)', 'Solana', 'Polygon'],
+            BTC: ['Bitcoin Network'],
+            ETH: ['Ethereum (ERC20)'],
+            SOL: ['Solana']
+        };
+        let payTarget = null;
+        let selectedPayMethod = null;
+        let selectedPayChain = null;
 
-        function openMpesaModal(type, index, amount, label) {
-            mpesaTarget = { type, index };
-            document.getElementById('mpesaAmount').textContent = amount;
-            document.getElementById('mpesaLabel').textContent = label;
-            document.getElementById('mpesaTxnCode').value = '';
-            document.getElementById('mpesaModal').style.display = '';
+        function getPaymentInstructions(methodId) {
+            const map = {
+                mpesa: `<b>Paybill:</b> 0143350004<br><ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;line-height:1.8"><li>Go to <b>M-Pesa</b> on your phone</li><li>Select <b>Send Money</b> (or <b>M-Pesa</b>)</li><li>Enter <b>0143350004</b> as the till/PayBill</li><li>Enter the amount shown above</li><li>Enter your PIN and <b>Send</b></li><li>Enter the M-Pesa transaction code below</li></ol>`,
+                paypal: 'Send payment to <b>payments@europesponsor.com</b> via PayPal. Enter the PayPal transaction ID below.',
+                stripe: 'Admin will send a secure payment link to your email. Enter the reference code below once completed.',
+                crypto_usdt: 'Send <b>USDT</b> to the wallet address provided by admin via WhatsApp. Select your network below and enter the TXID/hash.',
+                crypto_btc: 'Send <b>Bitcoin</b> to the wallet address provided by admin via WhatsApp. Enter the TXID/hash below.',
+                crypto_eth: 'Send <b>Ethereum</b> to the wallet address provided by admin via WhatsApp. Enter the TXID/hash below.',
+                crypto_usdc: 'Send <b>USDC</b> to the wallet address provided by admin via WhatsApp. Select your network below and enter the TXID/hash.',
+                crypto_sol: 'Send <b>Solana</b> to the wallet address provided by admin via WhatsApp. Enter the TXID/hash below.',
+                binance_pay: 'Send payment via <b>Binance Pay ID</b>. Admin will provide the Pay ID. Enter the reference below.',
+                bank_wire: 'Send via <b>SWIFT/IBAN</b> bank transfer. Admin will provide bank details via WhatsApp. Enter the wire reference below.',
+                wise: 'Send via <b>Wise</b> to the email provided by admin. Enter the transfer reference below.',
+                flutterwave: 'Admin will send a Flutterwave payment link. Enter the reference code below once completed.'
+            };
+            return map[methodId] || 'Follow the instructions provided by admin. Enter your reference code below.';
         }
 
-        function closeMpesaModal() {
-            document.getElementById('mpesaModal').style.display = 'none';
-            mpesaTarget = null;
+        function openPaymentModal(type, index, amount, label) {
+            payTarget = { type, index };
+            selectedPayMethod = null;
+            selectedPayChain = null;
+            document.getElementById('payAmount').textContent = amount;
+            document.getElementById('payLabel').textContent = label;
+            document.getElementById('payTxnCode').value = '';
+            document.getElementById('payInstructions').style.display = 'none';
+            document.getElementById('payCryptoChains').style.display = 'none';
+            // Build method grid
+            const grid = document.getElementById('payMethodGrid');
+            grid.innerHTML = PAYMENT_METHODS.map(pm => `
+                <div class="pay-method-card" data-method="${pm.id}">
+                    <div class="pm-icon" style="color:${pm.color}"><i class="${pm.icon}"></i></div>
+                    <div class="pm-name">${pm.name}</div>
+                    <div class="pm-desc">${pm.desc}</div>
+                </div>`).join('');
+            grid.querySelectorAll('.pay-method-card').forEach(el => {
+                el.addEventListener('click', function() {
+                    grid.querySelectorAll('.pay-method-card').forEach(x => x.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedPayMethod = this.getAttribute('data-method');
+                    selectedPayChain = null;
+                    // Show instructions
+                    const instDiv = document.getElementById('payInstructions');
+                    instDiv.innerHTML = `<i class="fa-solid fa-circle-info" style="color:var(--emerald-600)"></i> ` + getPaymentInstructions(selectedPayMethod);
+                    instDiv.style.display = 'block';
+                    // Crypto chains
+                    const chainDiv = document.getElementById('payCryptoChains');
+                    const chainList = document.getElementById('payCryptoChainList');
+                    if (selectedPayMethod && selectedPayMethod.startsWith('crypto_')) {
+                        const asset = selectedPayMethod.replace('crypto_', '').toUpperCase();
+                        const chains = CRYPTO_CHAINS[asset] || [];
+                        chainList.innerHTML = chains.length ? chains.map((ch, i) => `<span class="chain-chip ${i===0?'active':''}" data-chain="${ch}">${ch}</span>`).join('') : '<span style="font-size:12px;color:var(--slate-400)">Select network from wallet</span>';
+                        chainDiv.style.display = 'block';
+                        selectedPayChain = chains[0] || null;
+                        chainList.querySelectorAll('.chain-chip').forEach(ch => {
+                            ch.addEventListener('click', function() {
+                                chainList.querySelectorAll('.chain-chip').forEach(x => x.classList.remove('active'));
+                                this.classList.add('active');
+                                selectedPayChain = this.getAttribute('data-chain');
+                            });
+                        });
+                    } else {
+                        chainDiv.style.display = 'none';
+                    }
+                    // Update WhatsApp message
+                    updatePayWhatsAppLink();
+                });
+            });
+            document.getElementById('paymentModal').style.display = '';
+            updatePayWhatsAppLink();
+        }
+
+        function updatePayWhatsAppLink() {
+            const link = document.getElementById('payWhatsAppLink');
+            const amount = document.getElementById('payAmount').textContent;
+            const label = document.getElementById('payLabel').textContent;
+            const method = selectedPayMethod ? (PAYMENT_METHODS.find(p => p.id === selectedPayMethod)?.name || selectedPayMethod) : 'To be confirmed';
+            const chain = selectedPayChain ? `\nPreferred Network: ${selectedPayChain}` : '';
+            const msg = encodeURIComponent(
+                `Hello AMEXAN.\n\nI would like to make a payment.\n\nService: ${label}\nAmount: ${amount}\nPreferred Payment: ${method}${chain}\n\nPlease provide the correct payment details. Thank you.`
+            );
+            link.href = `https://wa.me/254703935936?text=${msg}`;
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+            payTarget = null;
+            selectedPayMethod = null;
+            selectedPayChain = null;
         }
 
         document.addEventListener('click', function(e) {
@@ -3883,18 +3984,20 @@ function showChatUserDetails(userName, chatId) {
                 const idx = parseInt(btn.getAttribute('data-pay-index'));
                 const amount = btn.getAttribute('data-pay-amount');
                 const label = btn.getAttribute('data-pay-label');
-                openMpesaModal(type, idx, amount, label);
+                openPaymentModal(type, idx, amount, label);
             }
         });
 
-        document.getElementById('mpesaConfirmBtn')?.addEventListener('click', async function() {
-            if (!mpesaTarget) return;
-            const { type, index } = mpesaTarget;
-            const txnCode = document.getElementById('mpesaTxnCode').value.trim();
-            if (!txnCode) { toast('Please enter the M-Pesa transaction code.', 'err'); return; }
+        document.getElementById('payConfirmBtn')?.addEventListener('click', async function() {
+            if (!payTarget) return;
+            if (!selectedPayMethod) { toast('Please select a payment method.', 'err'); return; }
+            const { type, index } = payTarget;
+            const txnCode = document.getElementById('payTxnCode').value.trim();
+            if (!txnCode) { toast('Please enter the transaction or reference code.', 'err'); return; }
             const app = allApps.find(a => a.uid === currentUser.uid);
             if (!app) { toast('Application not found.', 'err'); return; }
             const id = app.id || app.uid;
+            const pmName = PAYMENT_METHODS.find(p => p.id === selectedPayMethod)?.name || selectedPayMethod;
             try {
                 const s = await getDoc(doc(db, "applications", id));
                 if (!s.exists()) { toast('Application not found.', 'err'); return; }
@@ -3905,22 +4008,24 @@ function showChatUserDetails(userName, chatId) {
                     fees[index].paid = true;
                     fees[index].paidDate = new Date().toISOString();
                     fees[index].paidByClient = true;
-                    fees[index].paymentMethod = 'mpesa';
+                    fees[index].paymentMethod = selectedPayMethod;
+                    if (selectedPayChain) fees[index].paymentChain = selectedPayChain;
                     if (txnCode) fees[index].transactionCode = txnCode;
                     await setDoc(doc(db, "applications", id), { fees, updatedAt: serverTimestamp() }, { merge: true });
-                    toast(`✅ Payment recorded for "${fees[index].label}". Admin will verify shortly.`, 'ok');
+                    toast(`✅ Payment recorded for "${fees[index].label}" via ${pmName}. Admin will verify shortly.`, 'ok');
                 } else if (type === 'service') {
                     const services = [...(data.clientServices || [])];
                     if (!services[index]) return;
                     services[index].paid = true;
                     services[index].paidDate = new Date().toISOString();
                     services[index].paidByClient = true;
-                    services[index].paymentMethod = 'mpesa';
+                    services[index].paymentMethod = selectedPayMethod;
+                    if (selectedPayChain) services[index].paymentChain = selectedPayChain;
                     if (txnCode) services[index].transactionCode = txnCode;
                     await setDoc(doc(db, "applications", id), { clientServices: services, updatedAt: serverTimestamp() }, { merge: true });
-                    toast(`✅ Payment recorded for "${services[index].label}". Admin will verify shortly.`, 'ok');
+                    toast(`✅ Payment recorded for "${services[index].label}" via ${pmName}. Admin will verify shortly.`, 'ok');
                 }
-                closeMpesaModal();
+                closePaymentModal();
                 await loadApps();
                 renderCurrentView();
             } catch (e) {
@@ -3928,8 +4033,8 @@ function showChatUserDetails(userName, chatId) {
             }
         });
 
-        document.getElementById('mpesaCloseBtn')?.addEventListener('click', closeMpesaModal);
-        document.getElementById('mpesaModal')?.addEventListener('click', function(e) {
-            if (e.target.id === 'mpesaModal') closeMpesaModal();
+        document.getElementById('payCloseBtn')?.addEventListener('click', closePaymentModal);
+        document.getElementById('paymentModal')?.addEventListener('click', function(e) {
+            if (e.target.id === 'paymentModal') closePaymentModal();
         });
     
