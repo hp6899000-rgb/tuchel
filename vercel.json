@@ -15,8 +15,11 @@
     { "src": "/admin", "dest": "/admin.html" },
     { "src": "/admin.html", "dest": "/admin.html" },
     { "src": "/index.html", "dest": "/index.html" },
+    { "src": "/app.js", "dest": "/app.js" },
+    { "src": "/admin.js", "dest": "/admin.js" },
     { "src": "/app.min.js", "dest": "/app.min.js" },
     { "src": "/admin.min.js", "dest": "/admin.min.js" },
+    { "src": "/favicon.ico", "dest": "/favicon.ico" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [

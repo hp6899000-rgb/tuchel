@@ -3862,7 +3862,7 @@ function showChatUserDetails(userName, chatId) {
         // INTERNATIONAL PAYMENT FLOW
         // =============================================================
         const PAYMENT_METHODS = [
-            { id:'mpesa', name:'M-Pesa', icon:'fa-mobile-screen-button', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa' },
+            { id:'mpesa', name:'M-Pesa', icon:'fa-mobile-screen-button', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa', badge:'MPESA' },
             { id:'paypal', name:'PayPal', icon:'fa-brands fa-paypal', color:'#003087', desc:'Global — Visa, MC, Amex, Discover' },
             { id:'stripe', name:'Stripe', icon:'fa-brands fa-stripe-s', color:'#635BFF', desc:'Global — Cards, Apple Pay, Google Pay' },
             { id:'crypto_usdt', name:'USDT (Crypto)', icon:'fa-brands fa-bitcoin', color:'#26A17B', desc:'Tether — ERC20/TRC20/BEP20' },
@@ -3904,6 +3904,49 @@ function showChatUserDetails(userName, chatId) {
             return map[methodId] || 'Follow the instructions provided by admin. Enter your reference code below.';
         }
 
+        function selectPaymentMethod(methodId) {
+            selectedPayMethod = methodId;
+            selectedPayChain = null;
+            const pm = PAYMENT_METHODS.find(p => p.id === methodId);
+            const grid = document.getElementById('payMethodGrid');
+            const selDiv = document.getElementById('payMethodSelected');
+            grid.style.display = 'none';
+            selDiv.style.display = 'flex';
+            selDiv.innerHTML = `<i class="${pm.icon}" style="color:${pm.color};font-size:20px"></i><span><b>${pm.name}</b> — ${pm.desc}</span><button class="btn btn-outline btn-sm" id="payChangeMethod" style="margin-left:auto;flex-shrink:0;padding:4px 12px;font-size:11px">Change</button>`;
+            document.getElementById('payChangeMethod').addEventListener('click', function(e) {
+                e.stopPropagation();
+                grid.style.display = '';
+                selDiv.style.display = 'none';
+                selectedPayMethod = null;
+                selectedPayChain = null;
+                document.getElementById('payInstructions').style.display = 'none';
+                document.getElementById('payCryptoChains').style.display = 'none';
+                updatePayWhatsAppLink();
+            });
+            const instDiv = document.getElementById('payInstructions');
+            instDiv.innerHTML = `<i class="fa-solid fa-circle-info" style="color:var(--emerald-600)"></i> ` + getPaymentInstructions(methodId);
+            instDiv.style.display = 'block';
+            const chainDiv = document.getElementById('payCryptoChains');
+            const chainList = document.getElementById('payCryptoChainList');
+            if (methodId.startsWith('crypto_')) {
+                const asset = methodId.replace('crypto_', '').toUpperCase();
+                const chains = CRYPTO_CHAINS[asset] || [];
+                chainList.innerHTML = chains.length ? chains.map((ch, i) => `<span class="chain-chip ${i===0?'active':''}" data-chain="${ch}">${ch}</span>`).join('') : '<span style="font-size:12px;color:var(--slate-400)">Select network from wallet</span>';
+                chainDiv.style.display = 'block';
+                selectedPayChain = chains[0] || null;
+                chainList.querySelectorAll('.chain-chip').forEach(ch => {
+                    ch.addEventListener('click', function() {
+                        chainList.querySelectorAll('.chain-chip').forEach(x => x.classList.remove('active'));
+                        this.classList.add('active');
+                        selectedPayChain = this.getAttribute('data-chain');
+                    });
+                });
+            } else {
+                chainDiv.style.display = 'none';
+            }
+            updatePayWhatsAppLink();
+        }
+
         function openPaymentModal(type, index, amount, label, appId) {
             payTarget = { type, index, appId };
             selectedPayMethod = null;
@@ -3913,45 +3956,18 @@ function showChatUserDetails(userName, chatId) {
             document.getElementById('payTxnCode').value = '';
             document.getElementById('payInstructions').style.display = 'none';
             document.getElementById('payCryptoChains').style.display = 'none';
-            // Build method grid
+            document.getElementById('payMethodSelected').style.display = 'none';
             const grid = document.getElementById('payMethodGrid');
+            grid.style.display = '';
             grid.innerHTML = PAYMENT_METHODS.map(pm => `
                 <div class="pay-method-card" data-method="${pm.id}">
-                    <div class="pm-icon" style="color:${pm.color}"><i class="${pm.icon}"></i></div>
-                    <div class="pm-name">${pm.name}</div>
+                    <div class="pm-icon" style="color:${pm.color};${pm.id==='mpesa'?'background:rgba(76,175,80,0.12);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center':''}"><i class="${pm.icon}"></i></div>
+                    <div class="pm-name">${pm.name}${pm.badge?` <span class="pm-badge" style="background:${pm.color};color:#fff">${pm.badge}</span>`:''}</div>
                     <div class="pm-desc">${pm.desc}</div>
                 </div>`).join('');
             grid.querySelectorAll('.pay-method-card').forEach(el => {
                 el.addEventListener('click', function() {
-                    grid.querySelectorAll('.pay-method-card').forEach(x => x.classList.remove('selected'));
-                    this.classList.add('selected');
-                    selectedPayMethod = this.getAttribute('data-method');
-                    selectedPayChain = null;
-                    // Show instructions
-                    const instDiv = document.getElementById('payInstructions');
-                    instDiv.innerHTML = `<i class="fa-solid fa-circle-info" style="color:var(--emerald-600)"></i> ` + getPaymentInstructions(selectedPayMethod);
-                    instDiv.style.display = 'block';
-                    // Crypto chains
-                    const chainDiv = document.getElementById('payCryptoChains');
-                    const chainList = document.getElementById('payCryptoChainList');
-                    if (selectedPayMethod && selectedPayMethod.startsWith('crypto_')) {
-                        const asset = selectedPayMethod.replace('crypto_', '').toUpperCase();
-                        const chains = CRYPTO_CHAINS[asset] || [];
-                        chainList.innerHTML = chains.length ? chains.map((ch, i) => `<span class="chain-chip ${i===0?'active':''}" data-chain="${ch}">${ch}</span>`).join('') : '<span style="font-size:12px;color:var(--slate-400)">Select network from wallet</span>';
-                        chainDiv.style.display = 'block';
-                        selectedPayChain = chains[0] || null;
-                        chainList.querySelectorAll('.chain-chip').forEach(ch => {
-                            ch.addEventListener('click', function() {
-                                chainList.querySelectorAll('.chain-chip').forEach(x => x.classList.remove('active'));
-                                this.classList.add('active');
-                                selectedPayChain = this.getAttribute('data-chain');
-                            });
-                        });
-                    } else {
-                        chainDiv.style.display = 'none';
-                    }
-                    // Update WhatsApp message
-                    updatePayWhatsAppLink();
+                    selectPaymentMethod(this.getAttribute('data-method'));
                 });
             });
             document.getElementById('paymentModal').style.display = '';
@@ -3972,6 +3988,8 @@ function showChatUserDetails(userName, chatId) {
 
         function closePaymentModal() {
             document.getElementById('paymentModal').style.display = 'none';
+            document.getElementById('payMethodGrid').style.display = '';
+            document.getElementById('payMethodSelected').style.display = 'none';
             payTarget = null;
             selectedPayMethod = null;
             selectedPayChain = null;
