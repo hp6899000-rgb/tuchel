@@ -3862,7 +3862,7 @@ function showChatUserDetails(userName, chatId) {
         // INTERNATIONAL PAYMENT FLOW
         // =============================================================
         const PAYMENT_METHODS = [
-            { id:'mpesa', name:'M-Pesa', icon:'fa-mobile-screen-button', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa', badge:'MPESA' },
+            { id:'mpesa', name:'M-Pesa', icon:'<svg viewBox="0 0 70 24" width="20" height="20"><rect width="70" height="24" rx="4" fill="#4CAF50"/><text x="35" y="16" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-weight="bold" font-size="12">MPESA</text></svg>', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa', badge:'MPESA' },
             { id:'paypal', name:'PayPal', icon:'fa-brands fa-paypal', color:'#003087', desc:'Global — Visa, MC, Amex, Discover' },
             { id:'stripe', name:'Stripe', icon:'fa-brands fa-stripe-s', color:'#635BFF', desc:'Global — Cards, Apple Pay, Google Pay' },
             { id:'crypto_usdt', name:'USDT (Crypto)', icon:'fa-brands fa-bitcoin', color:'#26A17B', desc:'Tether — ERC20/TRC20/BEP20' },
@@ -3888,7 +3888,7 @@ function showChatUserDetails(userName, chatId) {
 
         function getPaymentInstructions(methodId) {
             const map = {
-                mpesa: `<b>Paybill:</b> 0143350004<br><ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;line-height:1.8"><li>Go to <b>M-Pesa</b> on your phone</li><li>Select <b>Send Money</b> (or <b>M-Pesa</b>)</li><li>Enter <b>0143350004</b> as the till/PayBill</li><li>Enter the amount shown above</li><li>Enter your PIN and <b>Send</b></li><li>Enter the M-Pesa transaction code below</li></ol>`,
+                mpesa: `<b>Send to phone number:</b><br><span onclick="navigator.clipboard.writeText('0143350004');this.querySelector('.cp').textContent='Copied!';setTimeout(()=>this.querySelector('.cp').textContent='Copy',2000)" style="display:inline-flex;align-items:center;gap:8px;margin-top:4px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:15px;font-weight:700;font-family:monospace;cursor:pointer" title="Click to copy">0143350004 <span class="cp" style="font-size:11px;font-weight:400;color:#059669">Copy</span></span><ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;line-height:1.8"><li>Go to <b>M-Pesa</b> on your phone</li><li>Select <b>Send Money</b> (or <b>M-Pesa</b>)</li><li>Send to phone number <b>0143350004</b></li><li>Enter the amount shown above</li><li>Enter your PIN and <b>Send</b></li><li>Enter the M-Pesa transaction code below</li></ol>`,
                 paypal: 'Send payment to <b>payments@europesponsor.com</b> via PayPal. Enter the PayPal transaction ID below.',
                 stripe: 'Admin will send a secure payment link to your email. Enter the reference code below once completed.',
                 crypto_usdt: 'Send <b>USDT</b> to the wallet address provided by admin via WhatsApp. Select your network below and enter the TXID/hash.',
@@ -3912,7 +3912,7 @@ function showChatUserDetails(userName, chatId) {
             const selDiv = document.getElementById('payMethodSelected');
             grid.style.display = 'none';
             selDiv.style.display = 'flex';
-            selDiv.innerHTML = `<i class="${pm.icon}" style="color:${pm.color};font-size:20px"></i><span><b>${pm.name}</b> — ${pm.desc}</span><button class="btn btn-outline btn-sm" id="payChangeMethod" style="margin-left:auto;flex-shrink:0;padding:4px 12px;font-size:11px">Change</button>`;
+            selDiv.innerHTML = (pm.icon.startsWith('<')?pm.icon:`<i class="${pm.icon}" style="color:${pm.color};font-size:20px"></i>`) + `<span><b>${pm.name}</b> — ${pm.desc}</span><button class="btn btn-outline btn-sm" id="payChangeMethod" style="margin-left:auto;flex-shrink:0;padding:4px 12px;font-size:11px">Change</button>`;
             document.getElementById('payChangeMethod').addEventListener('click', function(e) {
                 e.stopPropagation();
                 grid.style.display = '';
@@ -3961,7 +3961,7 @@ function showChatUserDetails(userName, chatId) {
             grid.style.display = '';
             grid.innerHTML = PAYMENT_METHODS.map(pm => `
                 <div class="pay-method-card" data-method="${pm.id}">
-                    <div class="pm-icon" style="color:${pm.color};${pm.id==='mpesa'?'background:rgba(76,175,80,0.12);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center':''}"><i class="${pm.icon}"></i></div>
+                    <div class="pm-icon" style="color:${pm.color};${pm.id==='mpesa'?'background:rgba(76,175,80,0.12);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center':''}">${pm.icon.startsWith('<')?pm.icon:`<i class="${pm.icon}"></i>`}</div>
                     <div class="pm-name">${pm.name}${pm.badge?` <span class="pm-badge" style="background:${pm.color};color:#fff">${pm.badge}</span>`:''}</div>
                     <div class="pm-desc">${pm.desc}</div>
                 </div>`).join('');
