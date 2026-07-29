@@ -3449,7 +3449,7 @@
                   <button class="btn btn-outline btn-sm" id="financeExportBtn"><i class="fa-solid fa-download"></i> Export CSV</button>
                 </div>
               </div>
-              <div class="stat-grid" style="grid-template-columns:repeat(6,1fr)">
+              <div class="stat-grid stat-grid-6">
                 <div class="stat-card"><div class="n" style="color:var(--blue-900)">${toKES(totalDue)}</div><div class="l"><i class="fa-solid fa-receipt"></i> Total Due</div></div>
                 <div class="stat-card"><div class="n" style="color:var(--emerald-600)">${toKES(totalPaid)}</div><div class="l"><i class="fa-solid fa-circle-check"></i> Collected</div></div>
                 <div class="stat-card"><div class="n" style="color:var(--amber-600)">${toKES(totalPending)}</div><div class="l"><i class="fa-solid fa-clock"></i> Pending</div></div>
@@ -3457,13 +3457,13 @@
                 <div class="stat-card"><div class="n" style="color:var(--slate-500)">${toKES(totalRefunded)}</div><div class="l"><i class="fa-solid fa-rotate-left"></i> Refunded</div></div>
                 <div class="stat-card"><div class="n" style="color:var(--blue-900)">${txnCount}</div><div class="l"><i class="fa-solid fa-list"></i> Transactions</div></div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+              <div class="chart-grid-2">
                 <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-chart-line" style="color:var(--blue-600)"></i> Revenue Over Time</div><canvas id="revChart" height="200"></canvas></div>
                 <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-earth-americas" style="color:var(--green-600)"></i> Revenue by Country</div><canvas id="countryChart" height="200"></canvas></div>
                 <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-credit-card" style="color:var(--amber-600)"></i> Revenue by Method</div><canvas id="methodChart" height="200"></canvas></div>
                 <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-chart-pie" style="color:var(--maroon-500)"></i> Payment Status</div><canvas id="statusChart" height="200"></canvas></div>
               </div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+              <div class="client-grid-4">
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--emerald-600)">${activeClients}</div><div class="l"><i class="fa-solid fa-user-check"></i> Active Clients</div></div>
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--amber-600)">${archivedClients}</div><div class="l"><i class="fa-solid fa-box-archive"></i> Archived</div></div>
                 <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--rose-600)">${blockedClients}</div><div class="l"><i class="fa-solid fa-ban"></i> Blocked</div></div>
@@ -3512,62 +3512,75 @@
         }
 
         function wireAdminFinance() {
-            const apps=allApps.filter(a=>!a.deleted);
-            let txns=[];
-            apps.forEach(a=>{
-                (a.fees||[]).forEach(f=>{const amt=parseFloat((f.amount||'0').replace(/[^0-9.]/g,''));txns.push({amountNum:amt,paid:!!f.paid,paidDate:f.paidDate||null,paymentMethod:f.paymentMethod||'mpesa',status:f.paid?'paid':(f.status||'pending'),country:a.country||'',label:f.label||'Fee',clientName:a.fullName||''})});
-                (a.clientServices||[]).forEach(s=>{const amt=parseFloat((s.amount||'0').replace(/[^0-9.]/g,''));txns.push({amountNum:amt,paid:!!s.paid,paidDate:s.paidDate||null,paymentMethod:s.paymentMethod||'mpesa',status:s.paid?'paid':(s.status||'pending'),country:a.country||'',label:s.label||'Service',clientName:a.fullName||''})});
-            });
-            const revByMonth={},revByCountry={},revByMethod={},dist={paid:0,pending:0,cancelled:0,refunded:0};
-            txns.forEach(t=>{
-                const a=t.amountNum;
-                if(t.status==='paid')dist.paid+=a;else if(t.status==='cancelled')dist.cancelled+=a;else if(t.status==='refunded')dist.refunded+=a;else dist.pending+=a;
-                if(t.paid&&t.paidDate){
-                    const d=new Date(t.paidDate);
-                    if(!isNaN(d)){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');revByMonth[k]=(revByMonth[k]||0)+a}
-                    const c=t.country||'Unknown';revByCountry[c]=(revByCountry[c]||0)+a;
-                    const m=t.paymentMethod||'other';revByMethod[m]=(revByMethod[m]||0)+a;
+            try {
+                const apps=allApps.filter(a=>!a.deleted);
+                let txns=[];
+                apps.forEach(a=>{
+                    try{(a.fees||[]).forEach(f=>{const amt=parseFloat((f.amount||'0').replace(/[^0-9.]/g,''));if(!isNaN(amt))txns.push({amountNum:amt,paid:!!f.paid,paidDate:f.paidDate||null,paymentMethod:f.paymentMethod||'mpesa',status:f.paid?'paid':(f.status||'pending'),country:a.country||'',label:f.label||'Fee',clientName:a.fullName||''})})}catch(e){}
+                    try{(a.clientServices||[]).forEach(s=>{const amt=parseFloat((s.amount||'0').replace(/[^0-9.]/g,''));if(!isNaN(amt))txns.push({amountNum:amt,paid:!!s.paid,paidDate:s.paidDate||null,paymentMethod:s.paymentMethod||'mpesa',status:s.paid?'paid':(s.status||'pending'),country:a.country||'',label:s.label||'Service',clientName:a.fullName||''})})}catch(e){}
+                });
+                const revByMonth={},revByCountry={},revByMethod={},dist={paid:0,pending:0,cancelled:0,refunded:0};
+                txns.forEach(t=>{
+                    const a=t.amountNum;
+                    if(t.status==='paid')dist.paid+=a;else if(t.status==='cancelled')dist.cancelled+=a;else if(t.status==='refunded')dist.refunded+=a;else dist.pending+=a;
+                    if(t.paid&&t.paidDate&&a>0){
+                        const d=new Date(t.paidDate);
+                        if(!isNaN(d)){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');revByMonth[k]=(revByMonth[k]||0)+a}
+                        if(t.country){revByCountry[t.country]=(revByCountry[t.country]||0)+a}
+                        if(t.paymentMethod){revByMethod[t.paymentMethod]=(revByMethod[t.paymentMethod]||0)+a}
+                    }
+                });
+                const sortedMonths=Object.keys(revByMonth).sort();
+                const sortedCountries=Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]);
+                // Destroy old charts safely
+                if(window.financeCharts){window.financeCharts.forEach(c=>{try{if(c&&typeof c.destroy==='function')c.destroy()}catch(e){}})}
+                window.financeCharts=[];
+                if(typeof Chart==='undefined')return;
+                const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}};
+                const kesTick={y:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}}};
+                // Revenue over time
+                const rC=document.getElementById('revChart');
+                if(rC&&sortedMonths.length){
+                    try{const c=new Chart(rC,{type:'line',data:{labels:sortedMonths,datasets:[{label:'Revenue (KES)',data:sortedMonths.map(m=>revByMonth[m]),borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.1)',fill:true,tension:0.3,pointRadius:3}]},options:{...baseOpts,scales:kesTick}});window.financeCharts.push(c)}catch(e){}
                 }
-            });
-            const sortedMonths=Object.keys(revByMonth).sort();
-            const sortedCountries=Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]);
-            if(window.financeCharts){window.financeCharts.forEach(c=>{try{c.destroy()}catch(e){}})}
-            window.financeCharts=[];
-            const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}};
-            // Revenue over time
-            const rC=document.getElementById('revChart');
-            if(rC&&sortedMonths.length){
-                const c=new Chart(rC,{type:'line',data:{labels:sortedMonths,datasets:[{label:'Revenue',data:sortedMonths.map(m=>revByMonth[m]),borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.1)',fill:true,tension:0.3,pointRadius:3}]},options:{...baseOpts,scales:{y:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}}}}});
-                window.financeCharts.push(c);
-            }
-            // Revenue by country
-            const cC=document.getElementById('countryChart');
-            if(cC&&sortedCountries.length){
-                const colors=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
-                const c=new Chart(cC,{type:'bar',data:{labels:sortedCountries,datasets:[{label:'Revenue',data:sortedCountries.map(c=>revByCountry[c]),backgroundColor:sortedCountries.map((_,i)=>colors[i%colors.length])}]},options:{...baseOpts,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}},y:{ticks:{font:{size:9}}}}}});
-                window.financeCharts.push(c);
-            }
-            // Revenue by method
-            const mC=document.getElementById('methodChart');
-            if(mC&&Object.keys(revByMethod).length){
-                const mc={mpesa:'#4CAF50',paypal:'#003087',stripe:'#635BFF',crypto_usdt:'#26A17B',crypto_btc:'#F7931A',crypto_eth:'#627EEA',crypto_usdc:'#2775CA',crypto_sol:'#9945FF',binance_pay:'#F0B90B',bank_wire:'#1E293B',wise:'#00B9FF',flutterwave:'#F09A0B'};
-                const mn={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',bank_wire:'Bank Wire',wise:'Wise',flutterwave:'Flutterwave'};
-                const methods=Object.keys(revByMethod);
-                const c=new Chart(mC,{type:'doughnut',data:{labels:methods.map(m=>mn[m]||m),datasets:[{data:methods.map(m=>revByMethod[m]),backgroundColor:methods.map(m=>mc[m]||'#94A3B8')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:9}}}}}});
-                window.financeCharts.push(c);
-            }
-            // Status distribution
-            const sC=document.getElementById('statusChart');
-            if(sC){
-                const c=new Chart(sC,{type:'pie',data:{labels:['Paid','Pending','Cancelled','Refunded'],datasets:[{data:[dist.paid,dist.pending,dist.cancelled,dist.refunded],backgroundColor:['#10B981','#F59E0B','#EF4444','#94A3B8']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}}});
-                window.financeCharts.push(c);
-            }
-            // Filters
-            ['financeCountryFilter','financeStatusFilter','financeMethodFilter'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('change',()=>{saveFinanceFilters();refilterFinanceTable()})});
-            const se=document.getElementById('financeSearch');
-            if(se){let st;se.addEventListener('input',()=>{clearTimeout(st);st=setTimeout(()=>{saveFinanceFilters();refilterFinanceTable()},400)})}
-            const rf=document.getElementById('financeRefreshBtn');if(rf)rf.addEventListener('click',()=>{renderCurrentView();toast('Finance data refreshed.','ok')});
-            const ex=document.getElementById('financeExportBtn');if(ex)ex.addEventListener('click',exportFinanceCSV);
+                // Revenue by country
+                const cC=document.getElementById('countryChart');
+                if(cC&&sortedCountries.length){
+                    try{const colors=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+                    const c=new Chart(cC,{type:'bar',data:{labels:sortedCountries,datasets:[{label:'Revenue (KES)',data:sortedCountries.map(c=>revByCountry[c]),backgroundColor:sortedCountries.map((_,i)=>colors[i%colors.length])}]},options:{...baseOpts,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}},y:{ticks:{font:{size:9}}}}}});window.financeCharts.push(c)}catch(e){}
+                }
+                // Revenue by method
+                const mC=document.getElementById('methodChart');
+                if(mC&&Object.keys(revByMethod).length){
+                    try{const mc={mpesa:'#4CAF50',paypal:'#003087',stripe:'#635BFF',crypto_usdt:'#26A17B',crypto_btc:'#F7931A',crypto_eth:'#627EEA',crypto_usdc:'#2775CA',crypto_sol:'#9945FF',binance_pay:'#F0B90B',bank_wire:'#1E293B',wise:'#00B9FF',flutterwave:'#F09A0B'};
+                    const mn={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',bank_wire:'Bank Wire',wise:'Wise',flutterwave:'Flutterwave'};
+                    const methods=Object.keys(revByMethod);
+                    const c=new Chart(mC,{type:'doughnut',data:{labels:methods.map(m=>mn[m]||m),datasets:[{data:methods.map(m=>revByMethod[m]),backgroundColor:methods.map(m=>mc[m]||'#94A3B8')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:9}}}}}});window.financeCharts.push(c)}catch(e){}
+                }
+                // Status distribution
+                const sC=document.getElementById('statusChart');
+                if(sC){
+                    try{const c=new Chart(sC,{type:'pie',data:{labels:['Paid','Pending','Cancelled','Refunded'],datasets:[{data:[dist.paid,dist.pending,dist.cancelled,dist.refunded],backgroundColor:['#10B981','#F59E0B','#EF4444','#94A3B8']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}}});window.financeCharts.push(c)}catch(e){}
+                }
+                // Filters
+                const savedFilters=window._ff;
+                ['financeCountryFilter','financeStatusFilter','financeMethodFilter'].forEach(id=>{
+                    const e=document.getElementById(id);
+                    if(e){
+                        if(savedFilters&&savedFilters[id.replace('finance','').replace('Filter','').toLowerCase()]&&savedFilters[id.replace('finance','').replace('Filter','').toLowerCase()]!=='All')
+                            e.value=savedFilters[id.replace('finance','').replace('Filter','').toLowerCase()];
+                        e.addEventListener('change',()=>{saveFinanceFilters();refilterFinanceTable()});
+                    }
+                });
+                const se=document.getElementById('financeSearch');
+                if(se){if(savedFilters&&savedFilters.search)se.value=savedFilters.search;let st;se.addEventListener('input',()=>{clearTimeout(st);st=setTimeout(()=>{saveFinanceFilters();refilterFinanceTable()},400)})}
+                const rf=document.getElementById('financeRefreshBtn');
+                if(rf)rf.addEventListener('click',()=>{try{saveFinanceFilters();renderCurrentView();toast('Finance data refreshed.','ok')}catch(e){toast('Refresh failed: '+e.message,'err')}});
+                const ex=document.getElementById('financeExportBtn');
+                if(ex)ex.addEventListener('click',()=>{try{exportFinanceCSV()}catch(e){toast('Export failed.','err')}});
+                // Apply saved filters
+                if(savedFilters)refilterFinanceTable();
+            } catch(e) { console.error('wireAdminFinance error:', e); }
         }
 
         function saveFinanceFilters(){
