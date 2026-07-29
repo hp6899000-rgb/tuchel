@@ -998,7 +998,7 @@
                 const live = [];
                 snapshot.forEach(d => live.push({ id: d.id, ...d.data() }));
                 allApps = dedupApps(live);
-                if (["admin-dashboard", "applicant-dashboard", "messages", "messages-chat", "admin-jobs"].includes(ROUTE.view)) renderCurrentView();
+                if (["admin-dashboard", "applicant-dashboard", "messages", "messages-chat", "admin-jobs", "admin-finance"].includes(ROUTE.view)) renderCurrentView();
             });
             if (unsubscribeJobs) unsubscribeJobs();
             try {
@@ -1149,6 +1149,7 @@
                 if (v === 'home' && activeView === '') return true;
                 if (v === 'applicant-dashboard' && ['applicant-dashboard', 'confirmation', 'messages', 'messages-chat'].includes(activeView)) return true;
                 if (v === 'admin-dashboard' && activeView.startsWith('admin-')) return true;
+                if (v === 'admin-finance' && activeView.startsWith('admin-')) return true;
                 return false;
             };
             let rightHtml = "";
@@ -1201,6 +1202,7 @@
                 case "admin-dashboard": html = viewAdminDashboard(); break;
                 case "admin-jobs": html = viewAdminJobs(); break;
                 case "admin-fees": html = viewAdminFees(); break;
+                case "admin-finance": html = viewAdminFinance(); break;
                 case "messages": html = viewMessages(); break;
                 case "messages-chat": html = viewMessagesChat(); break;
                 case "faq": html = viewFaq(); break;
@@ -1219,6 +1221,7 @@
             if (ROUTE.view === "admin-dashboard") wireAdminDashboard();
             if (ROUTE.view === "admin-jobs") wireAdminJobs();
             if (ROUTE.view === "admin-fees") wireAdminFees();
+            if (ROUTE.view === "admin-finance") wireAdminFinance();
             if (ROUTE.view === "messages") wireMessages();
             if (ROUTE.view === "messages-chat") wireMessagesChat();
             if (ROUTE.view === "jobs") wireJobsFilters();
@@ -2677,6 +2680,7 @@
               <a class="side-link active"><i class="fa-solid fa-gauge"></i> Applications</a>
               <a class="side-link" data-nav="admin-jobs"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
               <a class="side-link" data-nav="admin-fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link" data-nav="admin-finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
               <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread ? ` <span class="msg-count">${unread}</span>` : ''}</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -3193,6 +3197,7 @@
               <a class="side-link" data-nav="admin-dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
               <a class="side-link active"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
               <a class="side-link" data-nav="admin-fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link" data-nav="admin-finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
               <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages ${getUnreadCount() ? `<span class="msg-count">${getUnreadCount()}</span>` : ''}</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -3328,6 +3333,7 @@
               <a class="side-link" data-nav="admin-dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
               <a class="side-link" data-nav="admin-jobs"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
               <a class="side-link active"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link" data-nav="admin-finance"><i class="fa-solid fa-chart-line"></i> Finance</a>
               <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages ${getUnreadCount() ? `<span class="msg-count">${getUnreadCount()}</span>` : ''}</a>
               <div class="side-title" style="margin-top:20px">Account</div>
               <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -3382,6 +3388,223 @@
             document.querySelectorAll('[data-delfee]').forEach(b => b.addEventListener('click', async () => {
                 if (confirm("Remove this fee item?")) { await deleteFee(b.getAttribute('data-delfee')); toast("Fee item removed.", "ok"); renderCurrentView(); }
             }));
+        }
+
+        const EUR_TO_KES = 150;
+
+        function viewAdminFinance() {
+            if (!currentUser || !currentUserData || currentUserData.type !== 'admin') return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Admin access required.</p></div></div></div>`;
+            const apps = allApps.filter(a => !a.deleted);
+            let allTxns = [];
+            apps.forEach(a => {
+                (a.fees||[]).forEach(f => {
+                    const amt = parseFloat((f.amount||'0').replace(/[^0-9.]/g,''));
+                    allTxns.push({ id:f.id||'', type:'fee', label:f.label||'Fee', amountNum:amt, paid:!!f.paid, paidDate:f.paidDate||null, paymentMethod:f.paymentMethod||'mpesa', transactionCode:f.transactionCode||'', paidByClient:f.paidByClient||'', clientName:a.fullName||'', clientId:a.id||'', clientUid:a.uid||'', country:a.country||'', clientStatus:a.archived?'archived':a.blocked?'blocked':'active', status:f.paid?'paid':(f.status||'pending') });
+                });
+                (a.clientServices||[]).forEach(s => {
+                    const amt = parseFloat((s.amount||'0').replace(/[^0-9.]/g,''));
+                    allTxns.push({ id:s.id||'', type:'service', label:s.label||'Service', amountNum:amt, paid:!!s.paid, paidDate:s.paidDate||null, paymentMethod:s.paymentMethod||'mpesa', transactionCode:s.transactionCode||'', paidByClient:s.paidByClient||'', clientName:a.fullName||'', clientId:a.id||'', clientUid:a.uid||'', country:a.country||'', clientStatus:a.archived?'archived':a.blocked?'blocked':'active', status:s.paid?'paid':(s.status||'pending') });
+                });
+            });
+            let totalDue=0,totalPaid=0,totalPending=0,totalCancelled=0,totalRefunded=0;
+            const revByMonth={},revByCountry={},revByMethod={},dist={paid:0,pending:0,cancelled:0,refunded:0};
+            allTxns.forEach(t => {
+                const a=t.amountNum; totalDue+=a;
+                if(t.status==='paid'){totalPaid+=a;dist.paid+=a}
+                else if(t.status==='cancelled'){totalCancelled+=a;dist.cancelled+=a}
+                else if(t.status==='refunded'){totalRefunded+=a;dist.refunded+=a}
+                else{totalPending+=a;dist.pending+=a}
+                if(t.paid&&t.paidDate){
+                    const d=new Date(t.paidDate);
+                    if(!isNaN(d)){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');revByMonth[k]=(revByMonth[k]||0)+a}
+                    const c=t.country||'Unknown';revByCountry[c]=(revByCountry[c]||0)+a;
+                    const m=t.paymentMethod||'other';revByMethod[m]=(revByMethod[m]||0)+a;
+                }
+            });
+            const activeClients=new Set(apps.filter(x=>!x.archived&&!x.blocked&&!x.deleted).map(x=>x.uid)).size;
+            const archivedClients=new Set(apps.filter(x=>x.archived).map(x=>x.uid)).size;
+            const blockedClients=new Set(apps.filter(x=>x.blocked).map(x=>x.uid)).size;
+            const txnCount=allTxns.length;
+            const toKES=e=>'KES '+Math.round(e*EUR_TO_KES).toLocaleString();
+            const chartData=JSON.stringify({months:Object.keys(revByMonth).sort(),monthRev:Object.keys(revByMonth).sort().map(m=>revByMonth[m]),countries:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]),countryRev:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]).map(c=>revByCountry[c]),methods:Object.keys(revByMethod),methodRev:Object.keys(revByMethod).map(m=>revByMethod[m]),distPaid:dist.paid,distPending:dist.pending,distCancelled:dist.cancelled,distRefunded:dist.refunded});
+            const unread=getUnreadCount();
+            const methodNames={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',bank_wire:'Bank Wire',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',wise:'Wise',flutterwave:'Flutterwave'};
+            return `
+          <div class="dash-shell">
+            <div class="dash-side">
+              <div class="side-title">Admin Console</div>
+              <a class="side-link" data-nav="admin-dashboard"><i class="fa-solid fa-gauge"></i> Applications</a>
+              <a class="side-link" data-nav="admin-jobs"><i class="fa-solid fa-briefcase"></i> Manage Jobs</a>
+              <a class="side-link" data-nav="admin-fees"><i class="fa-solid fa-coins"></i> Fee Structure</a>
+              <a class="side-link active"><i class="fa-solid fa-chart-line"></i> Finance</a>
+              <a class="side-link" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${unread?' <span class="msg-count">'+unread+'</span>':''}</a>
+              <div class="side-title" style="margin-top:20px">Account</div>
+              <a class="side-link" data-action="logout"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            </div>
+            <div class="dash-main">
+              <div class="dash-topbar">
+                <h2><i class="fa-solid fa-chart-line" style="color:var(--maroon-500)"></i> Finance Dashboard</h2>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-outline btn-sm" id="financeRefreshBtn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                  <button class="btn btn-outline btn-sm" id="financeExportBtn"><i class="fa-solid fa-download"></i> Export CSV</button>
+                </div>
+              </div>
+              <div class="stat-grid" style="grid-template-columns:repeat(6,1fr)">
+                <div class="stat-card"><div class="n" style="color:var(--blue-900)">${toKES(totalDue)}</div><div class="l"><i class="fa-solid fa-receipt"></i> Total Due</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--emerald-600)">${toKES(totalPaid)}</div><div class="l"><i class="fa-solid fa-circle-check"></i> Collected</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--amber-600)">${toKES(totalPending)}</div><div class="l"><i class="fa-solid fa-clock"></i> Pending</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--rose-600)">${toKES(totalCancelled)}</div><div class="l"><i class="fa-solid fa-ban"></i> Cancelled</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--slate-500)">${toKES(totalRefunded)}</div><div class="l"><i class="fa-solid fa-rotate-left"></i> Refunded</div></div>
+                <div class="stat-card"><div class="n" style="color:var(--blue-900)">${txnCount}</div><div class="l"><i class="fa-solid fa-list"></i> Transactions</div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-chart-line" style="color:var(--blue-600)"></i> Revenue Over Time</div><canvas id="revChart" height="200"></canvas></div>
+                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-earth-americas" style="color:var(--green-600)"></i> Revenue by Country</div><canvas id="countryChart" height="200"></canvas></div>
+                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-credit-card" style="color:var(--amber-600)"></i> Revenue by Method</div><canvas id="methodChart" height="200"></canvas></div>
+                <div class="stat-card" style="padding:18px"><div style="font-size:13px;font-weight:700;color:var(--blue-900);margin-bottom:12px"><i class="fa-solid fa-chart-pie" style="color:var(--maroon-500)"></i> Payment Status</div><canvas id="statusChart" height="200"></canvas></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+                <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--emerald-600)">${activeClients}</div><div class="l"><i class="fa-solid fa-user-check"></i> Active Clients</div></div>
+                <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--amber-600)">${archivedClients}</div><div class="l"><i class="fa-solid fa-box-archive"></i> Archived</div></div>
+                <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--rose-600)">${blockedClients}</div><div class="l"><i class="fa-solid fa-ban"></i> Blocked</div></div>
+                <div class="stat-card" style="text-align:center;padding:12px"><div class="n" style="font-size:20px;color:var(--slate-500)">${allTxns.filter(t=>!t.clientName).length}</div><div class="l"><i class="fa-solid fa-trash"></i> Removed</div></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+                <select id="financeCountryFilter" style="padding:8px 12px;border:1.5px solid var(--slate-200);border-radius:8px;font-size:12.5px;background:#fff">
+                  <option value="All">All Countries</option>
+                  ${[...new Set(allTxns.map(t=>t.country).filter(Boolean))].sort().map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+                <select id="financeStatusFilter" style="padding:8px 12px;border:1.5px solid var(--slate-200);border-radius:8px;font-size:12.5px;background:#fff">
+                  <option value="All">All Status</option>
+                  <option value="paid">Paid</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option><option value="refunded">Refunded</option>
+                </select>
+                <select id="financeMethodFilter" style="padding:8px 12px;border:1.5px solid var(--slate-200);border-radius:8px;font-size:12.5px;background:#fff">
+                  <option value="All">All Methods</option>
+                  ${Object.keys(methodNames).map(k => `<option value="${k}">${methodNames[k]}</option>`).join('')}
+                </select>
+                <div class="search-input" style="flex:1;min-width:200px;max-width:300px">
+                  <i class="fa-solid fa-search"></i>
+                  <input type="text" id="financeSearch" placeholder="Search client or transaction..." style="padding-left:34px;width:100%">
+                </div>
+              </div>
+              <div class="stat-card" style="padding:0;overflow:hidden">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Client</th><th>Service/Fee</th><th>Country</th><th>Amount (KES)</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody id="financeTxnBody">
+                      ${allTxns.map(t => {
+                        const bc=t.status==='paid'?'badge-emerald':t.status==='pending'?'badge-amber':t.status==='cancelled'?'badge-rose':'badge-slate';
+                        const ci=t.clientStatus==='archived'?' <i class="fa-solid fa-box-archive" title="Archived" style="color:var(--amber-500);font-size:11px"></i>':t.clientStatus==='blocked'?' <i class="fa-solid fa-ban" title="Blocked" style="color:var(--rose-500);font-size:11px"></i>':'';
+                        return `<tr><td><div style="font-weight:600;font-size:13px">${t.clientName}${ci}</div></td><td style="font-size:12px">${t.label}</td><td>${t.country||'—'}</td><td style="font-weight:700;font-family:monospace">${toKES(t.amountNum)}</td><td><span class="badge ${bc}" style="font-size:10px">${methodNames[t.paymentMethod]||t.paymentMethod}</span></td><td><span class="badge ${bc}">${t.status}</span></td><td style="font-size:12px;color:var(--slate-500)">${t.paidDate?new Date(t.paidDate).toLocaleDateString():'—'}</td></tr>`;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 16px;background:var(--slate-50);border-radius:8px;font-size:13px">
+                <span><strong>${txnCount}</strong> transactions</span>
+                <span><strong style="color:var(--emerald-600)">${toKES(totalPaid)}</strong> collected · <strong style="color:var(--amber-600)">${toKES(totalPending)}</strong> pending</span>
+                <span>Rate: 1 EUR = ${EUR_TO_KES} KES</span>
+              </div>
+            </div>
+          </div>
+          <div id="financeChartData" style="display:none">${chartData}</div>`;
+        }
+
+        function wireAdminFinance() {
+            const apps=allApps.filter(a=>!a.deleted);
+            let txns=[];
+            apps.forEach(a=>{
+                (a.fees||[]).forEach(f=>{const amt=parseFloat((f.amount||'0').replace(/[^0-9.]/g,''));txns.push({amountNum:amt,paid:!!f.paid,paidDate:f.paidDate||null,paymentMethod:f.paymentMethod||'mpesa',status:f.paid?'paid':(f.status||'pending'),country:a.country||'',label:f.label||'Fee',clientName:a.fullName||''})});
+                (a.clientServices||[]).forEach(s=>{const amt=parseFloat((s.amount||'0').replace(/[^0-9.]/g,''));txns.push({amountNum:amt,paid:!!s.paid,paidDate:s.paidDate||null,paymentMethod:s.paymentMethod||'mpesa',status:s.paid?'paid':(s.status||'pending'),country:a.country||'',label:s.label||'Service',clientName:a.fullName||''})});
+            });
+            const revByMonth={},revByCountry={},revByMethod={},dist={paid:0,pending:0,cancelled:0,refunded:0};
+            txns.forEach(t=>{
+                const a=t.amountNum;
+                if(t.status==='paid')dist.paid+=a;else if(t.status==='cancelled')dist.cancelled+=a;else if(t.status==='refunded')dist.refunded+=a;else dist.pending+=a;
+                if(t.paid&&t.paidDate){
+                    const d=new Date(t.paidDate);
+                    if(!isNaN(d)){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');revByMonth[k]=(revByMonth[k]||0)+a}
+                    const c=t.country||'Unknown';revByCountry[c]=(revByCountry[c]||0)+a;
+                    const m=t.paymentMethod||'other';revByMethod[m]=(revByMethod[m]||0)+a;
+                }
+            });
+            const sortedMonths=Object.keys(revByMonth).sort();
+            const sortedCountries=Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]);
+            if(window.financeCharts){window.financeCharts.forEach(c=>{try{c.destroy()}catch(e){}})}
+            window.financeCharts=[];
+            const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}};
+            // Revenue over time
+            const rC=document.getElementById('revChart');
+            if(rC&&sortedMonths.length){
+                const c=new Chart(rC,{type:'line',data:{labels:sortedMonths,datasets:[{label:'Revenue',data:sortedMonths.map(m=>revByMonth[m]),borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.1)',fill:true,tension:0.3,pointRadius:3}]},options:{...baseOpts,scales:{y:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}}}}});
+                window.financeCharts.push(c);
+            }
+            // Revenue by country
+            const cC=document.getElementById('countryChart');
+            if(cC&&sortedCountries.length){
+                const colors=['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+                const c=new Chart(cC,{type:'bar',data:{labels:sortedCountries,datasets:[{label:'Revenue',data:sortedCountries.map(c=>revByCountry[c]),backgroundColor:sortedCountries.map((_,i)=>colors[i%colors.length])}]},options:{...baseOpts,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{callback:v=>'KES '+Math.round(v*EUR_TO_KES).toLocaleString()}},y:{ticks:{font:{size:9}}}}}});
+                window.financeCharts.push(c);
+            }
+            // Revenue by method
+            const mC=document.getElementById('methodChart');
+            if(mC&&Object.keys(revByMethod).length){
+                const mc={mpesa:'#4CAF50',paypal:'#003087',stripe:'#635BFF',crypto_usdt:'#26A17B',crypto_btc:'#F7931A',crypto_eth:'#627EEA',crypto_usdc:'#2775CA',crypto_sol:'#9945FF',binance_pay:'#F0B90B',bank_wire:'#1E293B',wise:'#00B9FF',flutterwave:'#F09A0B'};
+                const mn={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',bank_wire:'Bank Wire',wise:'Wise',flutterwave:'Flutterwave'};
+                const methods=Object.keys(revByMethod);
+                const c=new Chart(mC,{type:'doughnut',data:{labels:methods.map(m=>mn[m]||m),datasets:[{data:methods.map(m=>revByMethod[m]),backgroundColor:methods.map(m=>mc[m]||'#94A3B8')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:9}}}}}});
+                window.financeCharts.push(c);
+            }
+            // Status distribution
+            const sC=document.getElementById('statusChart');
+            if(sC){
+                const c=new Chart(sC,{type:'pie',data:{labels:['Paid','Pending','Cancelled','Refunded'],datasets:[{data:[dist.paid,dist.pending,dist.cancelled,dist.refunded],backgroundColor:['#10B981','#F59E0B','#EF4444','#94A3B8']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:10}}}}}});
+                window.financeCharts.push(c);
+            }
+            // Filters
+            ['financeCountryFilter','financeStatusFilter','financeMethodFilter'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('change',()=>{saveFinanceFilters();refilterFinanceTable()})});
+            const se=document.getElementById('financeSearch');
+            if(se){let st;se.addEventListener('input',()=>{clearTimeout(st);st=setTimeout(()=>{saveFinanceFilters();refilterFinanceTable()},400)})}
+            const rf=document.getElementById('financeRefreshBtn');if(rf)rf.addEventListener('click',()=>{renderCurrentView();toast('Finance data refreshed.','ok')});
+            const ex=document.getElementById('financeExportBtn');if(ex)ex.addEventListener('click',exportFinanceCSV);
+        }
+
+        function saveFinanceFilters(){
+            const g=id=>{const e=document.getElementById(id);return e?e.value:'All'};
+            window._ff={country:g('financeCountryFilter'),status:g('financeStatusFilter'),method:g('financeMethodFilter'),search:g('financeSearch')};
+        }
+
+        function refilterFinanceTable(){
+            const f=window._ff||{country:'All',status:'All',method:'All',search:''};
+            const body=document.getElementById('financeTxnBody');
+            if(!body)return;
+            body.querySelectorAll('tr').forEach(row=>{
+                let show=true;
+                const c=row.children;
+                if(f.country!=='All'&&c[2]&&!c[2].textContent.includes(f.country))show=false;
+                if(f.status!=='All'&&c[5]&&!c[5].textContent.toLowerCase().includes(f.status))show=false;
+                if(f.method!=='All'&&c[4]&&!c[4].textContent.toLowerCase().includes(f.method))show=false;
+                if(f.search){const txt=row.textContent.toLowerCase();if(!txt.includes(f.search.toLowerCase()))show=false}
+                row.style.display=show?'':'none';
+            });
+        }
+
+        function exportFinanceCSV(){
+            const rows=[['Client','Service/Fee','Country','Amount (KES)','Method','Status','Date']];
+            const body=document.getElementById('financeTxnBody');
+            if(body){
+                body.querySelectorAll('tr').forEach(tr=>{
+                    const c=tr.querySelectorAll('td');
+                    if(c.length>=7)rows.push([c[0].textContent.trim(),c[1].textContent.trim(),c[2].textContent.trim(),c[3].textContent.trim(),c[4].textContent.trim(),c[5].textContent.trim(),c[6].textContent.trim()]);
+                });
+            }
+            const csv=rows.map(r=>r.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')).join('\n');
+            const blob=new Blob([csv],{type:'text/csv'});
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');a.href=url;a.download='finance_'+new Date().toISOString().slice(0,10)+'.csv';
+            a.click();URL.revokeObjectURL(url);
+            toast('CSV exported.','ok');
         }
 
         // =============================================================
