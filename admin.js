@@ -30,6 +30,20 @@
     };
     const FLAG_BASE = "https://flagcdn.com/";
     function flagUrl(code) { return `${FLAG_BASE}${code}.svg`; }
+    const EUR_TO_KES = 150;
+    const USD_TO_KES = 128;
+    function parseAmountKES(raw) {
+        if (!raw && raw !== 0) return { kes: 0, orig: '0', currency: 'KES', num: 0 };
+        const s = String(raw);
+        let num = parseFloat(s.replace(/[^0-9.]/g,'')) || 0;
+        let currency = 'EUR';
+        if (/€|EUR|eur/i.test(s)) currency = 'EUR';
+        else if (/\$|USD|usd/i.test(s)) currency = 'USD';
+        else if (/KES|kes|Ksh|ksh|\/=/i.test(s)) currency = 'KES';
+        else if (/GBP|gbp|£/i.test(s)) currency = 'GBP';
+        const rate = currency === 'USD' ? USD_TO_KES : currency === 'KES' ? 1 : currency === 'GBP' ? (USD_TO_KES * 1.27) : EUR_TO_KES;
+        return { kes: Math.round(num * rate), orig: s, currency, num };
+    }
 
     let currentUser = null;
     let currentUserData = null;
@@ -313,9 +327,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         const apps=allApps.filter(a=>!a.archived&&(adminFilters.showBlocked||!a.blocked));
         const stats={total:apps.length,received:apps.filter(a=>a.status==="Application Received").length,inProgress:apps.filter(a=>!TERMINAL_ALT.includes(a.status)&&a.status!=="Placed — Active Employment"&&a.status!=="Application Received").length,placed:apps.filter(a=>a.status==="Placed — Active Employment").length,rejected:apps.filter(a=>a.status==="Rejected").length};
-        const parseAmt=v=>{if(!v)return 0;const m=v.match(/[\d,.]+/);return m?parseFloat(m[0].replace(/,/g,'')):0;};
-        const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmt(f.amount),0),0);
-        const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmt(f.amount):0),0),0);
+        const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmountKES(f.amount).kes,0),0);
+        const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmountKES(f.amount).kes:0),0),0);
         const toDate=(v)=>{if(!v)return null;if(v.toDate)return v.toDate();const d=new Date(v);if(!isNaN(d.getTime()))return d;const p=String(v).split('·');if(p.length===2){const d2=new Date(p[0].trim()+' '+p[1].trim());if(!isNaN(d2.getTime()))return d2;}return null;};
         const sortTs=(a,b)=>{const da=toDate(a.updatedAt)||toDate(a.createdAt)||new Date(0),db=toDate(b.updatedAt)||toDate(b.createdAt)||new Date(0);return db-da;};
         let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort(sortTs);
@@ -353,9 +366,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 </div>
                 <!-- Financial summary -->
                 <div class="finance-bar">
-                    <span><i class="fa-solid fa-file-invoice" style="color:var(--blue-600)"></i> Invoiced <b>€${esc(totalFees.toFixed(0))}</b></span>
-                    <span><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> Collected <b>€${esc(totalPaid.toFixed(0))}</b></span>
-                    <span><i class="fa-solid fa-clock" style="color:var(--maroon-600)"></i> Outstanding <b>€${esc((totalFees-totalPaid).toFixed(0))}</b></span>
+                    <span><i class="fa-solid fa-file-invoice" style="color:var(--blue-600)"></i> Invoiced <b>KES ${esc(Number(totalFees).toLocaleString('en-KE'))}</b></span>
+                    <span><i class="fa-solid fa-circle-check" style="color:var(--emerald-600)"></i> Collected <b>KES ${esc(Number(totalPaid).toLocaleString('en-KE'))}</b></span>
+                    <span><i class="fa-solid fa-clock" style="color:var(--maroon-600)"></i> Outstanding <b>KES ${esc(Number(totalFees-totalPaid).toLocaleString('en-KE'))}</b></span>
                 </div>
                 ${(()=>{
                     const allSvcs=apps.flatMap(a=>(a.clientServices||[]).map(s=>({...s,applicant:a.fullName,appId:displayId(a),uid:a.uid||a.id})));
@@ -363,7 +376,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const pend=allSvcs.filter(s=>s.status==='pending').length;
                     const ip=allSvcs.filter(s=>s.status==='in-progress').length;
                     const done=allSvcs.filter(s=>s.status==='completed').length;
-                    const totPaid=allSvcs.filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                    const totPaid=allSvcs.filter(s=>s.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                     return `<div class="services-panel">
                         <div class="svc-head"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Active Services (${allSvcs.length})</div>
                         <div class="svc-stats">
@@ -371,7 +384,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             <div class="svc-stat" style="border-left:3px solid var(--amber-500)"><b style="color:var(--amber-600)">${pend}</b><span>Pending</span></div>
                             <div class="svc-stat" style="border-left:3px solid var(--blue-500)"><b style="color:var(--blue-600)">${ip}</b><span>In Progress</span></div>
                             <div class="svc-stat" style="border-left:3px solid var(--emerald-500)"><b style="color:var(--emerald-600)">${done}</b><span>Done</span></div>
-                            <div class="svc-stat" style="border-left:3px solid var(--maroon-500)"><b style="color:var(--maroon-600)">€${totPaid.toFixed(0)}</b><span>Collected</span></div>
+                            <div class="svc-stat" style="border-left:3px solid var(--maroon-500)"><b style="color:var(--maroon-600)">KES ${Number(totPaid).toLocaleString('en-KE')}</b><span>Collected</span></div>
                         </div>
                         <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th></tr></thead><tbody>${allSvcs.slice(0,10).map(s=>{
                             return `<tr><td><b style="font-size:12px">${esc(s.applicant)}</b></td><td>${esc(s.label)}</td><td>${esc(s.amount||'—')}</td><td><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td>${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td></tr>`;
@@ -420,14 +433,14 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         <tbody>${filtered.length?filtered.map(a=>{
                             const cmp=calcCompleteness(a);
                             const fees=a.fees||[];
-                            const totalAmt=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-                            const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                            const totalAmt=fees.reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
+                            const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                             return `<tr>
                                 <td><div class="appl-name">${esc(a.fullName)}</div><div class="appl-id">${displayId(a)}</div>${a.email?`<div class="appl-email">${esc(a.email)}</div>`:''}</td>
                                 <td><div class="appl-job">${esc(a.jobTitle)||'—'}</div>${a.country?`<div class="appl-country"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy">${esc(a.country)}</div>`:'<div class="appl-country" style="color:var(--slate-400)">—</div>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                                 <td>${statusBadge(a.status)}</td>
                                 <td style="white-space:nowrap">${completenessBar(cmp)}</td>
-                                <td style="white-space:nowrap"><span class="fee-paid">€${paidAmt.toFixed(0)}</span><span class="fee-total">€${totalAmt.toFixed(0)}</span></td>
+                                <td style="white-space:nowrap"><span class="fee-paid">KES ${Number(paidAmt).toLocaleString('en-KE')}</span>/<span class="fee-total">KES ${Number(totalAmt).toLocaleString('en-KE')}</span></td>
                                 <td class="date-cell">${fmtDate(a.updatedAt)}</td>
                                 <td style="white-space:nowrap">${a.phone?`<a href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn-wa" title="WhatsApp ${esc(a.fullName)}"><i class="fa-brands fa-whatsapp"></i></a> `:''}<button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
                             </tr>`;
@@ -438,8 +451,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div class="app-card-row">${filtered.length?filtered.map(a=>{
                         const cmp=calcCompleteness(a);
                         const fees=a.fees||[];
-                        const totalAmt=fees.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-                        const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+                        const totalAmt=fees.reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
+                        const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                         return `<div class="app-card">
                             <div class="ac-head">
                                 <div><div class="ac-name">${esc(a.fullName)}</div><div class="ac-id">${displayId(a)}</div></div>
@@ -450,7 +463,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 <span><i class="fa-solid fa-briefcase"></i> ${esc(a.jobTitle)||'—'}${a.blocked?' <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>':''}</span>
                                 <span><i class="fa-solid fa-location-dot"></i> ${a.country?`<img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}`:'—'}</span>
                                 <span><i class="fa-solid fa-file"></i> ${completenessBar(cmp)}</span>
-                                <span><i class="fa-solid fa-coins"></i> <span class="fee-paid">€${paidAmt.toFixed(0)}</span>/<span class="fee-total">€${totalAmt.toFixed(0)}</span></span>
+                                <span><i class="fa-solid fa-coins"></i> <span class="fee-paid">KES ${Number(paidAmt).toLocaleString('en-KE')}</span>/<span class="fee-total">KES ${Number(totalAmt).toLocaleString('en-KE')}</span></span>
                                 <span><i class="fa-regular fa-clock"></i> ${fmtDate(a.updatedAt)}</span>
                             </div>
                             <div class="ac-foot">
@@ -480,8 +493,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const root=document.getElementById('modal-root');
         const appFees=app.fees||[];
         const appNotes=app.internalNotes||[];
-        const totalDue=appFees.filter(f=>!f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
-        const totalPaid=appFees.filter(f=>f.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+        const totalDue=appFees.filter(f=>!f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
+        const totalPaid=appFees.filter(f=>f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
         const curStageIdx=STATUS_STEPS.indexOf(app.status);
 
         function progressHTML(){
@@ -586,8 +599,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div class="modal-section">
                         <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${esc(appFees.length)}</div><div style="font-size:11px;color:var(--slate-500)">Fee Items</div></div>
-                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${esc(totalPaid.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Total Paid</div></div>
-                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--maroon-600)">${esc(totalDue.toFixed(2))}</div><div style="font-size:11px;color:var(--slate-500)">Outstanding</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--emerald-600)">KES ${esc(Number(totalPaid).toLocaleString('en-KE'))}</div><div style="font-size:11px;color:var(--slate-500)">Total Paid</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--maroon-600)">KES ${esc(Number(totalDue).toLocaleString('en-KE'))}</div><div style="font-size:11px;color:var(--slate-500)">Outstanding</div></div>
                         </div>
                         <div id="appFeesList">${appFees.length?appFees.map((f,i)=>`<div class="fee-row"><span class="lbl">${esc(f.label)}</span><span class="amt">${esc(f.amount)}</span><span class="status ${f.paid?'badge-green':'badge-amber'}">${f.paid?(f.paidByClient?'Paid (Client)':'Paid'):'Unpaid'}</span>${f.paidDate?`<span style="font-size:11px;color:var(--slate-400)">${fmtDate(f.paidDate)}</span>`:''}${f.paidByClient?`<span style="font-size:10px;color:var(--indigo-500);font-weight:600;background:var(--indigo-50);padding:2px 8px;border-radius:4px">Client</span>`:''}${f.transactionCode?`<span style="font-size:10px;color:var(--slate-500)">Txn: ${esc(f.transactionCode)}</span>`:''}<button class="btn btn-outline btn-sm" data-togglefee="${i}">${f.paid?'Unmark':'Mark Paid'}</button></div>`).join(""):'<div class="empty-state" style="padding:20px"><p>No fees added for this application yet.</p></div>'}</div>
                         <h4 style="margin:16px 0 10px;color:var(--blue-900);font-size:14px">Add Fee to Application</h4>
@@ -603,7 +616,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--blue-900)">${(app.clientServices||[]).length}</div><div style="font-size:11px;color:var(--slate-500)">Total Services</div></div>
                             <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--emerald-600)">${(app.clientServices||[]).filter(s=>s.status==='completed').length}</div><div style="font-size:11px;color:var(--slate-500)">Completed</div></div>
-                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--maroon-600)">${(app.clientServices||[]).filter(s=>s.paid).reduce((s,f)=>s+(parseFloat(f.amount)||0),0).toFixed(0)}</div><div style="font-size:11px;color:var(--slate-500)">EUR Collected</div></div>
+                            <div class="card pad" style="flex:1;min-width:120px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--maroon-600)">KES ${Number((app.clientServices||[]).filter(s=>s.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0)).toLocaleString('en-KE')}</div><div style="font-size:11px;color:var(--slate-500)">KES Collected</div></div>
                         </div>
                         <div id="appServicesList">${(app.clientServices||[]).length?(app.clientServices||[]).map((s,i)=>{
                             const t=SERVICE_TYPES.find(st=>st.id===s.type);
@@ -1423,14 +1436,15 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
     function viewFinance() {
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         const apps = allApps; // Include ALL apps (archived, blocked, deleted, active)
-        const parseAmt = v => { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; };
         // Collect all financial transactions: fees + services from all apps
         let allTxns = [];
         apps.forEach(a => {
             const clientStatus = a.archived ? 'archived' : a.blocked ? 'blocked' : Object.keys(a).includes('deletedAt') ? 'deleted' : 'active';
             (a.fees||[]).forEach(f => {
+                const pk = parseAmountKES(f.amount);
                 allTxns.push({
-                    id: f.id, type: 'fee', label: f.label, amount: f.amount, amountNum: parseAmt(f.amount),
+                    id: f.id, type: 'fee', label: f.label, amount: f.amount, amountNum: pk.kes,
+                    currency: pk.currency, origAmount: pk.orig,
                     paid: !!f.paid, paidDate: f.paidDate, paymentMethod: f.paymentMethod||'mpesa',
                     transactionCode: f.transactionCode, paidByClient: !!f.paidByClient,
                     clientName: a.fullName||'Unknown', clientId: displayId(a), clientUid: a.uid||a.id,
@@ -1439,8 +1453,10 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 });
             });
             (a.clientServices||[]).forEach(s => {
+                const pk = parseAmountKES(s.amount);
                 allTxns.push({
-                    id: s.id, type: 'service', label: s.label, amount: s.amount, amountNum: parseAmt(s.amount),
+                    id: s.id, type: 'service', label: s.label, amount: s.amount, amountNum: pk.kes,
+                    currency: pk.currency, origAmount: pk.orig,
                     paid: !!s.paid, paidDate: s.paidDate, paymentMethod: s.paymentMethod||'mpesa',
                     transactionCode: s.transactionCode, paidByClient: !!s.paidByClient,
                     clientName: a.fullName||'Unknown', clientId: displayId(a), clientUid: a.uid||a.id,
@@ -1532,11 +1548,11 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 </div>
                 <!-- Stats Cards -->
                 <div class="finance-cards">
-                    <div class="finance-card"><div class="fc-icon" style="background:var(--blue-50);color:var(--blue-700)"><i class="fa-solid fa-coins"></i></div><div class="fc-value">€${totalDue.toFixed(0)}</div><div class="fc-label">Total Due</div></div>
-                    <div class="finance-card"><div class="fc-icon" style="background:var(--emerald-50);color:var(--emerald-600)"><i class="fa-solid fa-circle-check"></i></div><div class="fc-value">€${totalPaid.toFixed(0)}</div><div class="fc-label">Collected</div></div>
-                    <div class="finance-card"><div class="fc-icon" style="background:var(--amber-50);color:var(--amber-600)"><i class="fa-solid fa-clock"></i></div><div class="fc-value">€${totalPending.toFixed(0)}</div><div class="fc-label">Pending</div></div>
-                    <div class="finance-card"><div class="fc-icon" style="background:var(--rose-50);color:var(--rose-600)"><i class="fa-solid fa-ban"></i></div><div class="fc-value">€${totalCancelled.toFixed(0)}</div><div class="fc-label">Cancelled</div></div>
-                    <div class="finance-card"><div class="fc-icon" style="background:var(--slate-100);color:var(--slate-600)"><i class="fa-solid fa-arrow-rotate-left"></i></div><div class="fc-value">€${totalRefunded.toFixed(0)}</div><div class="fc-label">Refunded</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--blue-50);color:var(--blue-700)"><i class="fa-solid fa-coins"></i></div><div class="fc-value">KES ${Number(totalDue).toLocaleString('en-KE')}</div><div class="fc-label">Total Due</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--emerald-50);color:var(--emerald-600)"><i class="fa-solid fa-circle-check"></i></div><div class="fc-value">KES ${Number(totalPaid).toLocaleString('en-KE')}</div><div class="fc-label">Collected</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--amber-50);color:var(--amber-600)"><i class="fa-solid fa-clock"></i></div><div class="fc-value">KES ${Number(totalPending).toLocaleString('en-KE')}</div><div class="fc-label">Pending</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--rose-50);color:var(--rose-600)"><i class="fa-solid fa-ban"></i></div><div class="fc-value">KES ${Number(totalCancelled).toLocaleString('en-KE')}</div><div class="fc-label">Cancelled</div></div>
+                    <div class="finance-card"><div class="fc-icon" style="background:var(--slate-100);color:var(--slate-600)"><i class="fa-solid fa-arrow-rotate-left"></i></div><div class="fc-value">KES ${Number(totalRefunded).toLocaleString('en-KE')}</div><div class="fc-label">Refunded</div></div>
                     <div class="finance-card"><div class="fc-icon" style="background:var(--indigo-50);color:var(--indigo-600)"><i class="fa-solid fa-receipt"></i></div><div class="fc-value">${txnCount}</div><div class="fc-label">Total Transactions</div></div>
                 </div>
                 <!-- Client Status Summary -->
@@ -1616,7 +1632,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                     <td><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
                                     <td><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
                                     <td>${t.country ? esc(t.country) : '—'}</td>
-                                    <td style="font-weight:700;color:var(--blue-900)">€${t.amountNum.toFixed(0)}</td>
+                                    <td style="font-weight:700;color:var(--blue-900)">KES ${Number(t.amountNum).toLocaleString('en-KE')}</td>
                                     <td><span style="color:${pmColor};font-size:12px"><i class="${pmIcon}"></i> ${esc(pmName)}</span>${t.transactionCode ? `<br><span style="font-size:9px;color:var(--slate-400)">Txn: ${esc(t.transactionCode)}</span>` : ''}</td>
                                     <td><span class="badge ${statusClass}" style="font-size:10px">${statusLabel}</span></td>
                                     <td><span class="${csClass}">${csLabel}</span></td>
@@ -1628,10 +1644,11 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     </div>
                     <div class="finance-totals-row">
                         <span>Total Transactions: <b>${filtered.length}</b></span>
-                        <span>Paid: <b style="color:var(--emerald-600)">€${totalPaid.toFixed(0)}</b></span>
-                        <span>Pending: <b style="color:var(--amber-600)">€${totalPending.toFixed(0)}</b></span>
-                        <span>Cancelled: <b style="color:var(--rose-600)">€${totalCancelled.toFixed(0)}</b></span>
+                        <span>Paid: <b style="color:var(--emerald-600)">KES ${Number(totalPaid).toLocaleString('en-KE')}</b></span>
+                        <span>Pending: <b style="color:var(--amber-600)">KES ${Number(totalPending).toLocaleString('en-KE')}</b></span>
+                        <span>Cancelled: <b style="color:var(--rose-600)">KES ${Number(totalCancelled).toLocaleString('en-KE')}</b></span>
                     </div>
+                    <div style="font-size:11px;color:var(--slate-400);text-align:right;padding:8px 4px 0;border-top:1px solid var(--slate-200);margin-top:8px">1 EUR = KES ${Number(EUR_TO_KES).toLocaleString('en-KE')} · 1 USD = KES ${Number(USD_TO_KES).toLocaleString('en-KE')}</div>
                 </div>
             </div>
         </div>`;
@@ -1640,19 +1657,18 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         destroyFinanceCharts();
         // Build chart data from the same calculations
         const apps = allApps;
-        const parseAmt = v => { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; };
         let allTxns = [];
         apps.forEach(a => {
             (a.fees||[]).forEach(f => {
                 allTxns.push({
-                    amountNum: parseAmt(f.amount), paid: !!f.paid, paidDate: f.paidDate,
+                    amountNum: parseAmountKES(f.amount).kes, paid: !!f.paid, paidDate: f.paidDate,
                     paymentMethod: f.paymentMethod||'mpesa', status: f.paid ? 'paid' : 'pending',
                     country: a.country||'', clientStatus: a.archived?'archived':a.blocked?'blocked':'active'
                 });
             });
             (a.clientServices||[]).forEach(s => {
                 allTxns.push({
-                    amountNum: parseAmt(s.amount), paid: !!s.paid, paidDate: s.paidDate,
+                    amountNum: parseAmountKES(s.amount).kes, paid: !!s.paid, paidDate: s.paidDate,
                     paymentMethod: s.paymentMethod||'mpesa', status: s.status||'pending',
                     country: a.country||'', clientStatus: a.archived?'archived':a.blocked?'blocked':'active'
                 });
@@ -1687,7 +1703,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 data: {
                     labels: sortedMonths.length ? sortedMonths : ['No Data'],
                     datasets: [{
-                        label: 'Revenue (€)',
+                        label: 'Revenue (KES)',
                         data: sortedMonths.length ? sortedMonths.map(m => revByMonth[m]) : [0],
                         borderColor: '#1B4F99',
                         backgroundColor: 'rgba(27,79,153,0.1)',
@@ -1698,7 +1714,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { callback: v => '€'+v } } } }
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => 'KES '+Number(v).toLocaleString('en-KE') } } } }
             });
             financeCharts.push(chart);
         }
@@ -1712,14 +1728,14 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 data: {
                     labels: countries.length ? countries : ['No Data'],
                     datasets: [{
-                        label: 'Revenue (€)',
+                        label: 'Revenue (KES)',
                         data: countries.length ? countries.map(c => revByCountry[c]) : [0],
                         backgroundColor: countries.map((_,i) => colors[i % colors.length]),
                         borderRadius: 4
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { callback: v => '€'+v } } } }
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => 'KES '+Number(v).toLocaleString('en-KE') } } } }
             });
             financeCharts.push(chart);
         }
@@ -1794,15 +1810,17 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         });
         // Export
         document.querySelector('[data-action="export-finance"]')?.addEventListener('click', () => {
-            const rows = [['Client','Service','Country','Amount','Payment Method','Status','Client Status','Date']];
+            const rows = [['Client','Service','Country','Amount (KES)','Original Amount','Payment Method','Status','Client Status','Date']];
             const apps2 = allApps;
             apps2.forEach(a => {
                 const cs = a.archived ? 'Archived' : a.blocked ? 'Blocked' : 'Active';
                 (a.fees||[]).forEach(f => {
-                    rows.push([a.fullName||'Unknown', f.label, a.country||'', parseAmt(f.amount).toFixed(2), f.paymentMethod||'mpesa', f.paid?'Paid':'Pending', cs, f.paidDate||'']);
+                    const pk = parseAmountKES(f.amount);
+                    rows.push([a.fullName||'Unknown', f.label, a.country||'', pk.kes.toFixed(2), f.amount||'', f.paymentMethod||'mpesa', f.paid?'Paid':'Pending', cs, f.paidDate||'']);
                 });
                 (a.clientServices||[]).forEach(s => {
-                    rows.push([a.fullName||'Unknown', s.label, a.country||'', parseAmt(s.amount).toFixed(2), s.paymentMethod||'mpesa', s.status||'pending', cs, s.paidDate||'']);
+                    const pk = parseAmountKES(s.amount);
+                    rows.push([a.fullName||'Unknown', s.label, a.country||'', pk.kes.toFixed(2), s.amount||'', s.paymentMethod||'mpesa', s.status||'pending', cs, s.paidDate||'']);
                 });
             });
             const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -1845,10 +1863,10 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                         <select id="payreqService" style="width:100%">
                             <option value="">Select service...</option>
                             <optgroup label="Fees">
-                                ${allApps.flatMap(a => (a.fees||[]).filter(f => !f.paid).map(f => ({id:f.id, label:f.label, amount:parseAmt(f.amount), app:a}))).map(item => `<option value="fee_${item.id}" data-amount="${item.amount}" data-label="${esc(item.label)}">${esc(item.label)} — €${item.amount}</option>`).join('')}
+                                ${allApps.flatMap(a => (a.fees||[]).filter(f => !f.paid).map(f => ({id:f.id, label:f.label, raw:f.amount, amount:parseAmountKES(f.amount).kes, app:a}))).map(item => `<option value="fee_${item.id}" data-amount="${item.amount}" data-label="${esc(item.label)}">${esc(item.label)} — ${esc(item.raw||item.amount)}</option>`).join('')}
                             </optgroup>
                             <optgroup label="Services">
-                                ${allApps.flatMap(a => (a.clientServices||[]).filter(s => !s.paid).map(s => ({id:s.id, label:s.label, amount:parseAmt(s.amount), app:a}))).map(item => `<option value="svc_${item.id}" data-amount="${item.amount}" data-label="${esc(item.label)}">${esc(item.label)} — €${item.amount}</option>`).join('')}
+                                ${allApps.flatMap(a => (a.clientServices||[]).filter(s => !s.paid).map(s => ({id:s.id, label:s.label, raw:s.amount, amount:parseAmountKES(s.amount).kes, app:a}))).map(item => `<option value="svc_${item.id}" data-amount="${item.amount}" data-label="${esc(item.label)}">${esc(item.label)} — ${esc(item.raw||item.amount)}</option>`).join('')}
                             </optgroup>
                         </select>
                     </div>
@@ -1923,7 +1941,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             }
             const country = allApps.find(a => (a.uid||a.id) === clientId)?.country || '';
             const msg = encodeURIComponent(
-                `Hello AMEXAN.\n\nI would like payment details.\n\nClient: ${clientName}\nService: ${svcLabel}\nCountry: ${country}\nPreferred Payment: ${pmName}\nAmount: €${svcAmount}${extraInfo}\n\nRequest ID: ${clientId}\n\nPlease provide the correct payment details. Thank you.`
+                `Hello AMEXAN.\n\nI would like payment details.\n\nClient: ${clientName}\nService: ${svcLabel}\nCountry: ${country}\nPreferred Payment: ${pmName}\nAmount: KES ${svcAmount}${extraInfo}\n\nRequest ID: ${clientId}\n\nPlease provide the correct payment details. Thank you.`
             );
             window.open(`https://wa.me/254703935936?text=${msg}`, '_blank');
             toast(`WhatsApp payment request sent to +254703935936 for ${clientName}.`, 'ok');
