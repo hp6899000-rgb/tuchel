@@ -1,0 +1,113 @@
+[debug] [2026-07-29T11:07:28.545Z] ----------------------------------------------------------------------
+[debug] [2026-07-29T11:07:28.549Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\Administrator\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-07-29T11:07:28.550Z] CLI Version:   15.9.0
+[debug] [2026-07-29T11:07:28.550Z] Platform:      win32
+[debug] [2026-07-29T11:07:28.550Z] Node Version:  v20.20.0
+[debug] [2026-07-29T11:07:28.551Z] Time:          Wed Jul 29 2026 14:07:28 GMT+0300 (East Africa Time)
+[debug] [2026-07-29T11:07:28.551Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-29T11:07:28.556Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-07-29T11:08:18.965Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-29T11:08:18.965Z] > authorizing via signed-in user (amgamiga1@gmail.com)
+[debug] [2026-07-29T11:08:18.966Z] [iam] checking project tuchel-98f49 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-07-29T11:08:18.967Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:18.967Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:18.967Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:18.971Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:18.971Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:20.903Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:20.904Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:20.904Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions [none]
+[debug] [2026-07-29T11:08:20.905Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions  x-goog-user-project=tuchel-98f49
+[debug] [2026-07-29T11:08:20.905Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-07-29T11:08:23.249Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions 401
+[debug] [2026-07-29T11:08:23.249Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"ACCESS_TOKEN_TYPE_UNSUPPORTED","metadata":{"method":"google.cloudresourcemanager.v1.Projects.TestIamPermissions","service":"cloudresourcemanager.googleapis.com"}}]}}
+[debug] [2026-07-29T11:08:23.250Z] Got a 401 Unauthenticated error for a call that required authentication. Refreshing tokens.
+[debug] [2026-07-29T11:08:23.250Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:23.250Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:23.250Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:23.250Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:23.251Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:23.728Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:23.728Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:23.729Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions had HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+[debug] [2026-07-29T11:08:23.730Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:23.731Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:23.731Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:23.731Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:23.731Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:24.053Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:24.053Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:24.054Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 [none]
+[debug] [2026-07-29T11:08:26.097Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-07-29T11:08:26.098Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-07-29T11:08:28.182Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 401
+[debug] [2026-07-29T11:08:28.182Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED"}}
+[debug] [2026-07-29T11:08:28.182Z] Got a 401 Unauthenticated error for a call that required authentication. Refreshing tokens.
+[debug] [2026-07-29T11:08:28.183Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:28.183Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:28.183Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:28.183Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:28.184Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:28.466Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:28.467Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:28.467Z] Request to https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 had HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+[error] 
+[error] Error: Assertion failed: resolving hosting target of a site with no site name or target name. This should have caused an error earlier
+[debug] [2026-07-29T11:08:38.296Z] ----------------------------------------------------------------------
+[debug] [2026-07-29T11:08:38.300Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\Administrator\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting -P tuchel-98f49
+[debug] [2026-07-29T11:08:38.300Z] CLI Version:   15.9.0
+[debug] [2026-07-29T11:08:38.301Z] Platform:      win32
+[debug] [2026-07-29T11:08:38.301Z] Node Version:  v20.20.0
+[debug] [2026-07-29T11:08:38.301Z] Time:          Wed Jul 29 2026 14:08:38 GMT+0300 (East Africa Time)
+[debug] [2026-07-29T11:08:38.301Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-29T11:08:40.690Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-29T11:08:40.691Z] > authorizing via signed-in user (amgamiga1@gmail.com)
+[debug] [2026-07-29T11:08:40.691Z] [iam] checking project tuchel-98f49 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-07-29T11:08:40.693Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:40.694Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:40.694Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:40.697Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:40.697Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:41.498Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:41.498Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:41.498Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions [none]
+[debug] [2026-07-29T11:08:41.499Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions  x-goog-user-project=tuchel-98f49
+[debug] [2026-07-29T11:08:41.499Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-07-29T11:08:43.267Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions 401
+[debug] [2026-07-29T11:08:43.268Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"ACCESS_TOKEN_TYPE_UNSUPPORTED","metadata":{"service":"cloudresourcemanager.googleapis.com","method":"google.cloudresourcemanager.v1.Projects.TestIamPermissions"}}]}}
+[debug] [2026-07-29T11:08:43.268Z] Got a 401 Unauthenticated error for a call that required authentication. Refreshing tokens.
+[debug] [2026-07-29T11:08:43.268Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:43.268Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:43.269Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:43.269Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:43.269Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:43.711Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:43.711Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:43.713Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/tuchel-98f49:testIamPermissions had HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+[debug] [2026-07-29T11:08:43.714Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:43.714Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:43.714Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:43.715Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:43.715Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:44.138Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:44.139Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:44.140Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 [none]
+[debug] [2026-07-29T11:08:48.032Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 401
+[debug] [2026-07-29T11:08:48.032Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 {"error":{"code":401,"message":"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.","status":"UNAUTHENTICATED"}}
+[debug] [2026-07-29T11:08:48.033Z] Got a 401 Unauthenticated error for a call that required authentication. Refreshing tokens.
+[debug] [2026-07-29T11:08:48.033Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:48.033Z] Checked if tokens are valid: false, expires at: 1779916659878
+[debug] [2026-07-29T11:08:48.033Z] > refreshing access token with scopes: []
+[debug] [2026-07-29T11:08:48.034Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-29T11:08:48.034Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:48.487Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
+[debug] [2026-07-29T11:08:48.487Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-29T11:08:48.488Z] Request to https://firebase.googleapis.com/v1beta1/projects/tuchel-98f49 had HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
+[debug] [2026-07-29T11:08:53.503Z] Error: Timed out.
+    at Timeout._onTimeout (C:\Users\Administrator\AppData\Roaming\npm\node_modules\firebase-tools\lib\utils.js:308:49)
+    at listOnTimeout (node:internal/timers:581:17)
+    at process.processTimers (node:internal/timers:519:7)
+[error] 
+[error] Error: An unexpected error has occurred.

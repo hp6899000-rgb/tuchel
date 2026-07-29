@@ -446,7 +446,7 @@
         function dedupApps(arr) {
             const map = {};
             arr.forEach(a => {
-                const key = a.uid || a.id;
+                const key = a.id || a.uid;
                 const existing = map[key];
                 if (!existing) { map[key] = a; return; }
                 const s1 = (existing.fullName ? 2 : 0) + (existing.email ? 1 : 0) + (existing.nationality ? 1 : 0);
@@ -697,20 +697,18 @@
             return null;
         }
         async function createApp(appData) {
-            const docId = appData.uid || genAppId();
             const appNum = genAppId();
-            const ref = doc(db, "applications", docId);
-            const existing = await getDoc(ref);
+            const ref = doc(db, "applications", appNum);
             const newApp = {
-                ...appData, id: docId, appId: appNum,
+                ...appData, id: appNum, appId: appNum,
                 timeline: [{ status: "Application Received", date: new Date().toISOString(), note: "Application submitted." }],
                 internalNotes: [], clientServices: [], archived: false, blocked: false,
-                createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
+                createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 status: appData.status || "Application Received",
                 documentStatus: appData.documentStatus || { cv: "not_uploaded", passport: "not_uploaded", certificates: "not_uploaded", reference: "not_uploaded", medical: "not_uploaded" }
             };
-            await setDoc(ref, newApp, { merge: true });
+            await setDoc(ref, newApp);
             await loadApps();
             return newApp;
         }
@@ -1881,19 +1879,15 @@
                     };
                     const formattedAppId = genAppId();
                     appData.appId = formattedAppId;
-                    appData.id = user.uid;
+                    appData.id = formattedAppId;
                     appData.uid = user.uid;
-                    const appRef = doc(db, "applications", user.uid);
-                    const existingSnap = await getDoc(appRef);
+                    const appRef = doc(db, "applications", formattedAppId);
                     await setDoc(appRef, {
                         ...appData,
-                        createdAt: existingSnap.exists() ? existingSnap.data().createdAt : serverTimestamp(),
+                        createdAt: serverTimestamp(),
                         updatedAt: serverTimestamp(),
-                        timeline: existingSnap.exists()
-                            ? [...(existingSnap.data().timeline || []), ...(appData.timeline || [])]
-                            : appData.timeline
-                    }, { merge: true });
-                    const appId = user.uid;
+                    });
+                    const appId = formattedAppId;
                     simulateEmail(email, "Application Received – Europe Sponsor Jobs",
                         `Dear ${fullName},\n\nThank you for applying with Europe Sponsor Jobs.\n\nYour Application ID: ${formattedAppId}\nFull Name: ${fullName}\nNationality: ${natObj ? natObj.name : nationality}\nJob: ${job ? job.title : ''}\nCountry: ${job ? job.country : ''}\n\nYou can check your status anytime by logging into your portal.\n\nBest regards,\nEurope Sponsor Jobs Team`);
                     currentUserData = { ...appData, type: 'applicant' };
