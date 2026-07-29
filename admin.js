@@ -1913,7 +1913,6 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         document.getElementById('modalOverlay')?.addEventListener('click', e => { if(e.target.id==='modalOverlay') root.innerHTML=''; });
     }
     function parseAmt(v) { if(!v)return 0; const m=v.match(/[\d,.]+/); return m?parseFloat(m[0].replace(/,/g,'')):0; }
-    function fmtDate(ts) { if(!ts)return'—'; if(ts.toDate)ts=ts.toDate(); return new Date(ts).toLocaleDateString(void 0,{year:'numeric',month:'short',day:'numeric'}); }
 
     function fmtMsgTime(ts) {
         if(!ts)return "";if(ts.toDate)ts=ts.toDate();
