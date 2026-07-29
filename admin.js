@@ -33,16 +33,17 @@
     const EUR_TO_KES = 150;
     const USD_TO_KES = 128;
     function parseAmountKES(raw) {
-        if (!raw && raw !== 0) return { kes: 0, orig: '0', currency: 'KES', num: 0 };
+        if (!raw && raw !== 0) return { kes: 0, orig: '0', currency: '', num: 0, valid: false };
         const s = String(raw);
         let num = parseFloat(s.replace(/[^0-9.]/g,'')) || 0;
-        let currency = 'EUR';
+        let currency = '';
         if (/€|EUR|eur/i.test(s)) currency = 'EUR';
         else if (/\$|USD|usd/i.test(s)) currency = 'USD';
         else if (/KES|kes|Ksh|ksh|\/=/i.test(s)) currency = 'KES';
         else if (/GBP|gbp|£/i.test(s)) currency = 'GBP';
+        if (!currency) return { kes: 0, orig: s, currency: '', num: 0, valid: false };
         const rate = currency === 'USD' ? USD_TO_KES : currency === 'KES' ? 1 : currency === 'GBP' ? (USD_TO_KES * 1.27) : EUR_TO_KES;
-        return { kes: Math.round(num * rate), orig: s, currency, num };
+        return { kes: Math.round(num * rate), orig: s, currency, num, valid: true };
     }
 
     let currentUser = null;
@@ -1444,7 +1445,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 const pk = parseAmountKES(f.amount);
                 allTxns.push({
                     id: f.id, type: 'fee', label: f.label, amount: f.amount, amountNum: pk.kes,
-                    currency: pk.currency, origAmount: pk.orig,
+                    currency: pk.currency, origAmount: pk.orig, valid: pk.valid,
                     paid: !!f.paid, paidDate: f.paidDate, paymentMethod: f.paymentMethod||'mpesa',
                     transactionCode: f.transactionCode, paidByClient: !!f.paidByClient,
                     clientName: a.fullName||'Unknown', clientId: displayId(a), clientUid: a.uid||a.id,
@@ -1456,7 +1457,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 const pk = parseAmountKES(s.amount);
                 allTxns.push({
                     id: s.id, type: 'service', label: s.label, amount: s.amount, amountNum: pk.kes,
-                    currency: pk.currency, origAmount: pk.orig,
+                    currency: pk.currency, origAmount: pk.orig, valid: pk.valid,
                     paid: !!s.paid, paidDate: s.paidDate, paymentMethod: s.paymentMethod||'mpesa',
                     transactionCode: s.transactionCode, paidByClient: !!s.paidByClient,
                     clientName: a.fullName||'Unknown', clientId: displayId(a), clientUid: a.uid||a.id,
@@ -1632,7 +1633,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                     <td><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
                                     <td><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
                                     <td>${t.country ? esc(t.country) : '—'}</td>
-                                    <td style="font-weight:700;color:var(--blue-900)">KES ${Number(t.amountNum).toLocaleString('en-KE')}</td>
+                                    <td style="font-weight:700;color:var(--blue-900)">${t.valid ? 'KES '+Number(t.amountNum).toLocaleString('en-KE') : '<span style="color:var(--slate-400);font-weight:400" title="'+esc(t.origAmount)+'">—</span>'}</td>
                                     <td><span style="color:${pmColor};font-size:12px"><i class="${pmIcon}"></i> ${esc(pmName)}</span>${t.transactionCode ? `<br><span style="font-size:9px;color:var(--slate-400)">Txn: ${esc(t.transactionCode)}</span>` : ''}</td>
                                     <td><span class="badge ${statusClass}" style="font-size:10px">${statusLabel}</span></td>
                                     <td><span class="${csClass}">${csLabel}</span></td>
