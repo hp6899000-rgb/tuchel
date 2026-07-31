@@ -420,6 +420,8 @@ footer {
   position: sticky;
   top: 0;
   z-index: 4;
+  left: auto;
+  right: auto;
   box-shadow: none;
 }
 .dash-main .table-wrap table tbody td:first-child,
