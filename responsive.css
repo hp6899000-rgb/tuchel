@@ -359,12 +359,15 @@ footer {
    with up/down scrolling to reach every applicant. The mobile card list
    (.app-card-row) is hidden in favour of the full table. The table keeps a
    frozen first column (see section 1) plus horizontal scroll for wide rows.
+   No height cap: rows flow into the page so a plain up/down scroll reveals
+   every row — nothing is locked inside an inner scrollbox.
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .dash-main .table-wrap {
     display: block;
-    max-height: 62vh;
-    overflow-y: auto;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
   }
   .dash-main .app-card-row { display: none; }
@@ -380,20 +383,18 @@ footer {
 }
 
 /* --------------------------------------------------------------------------
-   14. FINANCE TABLE — fully scrollable on every phone (vertical + horizontal)
-   so every transaction row is reachable. Keeps a comfortable visible window
-   (max-height) with touch scrolling; wide columns scroll sideways.
+   14. FINANCE TABLE — every transaction row reachable on every phone by a
+   simple up/down page scroll. No height cap, so rows flow into the page;
+   wide columns scroll sideways and the first column stays frozen.
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .dash-main .finance-table-wrap {
     display: block;
-    max-height: 62vh;
+    max-height: none;
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
-    overscroll-behavior-y: contain;
-    touch-action: pan-x pan-y;
   }
   .finance-table-wrap table {
     min-width: 640px;
@@ -407,8 +408,4 @@ footer {
     background: #fff;
     box-shadow: 2px 0 4px rgba(0,0,0,0.04);
   }
-}
-
-@media (max-width: 480px) {
-  .dash-main .finance-table-wrap { max-height: 58vh; }
 }
