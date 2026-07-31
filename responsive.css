@@ -501,26 +501,30 @@ footer {
 }
 
 /* --------------------------------------------------------------------------
-   14. ADMIN DASHBOARD LAYOUT (desktop) — make the shell feel like a proper
-   app: sidebar full height on the left, main content filling the column to
-   the right (no floating centered content that looks "just there"), and a
-   real footer that spans the whole width at the bottom.
+   14. ADMIN DASHBOARD LAYOUT (desktop only) — make the shell feel like a
+   proper app: sidebar full height on the left, main content filling the
+   column to the right (no floating centered content that looks "just there"),
+   and a real footer that spans the whole width at the bottom. Scoped to
+   min-width 901px so phones keep the single-column layout (otherwise the
+   sidebar renders as a tall fixed column that crowds the screen).
    -------------------------------------------------------------------------- */
-.dash-shell {
-  grid-template-columns: 240px minmax(0, 1fr);
-  align-items: stretch;
-}
+@media (min-width: 901px) {
+  .dash-shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: stretch;
+  }
 
-.dash-shell .dash-main {
-  max-width: none;
-  margin: 0;
-  width: 100%;
-  min-width: 0;
-  padding: 24px 28px;
-}
+  .dash-shell .dash-main {
+    max-width: none;
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+    padding: 24px 28px;
+  }
 
-.dash-side {
-  padding-bottom: 48px;
+  .dash-side {
+    padding-bottom: 48px;
+  }
 }
 
 .admin-footer {
@@ -549,3 +553,46 @@ footer {
 }
 
 .admin-footer a:hover { opacity: 1; text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   15. PAGINATION BAR — "Rows per page" + Prev/Next + "Showing X–Y of N"
+   under every Excel-style table (admin console + admin views on the main
+   site). Compact, wraps on phones, touch-friendly.
+   -------------------------------------------------------------------------- */
+.pg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  padding: 10px 4px 4px;
+  font-size: 12px;
+  color: var(--slate-500);
+}
+.pg-bar .pg-info { font-weight: 600; }
+.pg-bar .pg-info b { color: var(--blue-900); }
+.pg-bar .pg-per-wrap { display: flex; align-items: center; gap: 6px; }
+.pg-bar .pg-per-wrap label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--slate-500);
+  font-weight: 700;
+}
+.pg-bar .pg-per {
+  padding: 6px 10px;
+  border: 1.5px solid var(--slate-200);
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: #fff;
+  color: var(--slate-700);
+  font-family: inherit;
+  cursor: pointer;
+}
+.pg-bar .pg-btns { display: flex; align-items: center; gap: 6px; }
+.pg-bar .pg-page { font-size: 12px; color: var(--slate-600); white-space: nowrap; }
+.pg-bar .btn:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 480px) {
+  .pg-bar { justify-content: center; text-align: center; }
+  .pg-bar .pg-info { width: 100%; }
+}

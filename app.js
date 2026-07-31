@@ -1184,6 +1184,37 @@
             if (mt) mt.addEventListener('click', () => document.getElementById('navLinks').classList.toggle('open'));
         }
 
+        const PER_PAGE_OPTS = [10, 25, 50, 100, 'All'];
+        const PAG = {};
+        function pgState(key) { if (!PAG[key]) PAG[key] = { page: 1, perPage: 25 }; return PAG[key]; }
+        function pgSlice(key, arr) {
+            const st = pgState(key);
+            const n = arr.length;
+            const totalPages = st.perPage === 'All' ? 1 : Math.max(1, Math.ceil(n / st.perPage));
+            if (st.page > totalPages) st.page = totalPages;
+            if (st.page < 1) st.page = 1;
+            const start = st.perPage === 'All' ? 0 : (st.page - 1) * st.perPage;
+            const items = st.perPage === 'All' ? arr : arr.slice(start, start + st.perPage);
+            return { items, start, totalPages, n };
+        }
+        function pgBar(key, meta) {
+            const st = pgState(key);
+            if (!meta.n) return '';
+            const per = st.perPage;
+            const from = per === 'All' ? (meta.n ? 1 : 0) : meta.start + 1;
+            const to = per === 'All' ? meta.n : Math.min(meta.start + per, meta.n);
+            const opts = PER_PAGE_OPTS.map(o => `<option value="${o}" ${String(per) === String(o) ? 'selected' : ''}>${o === 'All' ? 'Show all' : o + ' per page'}</option>`).join('');
+            return `<div class="pg-bar" data-pgkey="${key}">
+                <div class="pg-info">Showing <b>${from}–${to}</b> of <b>${meta.n}</b></div>
+                <div class="pg-per-wrap"><label>Rows</label><select class="pg-per">${opts}</select></div>
+                <div class="pg-btns">
+                    <button class="btn btn-outline btn-sm" data-pg="prev" ${st.page <= 1 ? 'disabled' : ''}>&#9664; Prev</button>
+                    <span class="pg-page">Page ${st.page} of ${meta.totalPages}</span>
+                    <button class="btn btn-outline btn-sm" data-pg="next" ${st.page >= meta.totalPages ? 'disabled' : ''}>Next &#9654;</button>
+                </div>
+            </div>`;
+        }
+
         function renderCurrentView() {
             if (viewportCleanup) { viewportCleanup(); viewportCleanup = null; }
             const appEl = document.getElementById('app');
@@ -2767,6 +2798,7 @@
                 (adminFilters.country === "All" || a.country === adminFilters.country) &&
                 (adminFilters.search === "" || (a.fullName + a.email + a.id + a.uid + a.jobTitle + (a.nationality||'') + (a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))
             ).sort((a, b) => { const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0); const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0); return db - da; });
+            const pg = pgSlice('adash', filtered);
 
             const unread = getUnreadCount();
             const recent = filtered.slice(0, 3);
@@ -2814,12 +2846,13 @@
               <div class="card">
                 <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Completeness</th><th>Updated</th><th></th></tr></thead>
+                  <thead><tr><th class="rnum">#</th><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Completeness</th><th>Updated</th><th></th><th class="rnum">#</th></tr></thead>
                   <tbody>
-                    ${filtered.length ? filtered.map(a => {
+                    ${filtered.length ? pg.items.map((a,ai) => {
                       const cmp=calcCompleteness(a);
                       const cls=cmp>=80?'var(--emerald-500)':cmp>=40?'var(--amber-500)':'var(--maroon-500)';
                       return `<tr>
+                        <td class="rnum">${pg.start+ai+1}</td>
                         <td><b style="color:var(--blue-900)">${esc(a.fullName)}</b><br><span style="font-size:12px;color:var(--slate-500)">${displayId(a)}</span>${a.email?`<br><span style="font-size:11px;color:var(--slate-400)">${esc(a.email)}</span>`:''}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                         <td>${esc(a.jobTitle)||'—'}<br>${a.country?`<span style="font-size:12px;color:var(--slate-500)"><img src="${flagUrl((COUNTRY_META[a.country]||{}).flag||'')}" alt="" style="width:14px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px">${esc(a.country)}</span>`:'<span style="font-size:12px;color:var(--slate-400)">—</span>'}</td>
                         <td>${statusBadge(a.status)}</td>
@@ -2831,11 +2864,13 @@
                         </td>
                         <td style="font-size:12px;color:var(--slate-500);white-space:nowrap">${fmtDate(a.updatedAt)}</td>
                         <td><button class="btn btn-outline btn-sm" data-openapp="${displayId(a)}">Review <i class="fa-solid fa-chevron-right"></i></button></td>
+                        <td class="rnum">${pg.start+ai+1}</td>
                       </tr>`;
-                    }).join("") : `<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match these filters.</p></div></td></tr>`}
+                    }).join("") : `<tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No applications match these filters.</p></div></td></tr>`}
                   </tbody>
                 </table>
                   </div>
+                  ${pgBar('adash', pg)}
                 </div>
             </div>
           </div>`;
@@ -3287,6 +3322,7 @@
         function viewAdminJobs() {
             if (!currentUser || !currentUserData || currentUserData.type !== 'admin') return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Admin access required.</p></div></div></div>`;
             const jobs = allJobs;
+            const pgj = pgSlice('ajobs', jobs);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -3327,19 +3363,22 @@
               <div class="card">
                 <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th></tr></thead>
+                  <thead><tr><th class="rnum">#</th><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th><th class="rnum">#</th></tr></thead>
                   <tbody>
-                    ${jobs.length ? jobs.map(j => `
+                    ${jobs.length ? pgj.items.map((j,ji) => `
                       <tr>
+                        <td class="rnum">${pgj.start+ji+1}</td>
                         <td><b>${esc(j.title)}</b></td>
                         <td>${esc(j.country)}</td>
                         <td>${esc(j.category)}</td>
                         <td>${esc(j.salary)}</td>
                         <td><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>`).join("") : `<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs added yet. Click "Seed Sample Jobs" to populate instantly.</p></div></td></tr>`}
+                        <td class="rnum">${pgj.start+ji+1}</td>
+                      </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs added yet. Click "Seed Sample Jobs" to populate instantly.</p></div></td></tr>`}
                   </tbody>
                 </table>
                   </div>
+                  ${pgBar('ajobs', pgj)}
                 </div>
             </div>
           </div>`;
@@ -3423,6 +3462,7 @@
         function viewAdminFees() {
             if (!currentUser || !currentUserData || currentUserData.type !== 'admin') return `<div class="section"><div class="wrap"><div class="empty-state"><i class="fa-solid fa-lock"></i><p>Admin access required.</p></div></div></div>`;
             const fees = allFees;
+            const pgf = pgSlice('afees', fees);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -3456,19 +3496,22 @@
               <div class="card">
                 <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Label</th><th>Amount</th><th>Paid By</th><th>Description</th><th></th></tr></thead>
+                  <thead><tr><th class="rnum">#</th><th>Label</th><th>Amount</th><th>Paid By</th><th>Description</th><th></th><th class="rnum">#</th></tr></thead>
                   <tbody>
-                    ${fees.length ? fees.map(f => `
+                    ${fees.length ? pgf.items.map((f,fi) => `
                       <tr>
+                        <td class="rnum">${pgf.start+fi+1}</td>
                         <td><b>${esc(f.label)}</b></td>
                         <td>${esc(f.amount)}</td>
                         <td>${esc(f.paidBy)}</td>
                         <td>${esc(f.desc || '—')}</td>
                         <td><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash"></i></button></td>
-                      </tr>`).join("") : `<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fee items added yet.</p></div></td></tr>`}
+                        <td class="rnum">${pgf.start+fi+1}</td>
+                      </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fee items added yet.</p></div></td></tr>`}
                   </tbody>
                 </table>
                   </div>
+                  ${pgBar('afees', pgf)}
                 </div>
             </div>
           </div>`;
@@ -3539,6 +3582,7 @@
             const chartData=JSON.stringify({months:Object.keys(revByMonth).sort(),monthRev:Object.keys(revByMonth).sort().map(m=>revByMonth[m]),countries:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]),countryRev:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]).map(c=>revByCountry[c]),methods:Object.keys(revByMethod),methodRev:Object.keys(revByMethod).map(m=>revByMethod[m]),distPaid:dist.paid,distPending:dist.pending,distCancelled:dist.cancelled,distRefunded:dist.refunded});
             const unread=getUnreadCount();
             const methodNames={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',bank_wire:'Bank Wire',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',wise:'Wise',flutterwave:'Flutterwave'};
+            const pgx = pgSlice('afinance', allTxns);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -3600,16 +3644,17 @@
               <div class="stat-card" style="padding:0;overflow:hidden">
                 <div class="table-wrap">
                   <table class="finance-table">
-                    <thead><tr><th>Client</th><th>Service/Fee</th><th>Country</th><th>Amount (KES)</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+                    <thead><tr><th class="rnum">#</th><th>Client</th><th>Service/Fee</th><th>Country</th><th>Amount (KES)</th><th>Method</th><th>Status</th><th>Date</th><th class="rnum">#</th></tr></thead>
                     <tbody id="financeTxnBody">
-                      ${allTxns.map(t => {
+                      ${allTxns.length ? pgx.items.map((t,ti) => {
                         const bc=t.status==='paid'?'badge-emerald':t.status==='pending'?'badge-amber':t.status==='cancelled'?'badge-rose':'badge-slate';
                         const ci=t.clientStatus==='archived'?' <i class="fa-solid fa-box-archive" title="Archived" style="color:var(--amber-500);font-size:11px"></i>':t.clientStatus==='blocked'?' <i class="fa-solid fa-ban" title="Blocked" style="color:var(--rose-500);font-size:11px"></i>':'';
-                        return `<tr><td><div style="font-weight:600;font-size:13px">${t.clientName}${ci}</div></td><td style="font-size:12px">${t.label}</td><td>${t.country||'—'}</td><td style="font-weight:700;font-family:monospace">${fmKES(t.amountKES)}</td><td><span class="badge ${bc}" style="font-size:10px">${methodNames[t.paymentMethod]||t.paymentMethod}</span></td><td><span class="badge ${bc}">${t.status}</span></td><td style="font-size:12px;color:var(--slate-500)">${t.paidDate?new Date(t.paidDate).toLocaleDateString():'—'}</td></tr>`;
-                      }).join('')}
+                        return `<tr><td class="rnum">${pgx.start+ti+1}</td><td><div style="font-weight:600;font-size:13px">${t.clientName}${ci}</div></td><td style="font-size:12px">${t.label}</td><td>${t.country||'—'}</td><td style="font-weight:700;font-family:monospace">${fmKES(t.amountKES)}</td><td><span class="badge ${bc}" style="font-size:10px">${methodNames[t.paymentMethod]||t.paymentMethod}</span></td><td><span class="badge ${bc}">${t.status}</span></td><td style="font-size:12px;color:var(--slate-500)">${t.paidDate?new Date(t.paidDate).toLocaleDateString():'—'}</td><td class="rnum">${pgx.start+ti+1}</td></tr>`;
+                      }).join('') : `<tr><td colspan="9"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No transactions yet.</p></div></td></tr>`}
                     </tbody>
                   </table>
                 </div>
+                ${pgBar('afinance', pgx)}
               </div>
               <div class="finance-summary" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 16px;background:var(--slate-50);border-radius:8px;font-size:13px">
                 <span><strong>${txnCount}</strong> transactions</span>
@@ -3706,9 +3751,9 @@
             body.querySelectorAll('tr').forEach(row=>{
                 let show=true;
                 const c=row.children;
-                if(f.country!=='All'&&c[2]&&!c[2].textContent.includes(f.country))show=false;
-                if(f.status!=='All'&&c[5]&&!c[5].textContent.toLowerCase().includes(f.status))show=false;
-                if(f.method!=='All'&&c[4]&&!c[4].textContent.toLowerCase().includes(f.method))show=false;
+                if(f.country!=='All'&&c[3]&&!c[3].textContent.includes(f.country))show=false;
+                if(f.status!=='All'&&c[6]&&!c[6].textContent.toLowerCase().includes(f.status))show=false;
+                if(f.method!=='All'&&c[5]&&!c[5].textContent.toLowerCase().includes(f.method))show=false;
                 if(f.search){const txt=row.textContent.toLowerCase();if(!txt.includes(f.search.toLowerCase()))show=false}
                 row.style.display=show?'':'none';
             });
@@ -3718,10 +3763,10 @@
             const rows=[['Client','Service/Fee','Country','Amount (KES)','Method','Status','Date']];
             const body=document.getElementById('financeTxnBody');
             if(body){
-                body.querySelectorAll('tr').forEach(tr=>{
-                    const c=tr.querySelectorAll('td');
-                    if(c.length>=7)rows.push([c[0].textContent.trim(),c[1].textContent.trim(),c[2].textContent.trim(),c[3].textContent.trim(),c[4].textContent.trim(),c[5].textContent.trim(),c[6].textContent.trim()]);
-                });
+            body.querySelectorAll('tr').forEach(tr=>{
+                const c=tr.querySelectorAll('td');
+                if(c.length>=8)rows.push([c[1].textContent.trim(),c[2].textContent.trim(),c[3].textContent.trim(),c[4].textContent.trim(),c[5].textContent.trim(),c[6].textContent.trim(),c[7].textContent.trim()]);
+            });
             }
             const csv=rows.map(r=>r.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')).join('\n');
             const blob=new Blob([csv],{type:'text/csv'});
@@ -4402,5 +4447,31 @@ function showChatUserDetails(userName, chatId) {
         document.getElementById('payCloseBtn')?.addEventListener('click', closePaymentModal);
         document.getElementById('paymentModal')?.addEventListener('click', function(e) {
             if (e.target.id === 'paymentModal') closePaymentModal();
+        });
+
+        // Global pagination — prev/next buttons
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-pg]');
+            if (!btn) return;
+            const bar = btn.closest('.pg-bar');
+            const key = bar ? bar.getAttribute('data-pgkey') : '';
+            if (!key) return;
+            const st = pgState(key);
+            if (btn.getAttribute('data-pg') === 'prev') st.page = Math.max(1, st.page - 1);
+            else if (btn.getAttribute('data-pg') === 'next') st.page = st.page + 1;
+            renderCurrentView();
+        });
+        // Rows-per-page selector
+        document.addEventListener('change', function(e) {
+            const sel = e.target.closest('.pg-per');
+            if (!sel) return;
+            const bar = sel.closest('.pg-bar');
+            const key = bar ? bar.getAttribute('data-pgkey') : '';
+            if (!key) return;
+            const st = pgState(key);
+            const v = sel.value;
+            st.perPage = v === 'All' ? 'All' : parseInt(v, 10);
+            st.page = 1;
+            renderCurrentView();
         });
     

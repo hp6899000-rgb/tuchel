@@ -271,7 +271,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         }
     });
     restoreAdminFilters();
-    function render() {
+    async function render() {
         let html="";
         switch(ROUTE.view) {
             case "login": html=viewLogin(); break;
@@ -280,7 +280,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             case "fees": html=viewFees(); break;
             case "messages": html=viewMessages(); break;
             case "messages-chat": html=viewMessagesChat(); break;
-            case "audit": html=viewAuditLog(); break;
+            case "audit": html=await viewAuditLog(); break;
             case "finance": html=viewFinance(); break;
             default: html=viewLogin();
         }
@@ -324,6 +324,37 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         });
     }
 
+    const PER_PAGE_OPTS = [10, 25, 50, 100, 'All'];
+    const PAG = {};
+    function pgState(key) { if (!PAG[key]) PAG[key] = { page: 1, perPage: 25 }; return PAG[key]; }
+    function pgSlice(key, arr) {
+        const st = pgState(key);
+        const n = arr.length;
+        const totalPages = st.perPage === 'All' ? 1 : Math.max(1, Math.ceil(n / st.perPage));
+        if (st.page > totalPages) st.page = totalPages;
+        if (st.page < 1) st.page = 1;
+        const start = st.perPage === 'All' ? 0 : (st.page - 1) * st.perPage;
+        const items = st.perPage === 'All' ? arr : arr.slice(start, start + st.perPage);
+        return { items, start, totalPages, n };
+    }
+    function pgBar(key, meta) {
+        const st = pgState(key);
+        if (!meta.n) return '';
+        const per = st.perPage;
+        const from = per === 'All' ? (meta.n ? 1 : 0) : meta.start + 1;
+        const to = per === 'All' ? meta.n : Math.min(meta.start + per, meta.n);
+        const opts = PER_PAGE_OPTS.map(o => `<option value="${o}" ${String(per) === String(o) ? 'selected' : ''}>${o === 'All' ? 'Show all' : o + ' per page'}</option>`).join('');
+        return `<div class="pg-bar" data-pgkey="${key}">
+            <div class="pg-info">Showing <b>${from}–${to}</b> of <b>${meta.n}</b></div>
+            <div class="pg-per-wrap"><label>Rows</label><select class="pg-per">${opts}</select></div>
+            <div class="pg-btns">
+                <button class="btn btn-outline btn-sm" data-pg="prev" ${st.page <= 1 ? 'disabled' : ''}>&#9664; Prev</button>
+                <span class="pg-page">Page ${st.page} of ${meta.totalPages}</span>
+                <button class="btn btn-outline btn-sm" data-pg="next" ${st.page >= meta.totalPages ? 'disabled' : ''}>Next &#9654;</button>
+            </div>
+        </div>`;
+    }
+
     function viewDashboard() {
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         const apps=allApps.filter(a=>!a.archived&&(adminFilters.showBlocked||!a.blocked));
@@ -333,6 +364,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const toDate=(v)=>{if(!v)return null;if(v.toDate)return v.toDate();const d=new Date(v);if(!isNaN(d.getTime()))return d;const p=String(v).split('·');if(p.length===2){const d2=new Date(p[0].trim()+' '+p[1].trim());if(!isNaN(d2.getTime()))return d2;}return null;};
         const sortTs=(a,b)=>{const da=toDate(a.updatedAt)||toDate(a.createdAt)||new Date(0),db=toDate(b.updatedAt)||toDate(b.createdAt)||new Date(0);return db-da;};
         let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort(sortTs);
+        const pg = pgSlice('dash-apps', filtered);
         const unread=getUnreadCount();
         return `
         <div class="dash-shell">
@@ -378,6 +410,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     const ip=allSvcs.filter(s=>s.status==='in-progress').length;
                     const done=allSvcs.filter(s=>s.status==='completed').length;
                     const totPaid=allSvcs.filter(s=>s.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
+                    const pgsv = pgSlice('svcs', allSvcs);
                     return `<div class="services-panel">
                         <div class="svc-head"><i class="fa-solid fa-handshake" style="color:var(--maroon-500)"></i> Active Services (${allSvcs.length})</div>
                         <div class="svc-stats">
@@ -387,9 +420,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             <div class="svc-stat" style="border-left:3px solid var(--emerald-500)"><b style="color:var(--emerald-600)">${done}</b><span>Done</span></div>
                             <div class="svc-stat" style="border-left:3px solid var(--maroon-500)"><b style="color:var(--maroon-600)">KES ${Number(totPaid).toLocaleString('en-KE')}</b><span>Collected</span></div>
                         </div>
-                        <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th class="rnum">#</th><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th><th class="rnum">#</th></tr></thead><tbody>${allSvcs.slice(0,10).map((s,si)=>{
-                            return `<tr><td class="rnum">${si+1}</td><td data-label="Applicant"><b style="font-size:12px">${esc(s.applicant)}</b></td><td data-label="Service">${esc(s.label)}</td><td data-label="Amount">${esc(s.amount||'—')}</td><td data-label="Status"><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td data-label="Paid">${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td data-label="Action"><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td><td class="rnum">${si+1}</td></tr>`;
-                        }).join("")}</tbody></table></div>
+                        <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th class="rnum">#</th><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th><th class="rnum">#</th></tr></thead><tbody>${pgsv.items.map((s,si)=>{
+                            return `<tr><td class="rnum">${pgsv.start+si+1}</td><td data-label="Applicant"><b style="font-size:12px">${esc(s.applicant)}</b></td><td data-label="Service">${esc(s.label)}</td><td data-label="Amount">${esc(s.amount||'—')}</td><td data-label="Status"><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td data-label="Paid">${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td data-label="Action"><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td><td class="rnum">${pgsv.start+si+1}</td></tr>`;
+                        }).join("")}</tbody></table></div>${pgBar('svcs', pgsv)}
                     </div>`;
                 })()}
                 <!-- Recent Applications -->
@@ -431,13 +464,13 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div class="table-wrap">
                     <table class="app-table">
                         <thead><tr><th class="rnum">#</th><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th><th class="rnum">#</th></tr></thead>
-                        <tbody>${filtered.length?filtered.map((a,ai)=>{
+                        <tbody>${filtered.length?pg.items.map((a,ai)=>{
                             const cmp=calcCompleteness(a);
                             const fees=a.fees||[];
                             const totalAmt=fees.reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                             const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                             return `<tr>
-                                <td class="rnum">${ai+1}</td>
+                                <td class="rnum">${pg.start+ai+1}</td>
                                 <td data-label="Applicant"><div class="appl-name">${esc(a.fullName)}</div><div class="appl-id">${displayId(a)}</div>${a.email?`<div class="appl-email">${esc(a.email)}</div>`:''}</td>
                                 <td data-label="Job / Country"><div class="appl-job">${esc(a.jobTitle)||'—'}</div>${a.country?`<div class="appl-country"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy">${esc(a.country)}</div>`:'<div class="appl-country" style="color:var(--slate-400)">—</div>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                                 <td data-label="Status">${statusBadge(a.status)}</td>
@@ -445,11 +478,12 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 <td data-label="Fees" style="white-space:nowrap"><span class="fee-paid">KES ${Number(paidAmt).toLocaleString('en-KE')}</span>/<span class="fee-total">KES ${Number(totalAmt).toLocaleString('en-KE')}</span></td>
                                 <td data-label="Updated" class="date-cell">${fmtDate(a.updatedAt)}</td>
                                 <td data-label="Action" style="white-space:nowrap">${a.phone?`<a href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn-wa" title="WhatsApp ${esc(a.fullName)}"><i class="fa-brands fa-whatsapp"></i></a> `:''}<button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
-                                <td class="rnum">${ai+1}</td>
+                                <td class="rnum">${pg.start+ai+1}</td>
                             </tr>`;
                         }).join(""):`<tr><td colspan="9"><div class="empty-state"><i class="fa-solid fa-inbox"></i></div></td></tr>`}</tbody>
                     </table>
                     </div>
+                    ${pgBar('dash-apps', pg)}
                     <!-- Mobile cards -->
                     <div class="app-card-row">${filtered.length?filtered.map(a=>{
                         const cmp=calcCompleteness(a);
@@ -1122,6 +1156,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
 
     function viewJobs() {
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const pgj = pgSlice('jobs', allJobs);
         return `
         <div class="dash-shell">
             <div class="dash-side">
@@ -1151,9 +1186,10 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div class="table-wrap">
                     <table>
                         <thead><tr><th class="rnum">#</th><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th><th class="rnum">#</th></tr></thead>
-                        <tbody>${allJobs.length?allJobs.map((j,ji)=>`<tr><td class="rnum">${ji+1}</td><td data-label="Title"><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td data-label="Country">${esc(j.country)}</td><td data-label="Category">${esc(j.category)}</td><td data-label="Salary">${esc(j.salary||'—')}</td><td data-label="Action"><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td><td class="rnum">${ji+1}</td></tr>`).join(""):`<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
+                        <tbody>${allJobs.length?pgj.items.map((j,ji)=>`<tr><td class="rnum">${pgj.start+ji+1}</td><td data-label="Title"><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td data-label="Country">${esc(j.country)}</td><td data-label="Category">${esc(j.category)}</td><td data-label="Salary">${esc(j.salary||'—')}</td><td data-label="Action"><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td><td class="rnum">${pgj.start+ji+1}</td></tr>`).join(""):`<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
                     </table>
                     </div>
+                    ${pgBar('jobs', pgj)}
                 </div>
             </div>
         </div>`;
@@ -1175,6 +1211,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
         let entries=[];
         try{const snap=await getDocs(query(collection(db,"auditLog"),orderBy("timestamp","desc"),limit(200)));snap.forEach(d=>entries.push({id:d.id,...d.data()}));}catch(e){}
+        const pga = pgSlice('audit', entries);
         return `
         <div class="dash-shell">
             <div class="dash-side">
@@ -1191,13 +1228,14 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             <div class="dash-main">
                 <div class="dash-topbar"><h2>Audit Log</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" data-action="refresh"><i class="fa-solid fa-rotate"></i> Refresh</button></div></div>
                 <div class="card pad">
-                    ${entries.length?`<table style="width:100%;font-size:12px"><thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Time</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Admin</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Action</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Details</th></tr></thead><tbody>${entries.map(e=>`<tr><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);white-space:nowrap">${fmtDate(e.timestamp)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);font-weight:600">${esc(e.adminEmail||'—')}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100)">${esc(e.action)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);color:var(--slate-500)">${esc(e.details||'')}</td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><p>No audit entries yet.</p></div>'}
+                    ${entries.length?`<div class="table-wrap"><table style="width:100%;font-size:12px"><thead><tr><th class="rnum">#</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Time</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Admin</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Action</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--slate-200)">Details</th><th class="rnum">#</th></tr></thead><tbody>${pga.items.map((e,ei)=>`<tr><td class="rnum">${pga.start+ei+1}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);white-space:nowrap">${fmtDate(e.timestamp)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);font-weight:600">${esc(e.adminEmail||'—')}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100)">${esc(e.action)}</td><td style="padding:6px 8px;border-bottom:1px solid var(--slate-100);color:var(--slate-500)">${esc(e.details||'')}</td><td class="rnum">${pga.start+ei+1}</td></tr>`).join("")}</tbody></table></div>${pgBar('audit', pga)}`:'<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i><p>No audit entries yet.</p></div>'}
                 </div>
             </div>
         </div>`;
     }
     function viewFees() {
         if(!currentUserData||currentUserData.type!=='admin') return `<div class="empty-state"><i class="fa-solid fa-lock"></i><p>Access denied.</p></div>`;
+        const pgf = pgSlice('fees', allFees);
         return `
         <div class="dash-shell">
             <div class="dash-side">
@@ -1225,9 +1263,10 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <div class="card">
                     <div class="table-wrap">
                     <table><thead><tr><th class="rnum">#</th><th>Label</th><th>Amount</th><th>Paid By</th><th></th><th class="rnum">#</th></tr></thead>
-                    <tbody>${allFees.length?allFees.map((f,fi)=>`<tr><td class="rnum">${fi+1}</td><td data-label="Fee"><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td data-label="Amount">${esc(f.amount)}</td><td data-label="Paid By">${esc(f.paidBy)}</td><td data-label="Action"><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td><td class="rnum">${fi+1}</td></tr>`).join(""):`<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
+                    <tbody>${allFees.length?pgf.items.map((f,fi)=>`<tr><td class="rnum">${pgf.start+fi+1}</td><td data-label="Fee"><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td data-label="Amount">${esc(f.amount)}</td><td data-label="Paid By">${esc(f.paidBy)}</td><td data-label="Action"><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td><td class="rnum">${pgf.start+fi+1}</td></tr>`).join(""):`<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
                     </table>
                     </div>
+                    ${pgBar('fees', pgf)}
                 </div>
             </div>
         </div>`;
@@ -1527,6 +1566,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const activeClients = apps.filter(a => !a.archived && !a.blocked).length;
         const archivedClients = apps.filter(a => a.archived).length;
         const blockedClients = apps.filter(a => a.blocked).length;
+        const pgx = pgSlice('finance', filtered);
         // Build the HTML
         return `
         <div class="dash-shell">
@@ -1623,7 +1663,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             <thead><tr>
                                 <th class="rnum">#</th><th>Client</th><th>Service / Fee</th><th>Country</th><th>Amount</th><th>Payment Method</th><th>Status</th><th>Client Status</th><th>Date</th><th></th><th class="rnum">#</th>
                             </tr></thead>
-                            <tbody>${filtered.length ? filtered.map((t,ti) => {
+                            <tbody>${filtered.length ? pgx.items.map((t,ti) => {
                                 const pm = PAYMENT_METHODS.find(p => p.id === t.paymentMethod);
                                 const pmName = pm ? pm.name : t.paymentMethod;
                                 const pmColor = pm ? pm.color : 'var(--slate-500)';
@@ -1633,7 +1673,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 const csClass = t.clientStatus === 'active' ? 'finance-client-status active' : t.clientStatus === 'archived' ? 'finance-client-status archived' : t.clientStatus === 'blocked' ? 'finance-client-status blocked' : 'finance-client-status deleted';
                                 const pmIcon = pm ? pm.icon : 'fa-credit-card';
                                 return `<tr>
-                                    <td class="rnum">${ti+1}</td>
+                                    <td class="rnum">${pgx.start+ti+1}</td>
                                     <td data-label="Client"><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
                                     <td data-label="Service / Fee"><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
                                     <td data-label="Country">${t.country ? esc(t.country) : '—'}</td>
@@ -1643,11 +1683,12 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                     <td data-label="Client Status"><span class="${csClass}">${csLabel}</span></td>
                                     <td data-label="Date" style="font-size:11px;color:var(--slate-400);white-space:nowrap">${t.paidDate ? fmtDate(t.paidDate) : '—'}</td>
                                     <td data-label="Action"><button class="btn btn-outline btn-sm" data-finance-openapp="${esc(t.clientUid)}" style="font-size:10px;padding:4px 10px">View</button></td>
-                                    <td class="rnum">${ti+1}</td>
+                                    <td class="rnum">${pgx.start+ti+1}</td>
                                 </tr>`;
                             }).join('') : `<tr><td colspan="11"><div class="empty-state" style="padding:30px"><i class="fa-solid fa-inbox"></i><p>No transactions match filters.</p></div></td></tr>`}</tbody>
                         </table>
                     </div>
+                    ${pgBar('finance', pgx)}
                     <div class="finance-totals-row">
                         <span>Total Transactions: <b>${filtered.length}</b></span>
                         <span>Paid: <b style="color:var(--emerald-600)">KES ${Number(totalPaid).toLocaleString('en-KE')}</b></span>
@@ -2301,4 +2342,30 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
     document.addEventListener('click', function(e) {
         const navEl = e.target.closest('[data-nav]');
         if (navEl) { e.preventDefault(); navigate(navEl.getAttribute('data-nav')); }
+    });
+
+    // Global pagination handlers — prev/next buttons
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-pg]');
+        if (!btn) return;
+        const bar = btn.closest('.pg-bar');
+        const key = bar ? bar.getAttribute('data-pgkey') : '';
+        if (!key) return;
+        const st = pgState(key);
+        if (btn.getAttribute('data-pg') === 'prev') st.page = Math.max(1, st.page - 1);
+        else if (btn.getAttribute('data-pg') === 'next') st.page = st.page + 1;
+        render();
+    });
+    // Rows-per-page selector
+    document.addEventListener('change', function(e) {
+        const sel = e.target.closest('.pg-per');
+        if (!sel) return;
+        const bar = sel.closest('.pg-bar');
+        const key = bar ? bar.getAttribute('data-pgkey') : '';
+        if (!key) return;
+        const st = pgState(key);
+        const v = sel.value;
+        st.perPage = v === 'All' ? 'All' : parseInt(v, 10);
+        st.page = 1;
+        render();
     });
