@@ -362,7 +362,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         const totalFees=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+parseAmountKES(f.amount).kes,0),0);
         const totalPaid=apps.reduce((s,a)=>s+(a.fees||[]).reduce((sf,f)=>sf+(f.paid?parseAmountKES(f.amount).kes:0),0),0);
         const toDate=(v)=>{if(!v)return null;if(v.toDate)return v.toDate();const d=new Date(v);if(!isNaN(d.getTime()))return d;const p=String(v).split('·');if(p.length===2){const d2=new Date(p[0].trim()+' '+p[1].trim());if(!isNaN(d2.getTime()))return d2;}return null;};
-        const sortTs=(a,b)=>{const da=toDate(a.updatedAt)||toDate(a.createdAt)||new Date(0),db=toDate(b.updatedAt)||toDate(b.createdAt)||new Date(0);return db-da;};
+        const sortTs=(a,b)=>{const da=toDate(a.createdAt)||toDate(a.updatedAt)||new Date(0),db=toDate(b.createdAt)||toDate(b.updatedAt)||new Date(0);return db-da;};
         let filtered=apps.filter(a=>(adminFilters.status==="All"||a.status===adminFilters.status)&&(adminFilters.country==="All"||a.country===adminFilters.country)&&(adminFilters.search===""||(a.fullName+a.email+a.id+a.uid+a.jobTitle+(a.nationality||'')+(a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))).sort(sortTs);
         const pg = pgSlice('dash-apps', filtered);
         const unread=getUnreadCount();

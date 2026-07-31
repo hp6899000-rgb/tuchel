@@ -2797,7 +2797,12 @@
                 (adminFilters.status === "All" || a.status === adminFilters.status) &&
                 (adminFilters.country === "All" || a.country === adminFilters.country) &&
                 (adminFilters.search === "" || (a.fullName + a.email + a.id + a.uid + a.jobTitle + (a.nationality||'') + (a.passportNumber||'')).toLowerCase().includes(adminFilters.search.toLowerCase()))
-            ).sort((a, b) => { const da = a.updatedAt ? new Date(a.updatedAt) : new Date(0); const db = b.updatedAt ? new Date(b.updatedAt) : new Date(0); return db - da; });
+            ).sort((a, b) => {
+                const td = v => { if (!v) return null; if (v.toDate) return v.toDate(); const d = new Date(v); return isNaN(d.getTime()) ? null : d; };
+                const da = td(a.createdAt) || td(a.updatedAt) || new Date(0);
+                const db = td(b.createdAt) || td(b.updatedAt) || new Date(0);
+                return db - da;
+            });
             const pg = pgSlice('adash', filtered);
 
             const unread = getUnreadCount();
