@@ -1757,60 +1757,97 @@
                 }
             });
 
-            cvBox.addEventListener('click', () => {
-                const dialog = uploadcare.openDialog(null, {
-                    publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
-                    accept: 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                });
-                dialog.done((file) => {
-                    file.promise().then((info) => { validateFileSize(10)(info)
-                        document.getElementById('cvUploaded').value = info.cdnUrl;
-                        cvBox.classList.add('filled');
-                        document.getElementById('cvSub').textContent = info.name || 'CV uploaded';
-                        toast('CV uploaded successfully!', 'ok');
-                    }).catch(() => toast('Upload failed.', 'err'));
-                });
-                dialog.fail(() => toast('Upload cancelled.', 'err'));
-            });
-
             const certBox = document.getElementById('certBox');
             const refBox = document.getElementById('refBox');
             const medBox = document.getElementById('medBox');
 
-            function makeUploadBox(box, hiddenId, subId, accept) {
+            // Shared upload box: shows an uploading state while the file uploads,
+            // then a preview thumbnail + Preview/Replace controls once done.
+            function makeUploadBox(box, hiddenId, subId, accept, label) {
                 if (!box) return;
-                box.addEventListener('click', () => {
+                const hidden = document.getElementById(hiddenId);
+                const sub = document.getElementById(subId);
+                let busy = false;
+                let currentUrl = hidden?.value || '';
+                const icon = box.querySelector('i');
+                const title = box.querySelector('.u-title');
+
+                function setUploading() {
+                    busy = true;
+                    box.classList.remove('filled');
+                    box.classList.add('uploading');
+                    box.setAttribute('data-busy', '1');
+                    if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+                    if (title) title.textContent = 'Uploading — please wait...';
+                    if (sub) sub.textContent = 'Securely uploading to storage';
+                }
+                function setReady(info) {
+                    busy = false;
+                    box.removeAttribute('data-busy');
+                    currentUrl = info.cdnUrl;
+                    if (hidden) hidden.value = currentUrl;
+                    box.classList.remove('uploading');
+                    box.classList.add('filled');
+                    if (icon) icon.className = 'fa-solid fa-circle-check';
+                    if (title) title.textContent = (info.name || 'Document') + ' — ready';
+                    if (sub) sub.textContent = info.name || 'Uploaded';
+                    renderPreview();
+                }
+                function setError() {
+                    busy = false;
+                    box.removeAttribute('data-busy');
+                    box.classList.remove('filled', 'uploading');
+                    if (icon) icon.className = 'fa-solid fa-cloud-arrow-up';
+                    if (title) title.textContent = 'Upload failed — tap to retry';
+                    if (sub) sub.textContent = 'Click to try again';
+                }
+                function openPicker() {
+                    if (busy) return;
                     const dialog = uploadcare.openDialog(null, { publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false, accept });
                     dialog.done((file) => {
+                        setUploading();
                         file.promise().then((info) => { validateFileSize(10)(info)
-                            document.getElementById(hiddenId).value = info.cdnUrl;
-                            box.classList.add('filled');
-                            document.getElementById(subId).textContent = info.name || 'Uploaded';
-                            toast('Document uploaded successfully!', 'ok');
-                        }).catch(() => toast('Upload failed.', 'err'));
+                            setReady(info);
+                            toast((label || 'Document') + ' uploaded successfully!', 'ok');
+                        }).catch((e) => {
+                            console.error("Upload error:", e);
+                            setError();
+                            toast((e && e.message) || 'Upload failed.', 'err');
+                        });
                     });
-                    dialog.fail(() => toast('Upload cancelled.', 'err'));
-                });
+                    dialog.fail(() => { if (!busy) toast('Upload cancelled.', 'err'); });
+                }
+                function renderPreview() {
+                    if (!currentUrl) return;
+                    let prev = box.querySelector('.upload-preview');
+                    if (!prev) { prev = document.createElement('div'); prev.className = 'upload-preview'; box.appendChild(prev); }
+                    const isImg = /\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(currentUrl);
+                    const isPdf = /\.pdf(\?.*)?$/i.test(currentUrl);
+                    prev.innerHTML = isImg
+                        ? `<img src="${currentUrl}" alt="${esc(label || '')}" loading="lazy">`
+                        : `<span class="up-file-icon"><i class="fa-solid ${isPdf ? 'fa-file-pdf' : 'fa-file'}"></i></span>`;
+                    let acts = box.querySelector('.upload-actions');
+                    if (!acts) { acts = document.createElement('div'); acts.className = 'upload-actions'; box.appendChild(acts); }
+                    acts.innerHTML = `
+                        <button type="button" class="btn btn-outline btn-sm" data-up-preview="${esc(currentUrl)}" data-up-label="${esc(label || '')}"><i class="fa-solid fa-eye"></i> Preview</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-up-replace="1"><i class="fa-solid fa-rotate"></i> Replace</button>`;
+                    box.querySelectorAll('[data-up-preview]').forEach(b => b.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showDocPreviewModal(b.getAttribute('data-up-preview'), b.getAttribute('data-up-label') || 'Document');
+                    }));
+                    box.querySelectorAll('[data-up-replace]').forEach(b => b.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openPicker();
+                    }));
+                }
+                if (currentUrl) { box.classList.add('filled'); renderPreview(); }
+                box.addEventListener('click', () => openPicker());
             }
-            makeUploadBox(certBox, 'certUploaded', 'certSub', 'application/pdf,image/jpeg,image/png');
-            makeUploadBox(refBox, 'refUploaded', 'refSub', 'application/pdf,image/jpeg,image/png');
-            makeUploadBox(medBox, 'medUploaded', 'medSub', 'application/pdf,image/jpeg,image/png');
-
-            passBox.addEventListener('click', () => {
-                const dialog = uploadcare.openDialog(null, {
-                    publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
-                    accept: 'image/jpeg,image/png'
-                });
-                dialog.done((file) => {
-                    file.promise().then((info) => { validateFileSize(10)(info)
-                        document.getElementById('passUploaded').value = info.cdnUrl;
-                        passBox.classList.add('filled');
-                        document.getElementById('passSub').textContent = info.name || 'Passport uploaded';
-                        toast('Passport uploaded successfully!', 'ok');
-                    }).catch(() => toast('Upload failed.', 'err'));
-                });
-                dialog.fail(() => toast('Upload cancelled.', 'err'));
-            });
+            makeUploadBox(cvBox, 'cvUploaded', 'cvSub', 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'CV / Resume');
+            makeUploadBox(passBox, 'passUploaded', 'passSub', 'image/jpeg,image/png', 'Passport Photo');
+            makeUploadBox(certBox, 'certUploaded', 'certSub', 'application/pdf,image/jpeg,image/png', 'Certificates');
+            makeUploadBox(refBox, 'refUploaded', 'refSub', 'application/pdf,image/jpeg,image/png', 'Reference Letter');
+            makeUploadBox(medBox, 'medUploaded', 'medSub', 'application/pdf,image/jpeg,image/png', 'Medical Report');
 
             document.getElementById('applyForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -2615,34 +2652,100 @@
             });
         }
 
+        let _uploadingToastEl = null;
+        function showUploadingToast(msg) {
+            const wrap = document.getElementById('toast-wrap');
+            if (!wrap) return;
+            hideUploadingToast();
+            const el = document.createElement('div');
+            el.className = 'toast toast-uploading';
+            el.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>${esc(msg || 'Uploading...')}</span>`;
+            wrap.appendChild(el);
+            _uploadingToastEl = el;
+        }
+        function hideUploadingToast() {
+            if (_uploadingToastEl) {
+                const el = _uploadingToastEl;
+                _uploadingToastEl = null;
+                el.style.opacity = '0';
+                el.style.transition = '.3s';
+                setTimeout(() => el.remove(), 300);
+            }
+        }
+
+        // Upload → wait for Uploadcare to finish → show preview + confirm modal.
+        // Applicant can Preview the file, Replace it, or Save it to the application.
         function uploadDoc(field, label, docKey) {
-            const dialog = uploadcare.openDialog(null, {
-                publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
-                accept: field === 'cvUrl' ? 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'image/jpeg,image/png'
-            });
-            dialog.done(async (file) => {
-                try {
-                    const info = await file.promise(); validateFileSize(10)(info)
-                    const url = info.cdnUrl;
-                    const app = currentUserData;
-                    if (!app || app.type !== 'applicant') return;
-                    const uid = app.uid || currentUser?.uid;
-                    if (!uid) return;
-                    const curSt = app.documentStatus?.[docKey] || 'not_uploaded';
-                    const newSt = (curSt === 'changes_requested' || curSt === 'upload_again' || curSt === 'rejected') ? 'reuploaded' : 'pending_review';
-                    await setDoc(doc(db, "applications", uid), { [field]: url, [`documentStatus.${docKey}`]: newSt, updatedAt: serverTimestamp() }, { merge: true });
-                    app[field] = url;
-                    if(!app.documentStatus) app.documentStatus = {};
-                    app.documentStatus[docKey] = newSt;
-                    notifyAdmin(`${label} re-uploaded by ${app.fullName||'Applicant'} — awaiting review.`);
-                    toast(`${label} uploaded successfully!`, 'ok');
-                    renderCurrentView();
-                } catch (e) {
-                    console.error("Upload error:", e);
-                    toast(e.message || "Upload failed.", "err");
-                }
-            });
-            dialog.fail(() => toast("Upload cancelled.", "err"));
+            const openPicker = () => {
+                const dialog = uploadcare.openDialog(null, {
+                    publicKey: UPLOADCARE_PUBLIC_KEY, multiple: false, imgOnly: false,
+                    accept: field === 'cvUrl' ? 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'image/jpeg,image/png'
+                });
+                dialog.done(async (file) => {
+                    showUploadingToast(`Uploading ${label} — please wait...`);
+                    try {
+                        const info = await file.promise(); validateFileSize(10)(info)
+                        hideUploadingToast();
+                        const url = info.cdnUrl;
+                        const name = info.name || label;
+                        const app = currentUserData;
+                        if (!app || app.type !== 'applicant') return;
+                        const uid = app.uid || currentUser?.uid;
+                        if (!uid) return;
+                        const curSt = app.documentStatus?.[docKey] || 'not_uploaded';
+                        const newSt = (curSt === 'changes_requested' || curSt === 'upload_again' || curSt === 'rejected') ? 'reuploaded' : 'pending_review';
+                        const saveDoc = async () => {
+                            await setDoc(doc(db, "applications", uid), { [field]: url, [`documentStatus.${docKey}`]: newSt, updatedAt: serverTimestamp() }, { merge: true });
+                            app[field] = url;
+                            if(!app.documentStatus) app.documentStatus = {};
+                            app.documentStatus[docKey] = newSt;
+                            notifyAdmin(`${label} re-uploaded by ${app.fullName||'Applicant'} — awaiting review.`);
+                            toast(`${label} uploaded successfully!`, 'ok');
+                            renderCurrentView();
+                        };
+                        const isImg = /\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(url);
+                        const isPdf = /\.pdf(\?.*)?$/i.test(url);
+                        const previewHtml = isImg
+                            ? `<div class="preview-modal-body"><img src="${url}" alt="${esc(label)}"></div>`
+                            : isPdf
+                                ? `<div class="preview-modal-body"><iframe src="${url}" title="${esc(label)}"></iframe></div>`
+                                : `<div class="preview-modal-body"><div class="preview-fallback"><i class="fa-solid fa-file"></i><p style="font-size:14px;font-weight:600;margin-bottom:6px">${esc(name)}</p><p style="font-size:12px;margin:0">Preview not available inline.</p><a href="${url}" target="_blank" class="btn btn-primary mt-16" style="display:inline-flex"><i class="fa-solid fa-download"></i> Download File</a></div></div>`;
+                        showModal({
+                            title: `<i class="fa-solid fa-file-circle-check" style="color:var(--emerald-600)"></i> ${esc(label)} — Ready to Review`,
+                            bodyHtml: `
+                                <div style="background:var(--emerald-50);border:1px solid #bfe6cc;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+                                    <i class="fa-solid fa-circle-check" style="color:var(--emerald-600);font-size:18px"></i>
+                                    <div style="font-size:13px;color:#065F46"><b>${esc(name)}</b> uploaded successfully. Preview it below — you can replace it or save it to your application.</div>
+                                </div>
+                                ${previewHtml}`,
+                            footerHtml: `<button class="btn btn-outline" data-modal-close>Cancel</button><button class="btn btn-outline" id="reuploadReplaceBtn"><i class="fa-solid fa-rotate"></i> Replace</button><button class="btn btn-success" id="reuploadSaveBtn"><i class="fa-solid fa-check"></i> Save Document</button>`,
+                            wide: true,
+                            onOpen: () => {
+                                document.getElementById('reuploadReplaceBtn')?.addEventListener('click', () => { closeModal(); setTimeout(openPicker, 60); });
+                                document.getElementById('reuploadSaveBtn')?.addEventListener('click', async () => {
+                                    const btn = document.getElementById('reuploadSaveBtn');
+                                    if (btn?.disabled) return;
+                                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...'; }
+                                    try {
+                                        await saveDoc();
+                                        closeModal();
+                                    } catch (e) {
+                                        console.error("Save error:", e);
+                                        toast(e.message || "Failed to save document.", "err");
+                                        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Document'; }
+                                    }
+                                });
+                            }
+                        });
+                    } catch (e) {
+                        hideUploadingToast();
+                        console.error("Upload error:", e);
+                        toast(e.message || "Upload failed.", "err");
+                    }
+                });
+                dialog.fail(() => { hideUploadingToast(); toast("Upload cancelled.", "err"); });
+            };
+            openPicker();
         }
 
         let adminFilters = { status: "All", country: "All", search: "", showBlocked: false };
