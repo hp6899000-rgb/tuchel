@@ -438,13 +438,13 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                             return `<tr>
                                 <td class="rnum">${ai+1}</td>
-                                <td><div class="appl-name">${esc(a.fullName)}</div><div class="appl-id">${displayId(a)}</div>${a.email?`<div class="appl-email">${esc(a.email)}</div>`:''}</td>
-                                <td><div class="appl-job">${esc(a.jobTitle)||'—'}</div>${a.country?`<div class="appl-country"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy">${esc(a.country)}</div>`:'<div class="appl-country" style="color:var(--slate-400)">—</div>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
-                                <td>${statusBadge(a.status)}</td>
-                                <td style="white-space:nowrap">${completenessBar(cmp)}</td>
-                                <td style="white-space:nowrap"><span class="fee-paid">KES ${Number(paidAmt).toLocaleString('en-KE')}</span>/<span class="fee-total">KES ${Number(totalAmt).toLocaleString('en-KE')}</span></td>
-                                <td class="date-cell">${fmtDate(a.updatedAt)}</td>
-                                <td style="white-space:nowrap">${a.phone?`<a href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn-wa" title="WhatsApp ${esc(a.fullName)}"><i class="fa-brands fa-whatsapp"></i></a> `:''}<button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
+                                <td data-label="Applicant"><div class="appl-name">${esc(a.fullName)}</div><div class="appl-id">${displayId(a)}</div>${a.email?`<div class="appl-email">${esc(a.email)}</div>`:''}</td>
+                                <td data-label="Job / Country"><div class="appl-job">${esc(a.jobTitle)||'—'}</div>${a.country?`<div class="appl-country"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy">${esc(a.country)}</div>`:'<div class="appl-country" style="color:var(--slate-400)">—</div>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
+                                <td data-label="Status">${statusBadge(a.status)}</td>
+                                <td data-label="Documents" style="white-space:nowrap">${completenessBar(cmp)}</td>
+                                <td data-label="Fees" style="white-space:nowrap"><span class="fee-paid">KES ${Number(paidAmt).toLocaleString('en-KE')}</span>/<span class="fee-total">KES ${Number(totalAmt).toLocaleString('en-KE')}</span></td>
+                                <td data-label="Updated" class="date-cell">${fmtDate(a.updatedAt)}</td>
+                                <td data-label="Action" style="white-space:nowrap">${a.phone?`<a href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn-wa" title="WhatsApp ${esc(a.fullName)}"><i class="fa-brands fa-whatsapp"></i></a> `:''}<button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
                                 <td class="rnum">${ai+1}</td>
                             </tr>`;
                         }).join(""):`<tr><td colspan="9"><div class="empty-state"><i class="fa-solid fa-inbox"></i></div></td></tr>`}</tbody>
@@ -1634,15 +1634,15 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 const pmIcon = pm ? pm.icon : 'fa-credit-card';
                                 return `<tr>
                                     <td class="rnum">${ti+1}</td>
-                                    <td><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
-                                    <td><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
-                                    <td>${t.country ? esc(t.country) : '—'}</td>
-                                    <td style="font-weight:700;color:var(--blue-900)">${t.valid ? 'KES '+Number(t.amountNum).toLocaleString('en-KE') : '<span style="color:var(--slate-400);font-weight:400" title="'+esc(t.origAmount)+'">—</span>'}</td>
-                                    <td><span style="color:${pmColor};font-size:12px"><i class="${pmIcon}"></i> ${esc(pmName)}</span>${t.transactionCode ? `<br><span style="font-size:9px;color:var(--slate-400)">Txn: ${esc(t.transactionCode)}</span>` : ''}</td>
-                                    <td><span class="badge ${statusClass}" style="font-size:10px">${statusLabel}</span></td>
-                                    <td><span class="${csClass}">${csLabel}</span></td>
-                                    <td style="font-size:11px;color:var(--slate-400);white-space:nowrap">${t.paidDate ? fmtDate(t.paidDate) : '—'}</td>
-                                    <td><button class="btn btn-outline btn-sm" data-finance-openapp="${esc(t.clientUid)}" style="font-size:10px;padding:4px 10px">View</button></td>
+                                    <td data-label="Client"><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
+                                    <td data-label="Service / Fee"><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
+                                    <td data-label="Country">${t.country ? esc(t.country) : '—'}</td>
+                                    <td data-label="Amount" style="font-weight:700;color:var(--blue-900)">${t.valid ? 'KES '+Number(t.amountNum).toLocaleString('en-KE') : '<span style="color:var(--slate-400);font-weight:400" title="'+esc(t.origAmount)+'">—</span>'}</td>
+                                    <td data-label="Method"><span style="color:${pmColor};font-size:12px"><i class="${pmIcon}"></i> ${esc(pmName)}</span>${t.transactionCode ? `<br><span style="font-size:9px;color:var(--slate-400)">Txn: ${esc(t.transactionCode)}</span>` : ''}</td>
+                                    <td data-label="Status"><span class="badge ${statusClass}" style="font-size:10px">${statusLabel}</span></td>
+                                    <td data-label="Client Status"><span class="${csClass}">${csLabel}</span></td>
+                                    <td data-label="Date" style="font-size:11px;color:var(--slate-400);white-space:nowrap">${t.paidDate ? fmtDate(t.paidDate) : '—'}</td>
+                                    <td data-label="Action"><button class="btn btn-outline btn-sm" data-finance-openapp="${esc(t.clientUid)}" style="font-size:10px;padding:4px 10px">View</button></td>
                                     <td class="rnum">${ti+1}</td>
                                 </tr>`;
                             }).join('') : `<tr><td colspan="11"><div class="empty-state" style="padding:30px"><i class="fa-solid fa-inbox"></i><p>No transactions match filters.</p></div></td></tr>`}</tbody>

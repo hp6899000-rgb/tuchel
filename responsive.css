@@ -381,21 +381,21 @@ footer {
   padding: 6px 8px;
   line-height: 1.25;
 }
-.dash-main .table-wrap .appl-name { font-size: 12px; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-name { font-size: 12.5px; margin: 0 0 1px; }
 .dash-main .table-wrap .appl-id,
-.dash-main .table-wrap .appl-email { font-size: 10px; line-height: 1.2; margin: 0 0 1px; }
-.dash-main .table-wrap .appl-job { font-size: 11.5px; margin: 0 0 1px; }
-.dash-main .table-wrap .appl-country { font-size: 10px; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-email { font-size: 11px; line-height: 1.2; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-job { font-size: 12px; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-country { font-size: 11px; margin: 0 0 1px; }
 .dash-main .table-wrap .fee-paid,
-.dash-main .table-wrap .fee-total { font-size: 11px; }
-.dash-main .table-wrap .date-cell { font-size: 10px; }
+.dash-main .table-wrap .fee-total { font-size: 11.5px; }
+.dash-main .table-wrap .date-cell { font-size: 11px; }
 
 .dash-main .table-wrap .rnum,
 .dash-main .finance-table-wrap .rnum {
   min-width: 30px;
   text-align: center;
   vertical-align: middle;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--slate-500);
   background: #fff;
@@ -406,6 +406,7 @@ footer {
 .dash-main .table-wrap tbody td:first-child,
 .dash-main .finance-table-wrap thead th:first-child,
 .dash-main .finance-table-wrap tbody td:first-child {
+  position: -webkit-sticky;
   position: sticky;
   left: 0;
   z-index: 3;
@@ -417,6 +418,7 @@ footer {
 .dash-main .table-wrap tbody td:last-child,
 .dash-main .finance-table-wrap thead th:last-child,
 .dash-main .finance-table-wrap tbody td:last-child {
+  position: -webkit-sticky;
   position: sticky;
   right: 0;
   z-index: 3;
@@ -426,6 +428,7 @@ footer {
 
 .dash-main .table-wrap thead th,
 .dash-main .finance-table-wrap thead th {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 4;
@@ -460,15 +463,105 @@ footer {
 }
 
 /* --------------------------------------------------------------------------
-   13b. FINANCE TABLE SPECIFICS — min width so columns never crush on phones,
-   and same Excel-style scrollbox as the applicants table (base rules above
-   already cover the scrollbox + frozen # columns for .finance-table-wrap).
+   13b. TABLE SIZING — min width so columns never crush; stacked phone view
+   below overrides this on small screens.
    -------------------------------------------------------------------------- */
-.finance-table-wrap table {
-  min-width: 640px;
+.dash-main .table-wrap table,
+.dash-main .finance-table-wrap table {
+  min-width: 760px;
   white-space: nowrap;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-@media (max-width: 480px) {
-  .dash-main .finance-table-wrap { max-height: 52vh; }
+/* --------------------------------------------------------------------------
+   13c. STACKED PHONE VIEW — on phones every row becomes a full-width card
+   that shows EVERY field (label on the left, value on the right) so nothing
+   is hidden behind sideways scrolling. The row number # becomes the card's
+   header strip; the redundant right-edge # is hidden. Cards flow into the
+   page and you scroll up/down through all of them.
+   -------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .dash-shell { overflow: visible; }
+
+  .dash-main .table-wrap,
+  .dash-main .finance-table-wrap {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .dash-main .table-wrap table,
+  .dash-main .finance-table-wrap table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+  .dash-main .table-wrap thead,
+  .dash-main .finance-table-wrap thead { display: none; }
+  .dash-main .table-wrap tbody,
+  .dash-main .finance-table-wrap tbody { display: block; }
+
+  .dash-main .table-wrap tr,
+  .dash-main .finance-table-wrap tr {
+    display: block;
+    margin: 0 0 12px;
+    background: #fff;
+    border: 1px solid var(--slate-200);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .dash-main .table-wrap td,
+  .dash-main .finance-table-wrap td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--slate-100);
+    text-align: right;
+    white-space: normal;
+    font-size: 12.5px;
+  }
+  .dash-main .table-wrap td::before,
+  .dash-main .finance-table-wrap td::before {
+    content: attr(data-label);
+    flex: 0 0 40%;
+    max-width: 40%;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--slate-500);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    line-height: 1.4;
+  }
+  .dash-main .table-wrap td:last-child,
+  .dash-main .finance-table-wrap td:last-child { border-bottom: 0; }
+
+  .dash-main .table-wrap td.rnum:first-child,
+  .dash-main .finance-table-wrap td.rnum:first-child {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--slate-100, #F1F5F9);
+    border-bottom: 1px solid var(--slate-200);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--blue-900);
+    text-align: center;
+  }
+  .dash-main .table-wrap td.rnum:first-child::before,
+  .dash-main .finance-table-wrap td.rnum:first-child::before {
+    content: "Row #";
+    margin-right: 4px;
+  }
+  .dash-main .table-wrap td.rnum:last-child,
+  .dash-main .finance-table-wrap td.rnum:last-child { display: none; }
+
+  .dash-main .table-wrap td:has(.btn),
+  .dash-main .finance-table-wrap td:has(.btn) { justify-content: flex-end; }
+  .dash-main .table-wrap td:has(.btn)::before,
+  .dash-main .finance-table-wrap td:has(.btn)::before { display: none; }
 }
