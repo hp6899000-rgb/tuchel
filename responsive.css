@@ -357,17 +357,18 @@ footer {
 /* --------------------------------------------------------------------------
    13. ADMIN TABLES — Excel-style scrolling at EVERY width (desktop included):
    each table sits inside its own scrollbox that scrolls up/down through
-   EVERY row and left/right through every column. The header row stays
-   frozen on top; the # column is frozen on BOTH the left and right edges so
-   the visible row number is always readable no matter how far you scroll
-   sideways. Rows are thinned out so as many as possible stay on screen.
+   EVERY row and left/right through every column. Nothing is frozen except
+   the header row (so column titles stay visible). Every column — including
+   the # number and the Review button — scrolls naturally, so as you swipe
+   sideways the name column moves out of view and the Review button + number
+   appear at the end. Rows are compact so as many as possible stay on screen.
    On phones the mobile card list (.app-card-row) is hidden in favour of the
    full table, and the recent-applications grid goes single column.
    -------------------------------------------------------------------------- */
 .dash-main .table-wrap,
 .dash-main .finance-table-wrap {
   display: block;
-  max-height: 60vh;
+  max-height: 62vh;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -378,52 +379,28 @@ footer {
 .dash-main .table-wrap td,
 .dash-main .finance-table-wrap th,
 .dash-main .finance-table-wrap td {
-  padding: 6px 8px;
-  line-height: 1.25;
+  padding: 4px 8px;
+  line-height: 1.15;
 }
-.dash-main .table-wrap .appl-name { font-size: 12.5px; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-name { font-size: 12px; margin: 0 0 1px; }
 .dash-main .table-wrap .appl-id,
-.dash-main .table-wrap .appl-email { font-size: 11px; line-height: 1.2; margin: 0 0 1px; }
-.dash-main .table-wrap .appl-job { font-size: 12px; margin: 0 0 1px; }
-.dash-main .table-wrap .appl-country { font-size: 11px; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-email { font-size: 10.5px; line-height: 1.1; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-job { font-size: 11.5px; margin: 0 0 1px; }
+.dash-main .table-wrap .appl-country { font-size: 10.5px; margin: 0 0 1px; }
 .dash-main .table-wrap .fee-paid,
-.dash-main .table-wrap .fee-total { font-size: 11.5px; }
-.dash-main .table-wrap .date-cell { font-size: 11px; }
+.dash-main .table-wrap .fee-total { font-size: 11px; }
+.dash-main .table-wrap .date-cell { font-size: 10.5px; }
 
 .dash-main .table-wrap .rnum,
 .dash-main .finance-table-wrap .rnum {
   min-width: 30px;
   text-align: center;
   vertical-align: middle;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--slate-500);
   background: #fff;
   white-space: nowrap;
-}
-
-.dash-main .table-wrap thead th:first-child,
-.dash-main .table-wrap tbody td:first-child,
-.dash-main .finance-table-wrap thead th:first-child,
-.dash-main .finance-table-wrap tbody td:first-child {
-  position: -webkit-sticky;
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  background: #fff;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-}
-
-.dash-main .table-wrap thead th:last-child,
-.dash-main .table-wrap tbody td:last-child,
-.dash-main .finance-table-wrap thead th:last-child,
-.dash-main .finance-table-wrap tbody td:last-child {
-  position: -webkit-sticky;
-  position: sticky;
-  right: 0;
-  z-index: 3;
-  background: #fff;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.05);
 }
 
 .dash-main .table-wrap thead th,
@@ -432,13 +409,6 @@ footer {
   position: sticky;
   top: 0;
   z-index: 4;
-}
-
-.dash-main .table-wrap thead th:first-child,
-.dash-main .table-wrap thead th:last-child,
-.dash-main .finance-table-wrap thead th:first-child,
-.dash-main .finance-table-wrap thead th:last-child {
-  z-index: 5;
 }
 
 @media (max-width: 900px) {
@@ -463,8 +433,8 @@ footer {
 }
 
 /* --------------------------------------------------------------------------
-   13b. TABLE SIZING — min width so columns never crush; stacked phone view
-   below overrides this on small screens.
+   13b. TABLE SIZING — min width so columns never crush (the scrollbox then
+   slides sideways through the whole table on every screen size).
    -------------------------------------------------------------------------- */
 .dash-main .table-wrap table,
 .dash-main .finance-table-wrap table {
@@ -478,7 +448,7 @@ footer {
    13c. REAL-TABLE SAFETY NET — phones keep the SAME Excel table as desktop.
    Explicitly forces table layout on table elements at every width (kills any
    legacy "stack table into cards" CSS), removes injected cell labels, lets
-   parent containers overflow so sticky # columns work, and trims the
+   parent containers overflow so the table slides sideways, and trims the
    scrollbox height on small screens.
    -------------------------------------------------------------------------- */
 .dash-main .table-wrap table,
@@ -503,3 +473,53 @@ footer {
   .dash-main .table-wrap,
   .dash-main .finance-table-wrap { max-height: 54vh; }
 }
+
+/* --------------------------------------------------------------------------
+   14. ADMIN DASHBOARD LAYOUT (desktop) — make the shell feel like a proper
+   app: sidebar full height on the left, main content filling the column to
+   the right (no floating centered content that looks "just there"), and a
+   real footer that spans the whole width at the bottom.
+   -------------------------------------------------------------------------- */
+.dash-shell {
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.dash-shell .dash-main {
+  max-width: none;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  padding: 24px 28px;
+}
+
+.dash-side {
+  padding-bottom: 48px;
+}
+
+.admin-footer {
+  margin-top: auto;
+  padding: 24px 20px;
+  background: var(--blue-950);
+  color: #fff;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.6;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-footer .admin-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  margin-bottom: 6px;
+}
+
+.admin-footer a {
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.admin-footer a:hover { opacity: 1; text-decoration: underline; }
