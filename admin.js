@@ -387,8 +387,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                             <div class="svc-stat" style="border-left:3px solid var(--emerald-500)"><b style="color:var(--emerald-600)">${done}</b><span>Done</span></div>
                             <div class="svc-stat" style="border-left:3px solid var(--maroon-500)"><b style="color:var(--maroon-600)">KES ${Number(totPaid).toLocaleString('en-KE')}</b><span>Collected</span></div>
                         </div>
-                        <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th></tr></thead><tbody>${allSvcs.slice(0,10).map(s=>{
-                            return `<tr><td><b style="font-size:12px">${esc(s.applicant)}</b></td><td>${esc(s.label)}</td><td>${esc(s.amount||'—')}</td><td><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td>${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td></tr>`;
+                        <div class="table-wrap"><table class="app-table" style="font-size:12px"><thead><tr><th class="rnum">#</th><th>Applicant</th><th>Service</th><th>Amount</th><th>Status</th><th>Paid</th><th></th><th class="rnum">#</th></tr></thead><tbody>${allSvcs.slice(0,10).map((s,si)=>{
+                            return `<tr><td class="rnum">${si+1}</td><td data-label="Applicant"><b style="font-size:12px">${esc(s.applicant)}</b></td><td data-label="Service">${esc(s.label)}</td><td data-label="Amount">${esc(s.amount||'—')}</td><td data-label="Status"><span class="badge ${s.status==='completed'?'badge-green':s.status==='in-progress'?'badge-amber':'badge-slate'}">${esc(s.status)}</span></td><td data-label="Paid">${s.paid?'<span class="badge badge-green">'+(s.paidByClient?'Client Paid':'Paid')+'</span>':'<span class="badge badge-amber">Unpaid</span>'}</td><td data-label="Action"><button class="btn btn-outline btn-sm" style="padding:4px 10px;font-size:11px" data-openapp="${esc(s.appId)}">Open</button></td><td class="rnum">${si+1}</td></tr>`;
                         }).join("")}</tbody></table></div>
                     </div>`;
                 })()}
@@ -1150,8 +1150,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <div class="card">
                     <div class="table-wrap">
                     <table>
-                        <thead><tr><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th></tr></thead>
-                        <tbody>${allJobs.length?allJobs.map(j=>`<tr><td><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td>${esc(j.country)}</td><td>${esc(j.category)}</td><td>${esc(j.salary||'—')}</td><td><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="5"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
+                        <thead><tr><th class="rnum">#</th><th>Title</th><th>Country</th><th>Category</th><th>Salary</th><th></th><th class="rnum">#</th></tr></thead>
+                        <tbody>${allJobs.length?allJobs.map((j,ji)=>`<tr><td class="rnum">${ji+1}</td><td data-label="Title"><b style="color:var(--blue-900)">${esc(j.title)}</b></td><td data-label="Country">${esc(j.country)}</td><td data-label="Category">${esc(j.category)}</td><td data-label="Salary">${esc(j.salary||'—')}</td><td data-label="Action"><button class="btn btn-danger btn-sm" data-deljob="${j.id}"><i class="fa-solid fa-trash-can"></i></button></td><td class="rnum">${ji+1}</td></tr>`).join(""):`<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-briefcase"></i><p>No jobs.</p></div></td></tr>`}</tbody>
                     </table>
                     </div>
                 </div>
@@ -1224,8 +1224,8 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 </div>
                 <div class="card">
                     <div class="table-wrap">
-                    <table><thead><tr><th>Label</th><th>Amount</th><th>Paid By</th><th></th></tr></thead>
-                    <tbody>${allFees.length?allFees.map(f=>`<tr><td><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td>${esc(f.amount)}</td><td>${esc(f.paidBy)}</td><td><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td></tr>`).join(""):`<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
+                    <table><thead><tr><th class="rnum">#</th><th>Label</th><th>Amount</th><th>Paid By</th><th></th><th class="rnum">#</th></tr></thead>
+                    <tbody>${allFees.length?allFees.map((f,fi)=>`<tr><td class="rnum">${fi+1}</td><td data-label="Fee"><b style="color:var(--blue-900)">${esc(f.label)}</b>${f.desc?`<br><span style="font-size:12px;color:var(--slate-500)">${esc(f.desc)}</span>`:''}</td><td data-label="Amount">${esc(f.amount)}</td><td data-label="Paid By">${esc(f.paidBy)}</td><td data-label="Action"><button class="btn btn-danger btn-sm" data-delfee="${f.id}"><i class="fa-solid fa-trash-can"></i></button></td><td class="rnum">${fi+1}</td></tr>`).join(""):`<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-coins"></i><p>No fees.</p></div></td></tr>`}</tbody>
                     </table>
                     </div>
                 </div>
