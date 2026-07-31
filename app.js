@@ -773,6 +773,53 @@
             return { id: chatRef.id, ...chatData };
         }
 
+        let _ensuringChat = null;
+        let _lastUnreadTotal = 0;
+        function updateTitleBadge() {
+            try {
+                const u = getUnreadCount();
+                const clean = document.title.replace(/^\(\d+\)\s*/, '');
+                document.title = (u ? `(${u}) ` : '') + (clean || 'Europe Sponsor Jobs');
+            } catch (e) {}
+        }
+        async function ensureSupportChat(forceReRender) {
+            if (!currentUser || currentUserData?.type === 'admin') return null;
+            if (allChats.some(c => (c.participants||[]).includes(currentUser.uid))) return null;
+            if (_ensuringChat) return _ensuringChat;
+            const uid = currentUser.uid;
+            _ensuringChat = (async () => {
+                try {
+                    let chat;
+                    const byId = await getDoc(doc(db, "chats", `client_${uid}`));
+                    if (byId.exists()) {
+                        const data = byId.data();
+                        if (!(data.participants||[]).includes(uid)) {
+                            await updateDoc(byId.ref, {
+                                participants: arrayUnion(uid),
+                                [`participantNames.${uid}`]: currentUserData?.fullName || currentUser?.displayName || currentUser?.email || "User",
+                                [`unread.${uid}`]: 0
+                            }).catch(() => {});
+                        }
+                        chat = { id: byId.id, ...data };
+                    } else {
+                        chat = await getOrCreateChat();
+                    }
+                    if (chat && !allChats.some(c => c.id === chat.id)) {
+                        const ot = (chat.participants||[]).find(p => p !== uid);
+                        allChats.unshift({ id: chat.id, ...chat, otherUid: ot || null, otherName: (ot && chat.participantNames?.[ot]) || 'Admin' });
+                    }
+                    return chat;
+                } catch (e) {
+                    console.warn("ensureSupportChat error:", e);
+                    return null;
+                } finally {
+                    _ensuringChat = null;
+                    if (forceReRender && (ROUTE.view === "messages" || ROUTE.view === "messages-chat")) renderCurrentView();
+                }
+            })();
+            return _ensuringChat;
+        }
+
         async function sendMessage(chatId, text, fileUrl, fileName) {
             if (!text && !fileUrl) return;
             const msgRef = doc(collection(db, "chats", chatId, "messages"));
@@ -872,6 +919,14 @@
                     return tb - ta;
                 });
                 if (ROUTE.view === "messages" || ROUTE.view === "messages-chat") renderCurrentView();
+                const total = getUnreadCount();
+                if (total > _lastUnreadTotal && total > 0 && ROUTE.view !== "messages-chat") {
+                    const newest = allChats.find(c => (c.unread?.[currentUser.uid] || 0) > 0) || allChats[0];
+                    const from = (newest?.lastSender && newest?.participantNames?.[newest.lastSender]) || newest?.otherName || "Support";
+                    toast(`New message from ${from}`, "ok");
+                }
+                _lastUnreadTotal = total;
+                updateTitleBadge();
                 renderNavbar();
             });
         }
@@ -973,6 +1028,7 @@
                         const chatsReady = loadChats().then(() => subscribeChats());
                         fixAdminChatNames().finally(() => loadChats());
                         await chatsReady;
+                        ensureSupportChat().catch(() => {});
                         restoreLastRoute();
                         if (ROUTE.view === 'login') navigate("applicant-dashboard");
                         renderNavbar();renderCurrentView();
@@ -1156,6 +1212,7 @@
                 const msgBadge = unread ? `<span class="msg-count">${unread}</span>` : '';
                 if (currentUserData.type === 'applicant' || currentUserData.type === 'needs-profile') {
                     rightHtml = `<a class="nav-link ${isActive('applicant-dashboard') ? 'active' : ''}" data-nav="applicant-dashboard"><i class="fa-solid fa-user"></i> My Portal</a>
+                <a class="nav-link ${(activeView === 'messages' || activeView === 'messages-chat') ? 'active' : ''}" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
                 <button class="btn btn-outline btn-sm" data-action="logout">Log out</button>`;
                 } else if (currentUserData.type === 'admin') {
                     rightHtml = `<a class="nav-link ${isActive('messages') ? 'active' : ''}" data-nav="messages"><i class="fa-solid fa-comment-dots"></i> Messages${msgBadge}</a>
@@ -3809,10 +3866,10 @@
                   </div>`;
               }).join("") : `
                 <div class="msg-empty" style="flex-direction:column;padding:40px 20px">
-                  <i class="fa-solid fa-comment-slash"></i>
-                  <p style="font-size:14px;color:var(--slate-500);margin-top:10px">No conversations yet.</p>
-                  <p style="font-size:12px;color:var(--slate-400);margin-top:4px">When an admin contacts you, it will appear here.</p>
-                  ${currentUserData?.type === 'applicant' ? `<button class="btn btn-primary btn-sm" style="margin-top:16px" data-action="contact-support"><i class="fa-solid fa-headset"></i> Contact Support</button>` : ''}
+                  <i class="fa-solid fa-comment-dots"></i>
+                  <p style="font-size:14px;color:var(--slate-500);margin-top:10px">Your support conversation is being prepared.</p>
+                  <p style="font-size:12px;color:var(--slate-400);margin-top:4px">Messages from our team will appear here automatically.</p>
+                  ${currentUserData?.type === 'applicant' ? `<button class="btn btn-primary btn-sm" style="margin-top:16px" data-action="contact-support"><i class="fa-solid fa-headset"></i> Start Conversation</button>` : ''}
                 </div>`}</div>
             </div>
             <div class="msg-chat-panel show">
@@ -3827,8 +3884,10 @@
 
         async function startChatWithAdmin() {
             try {
-                const chat = await getOrCreateChat();
-                if (chat) navigate("messages-chat", { chatId: chat.id, otherName: "Admin" });
+                const existing = allChats.find(c => (c.participants||[]).includes(currentUser?.uid));
+                const chat = existing || (await ensureSupportChat()) || await getOrCreateChat();
+                if (chat && chat.id) navigate("messages-chat", { chatId: chat.id, otherName: "Admin" });
+                else toast("Could not start chat. Check your connection.", "err");
             } catch (e) {
                 console.error("Start chat error:", e);
                 toast("Could not start chat. Check your connection.", "err");
@@ -3859,6 +3918,9 @@
                     el.style.display=q&&!hay.includes(q)?'none':'flex';
                 });
             });
+            if (currentUserData?.type === 'applicant' && !allChats.some(c => (c.participants||[]).includes(currentUser?.uid))) {
+                ensureSupportChat(true);
+            }
         }
 
         function viewMessagesChat() {
