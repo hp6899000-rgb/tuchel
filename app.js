@@ -4259,9 +4259,9 @@ function showChatUserDetails(userName, chatId) {
             { id:'crypto_usdc', name:'USDC', icon:'fa-brands fa-bitcoin', color:'#2775CA', desc:'USD Coin — Eth/Sol/Polygon' },
             { id:'crypto_sol', name:'Solana', icon:'fa-brands fa-bitcoin', color:'#9945FF', desc:'SOL — Fast & low fee' },
             { id:'binance_pay', name:'Binance Pay', icon:'fa-brands fa-btc', color:'#F0B90B', desc:'Binance Pay ID / QR' },
-            { id:'bank_wire', name:'Bank Wire (SWIFT)', icon:'fa-building-columns', color:'#1E293B', desc:'SWIFT/IBAN — large transfers' },
-            { id:'wise', name:'Wise', icon:'fa-money-bill-transfer', color:'#00B9FF', desc:'International bank transfer' },
-            { id:'flutterwave', name:'Flutterwave', icon:'fa-globe', color:'#F09A0B', desc:'Cards + Mobile Money Africa' }
+            { id:'bank_wire', name:'Bank Wire (SWIFT)', icon:'<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="#1E293B"><path d="M2 9 L24 3 L46 9 L46 13 L2 13 Z"/><path d="M5 15 L43 15 L43 19 L5 19 Z"/><path d="M7 21 L11 21 L11 38 L7 38 Z M14 21 L18 21 L18 38 L14 38 Z M21 21 L25 21 L25 38 L21 38 Z M28 21 L32 21 L32 38 L28 38 Z M35 21 L39 21 L39 38 L35 38 Z"/><path d="M5 40 L43 40 L43 44 L5 44 Z"/></g></svg>', color:'#1E293B', desc:'SWIFT/IBAN — large transfers' },
+            { id:'wise', name:'Wise', icon:'<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g fill="#00B9FF"><rect x="8" y="12" width="10" height="25" rx="5" transform="rotate(16 13 24)"/><rect x="19" y="11" width="10" height="27" rx="5"/><rect x="30" y="12" width="10" height="25" rx="5" transform="rotate(-16 35 24)"/></g></svg>', color:'#00B9FF', desc:'International bank transfer' },
+            { id:'flutterwave', name:'Flutterwave', icon:'<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><g><circle cx="12" cy="12" r="7" fill="#F0A24D"/><circle cx="12" cy="24" r="7" fill="#E14D8C"/><circle cx="12" cy="36" r="7" fill="#9A4DD6"/><circle cx="28" cy="12" r="7" fill="#5B5CE6"/><circle cx="28" cy="24" r="7" fill="#2D5CE6"/></g></svg>', color:'#F09A0B', desc:'Cards + Mobile Money Africa' }
         ];
         const CRYPTO_CHAINS = {
             USDT: ['ERC20 (Ethereum)', 'TRC20 (Tron)', 'BEP20 (Binance)', 'Solana', 'Polygon'],
@@ -4277,7 +4277,7 @@ function showChatUserDetails(userName, chatId) {
         function getPaymentInstructions(methodId) {
             const map = {
                 mpesa: `<b>Send to phone number:</b><br><span onclick="navigator.clipboard.writeText('0143350004');this.querySelector('.cp').textContent='Copied!';setTimeout(()=>this.querySelector('.cp').textContent='Copy',2000)" style="display:inline-flex;align-items:center;gap:8px;margin-top:4px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:15px;font-weight:700;font-family:monospace;cursor:pointer" title="Click to copy">0143350004 <span class="cp" style="font-size:11px;font-weight:400;color:#059669">Copy</span></span><ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;line-height:1.8"><li>Go to <b>M-Pesa</b> on your phone</li><li>Select <b>Send Money</b> (or <b>M-Pesa</b>)</li><li>Send to phone number <b>0143350004</b></li><li>Enter the amount shown above</li><li>Enter your PIN and <b>Send</b></li><li>Enter the M-Pesa transaction code below</li></ol>`,
-                paypal: 'Send payment to <b>payments@europesponsor.com</b> via PayPal. Enter the PayPal transaction ID below.',
+                paypal: 'Send payment to <b>hp6899000@gmail.com</b> via PayPal. Enter the PayPal transaction ID below.',
                 stripe: 'Admin will send a secure payment link to your email. Enter the reference code below once completed.',
                 crypto_usdt: 'Send <b>USDT</b> to the wallet address provided by admin via WhatsApp. Select your network below and enter the TXID/hash.',
                 crypto_btc: 'Send <b>Bitcoin</b> to the wallet address provided by admin via WhatsApp. Enter the TXID/hash below.',
