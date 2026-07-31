@@ -4328,7 +4328,7 @@ function showChatUserDetails(userName, chatId) {
             const method = selectedPayMethod ? (PAYMENT_METHODS.find(p => p.id === selectedPayMethod)?.name || selectedPayMethod) : 'To be confirmed';
             const chain = selectedPayChain ? `\nPreferred Network: ${selectedPayChain}` : '';
             const msg = encodeURIComponent(
-                `Hello AMEXAN.\n\nI would like to make a payment.\n\nService: ${label}\nAmount: ${amount}\nPreferred Payment: ${method}${chain}\n\nPlease provide the correct payment details. Thank you.`
+                `Hello Admin/Support Agent.\n\nI would like to make a payment.\n\nService: ${label}\nAmount: ${amount}\nPreferred Payment: ${method}${chain}\n\nPlease provide the correct payment details. Thank you.`
             );
             link.href = `https://wa.me/254703935936?text=${msg}`;
         }

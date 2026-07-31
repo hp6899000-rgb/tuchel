@@ -1834,7 +1834,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         });
         // Test WhatsApp
         document.querySelector('[data-action="test-whatsapp"]')?.addEventListener('click', () => {
-            const msg = encodeURIComponent(`Hello AMEXAN.\n\nI would like payment details.\n\nService: Test Service\nCountry: USA\nPreferred Payment: USDT (TRC20)\nAmount: $75\n\nPlease provide the correct payment details.`);
+            const msg = encodeURIComponent(`Hello Admin/Support Agent.\n\nI would like payment details.\n\nService: Test Service\nCountry: USA\nPreferred Payment: USDT (TRC20)\nAmount: $75\n\nPlease provide the correct payment details.`);
             window.open(`https://wa.me/254703935936?text=${msg}`, '_blank');
             toast("WhatsApp test message opened.","ok");
         });
@@ -1945,7 +1945,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
             }
             const country = allApps.find(a => (a.uid||a.id) === clientId)?.country || '';
             const msg = encodeURIComponent(
-                `Hello AMEXAN.\n\nI would like payment details.\n\nClient: ${clientName}\nService: ${svcLabel}\nCountry: ${country}\nPreferred Payment: ${pmName}\nAmount: KES ${svcAmount}${extraInfo}\n\nRequest ID: ${clientId}\n\nPlease provide the correct payment details. Thank you.`
+                `Hello Admin/Support Agent.\n\nI would like payment details.\n\nClient: ${clientName}\nService: ${svcLabel}\nCountry: ${country}\nPreferred Payment: ${pmName}\nAmount: KES ${svcAmount}${extraInfo}\n\nRequest ID: ${clientId}\n\nPlease provide the correct payment details. Thank you.`
             );
             window.open(`https://wa.me/254703935936?text=${msg}`, '_blank');
             toast(`WhatsApp payment request sent to +254703935936 for ${clientName}.`, 'ok');

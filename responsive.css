@@ -378,3 +378,37 @@ footer {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .recent-grid { grid-template-columns: 1fr; }
 }
+
+/* --------------------------------------------------------------------------
+   14. FINANCE TABLE — fully scrollable on every phone (vertical + horizontal)
+   so every transaction row is reachable. Keeps a comfortable visible window
+   (max-height) with touch scrolling; wide columns scroll sideways.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .dash-main .finance-table-wrap {
+    display: block;
+    max-height: 62vh;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: contain;
+    touch-action: pan-x pan-y;
+  }
+  .finance-table-wrap table {
+    min-width: 640px;
+    white-space: nowrap;
+  }
+  .finance-table-wrap thead th:first-child,
+  .finance-table-wrap tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.04);
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-main .finance-table-wrap { max-height: 58vh; }
+}
