@@ -430,13 +430,14 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                 <div class="card">
                     <div class="table-wrap">
                     <table class="app-table">
-                        <thead><tr><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th></tr></thead>
-                        <tbody>${filtered.length?filtered.map(a=>{
+                        <thead><tr><th class="rnum">#</th><th>Applicant</th><th>Job / Country</th><th>Status</th><th>Docs</th><th>Fees</th><th>Updated</th><th></th><th class="rnum">#</th></tr></thead>
+                        <tbody>${filtered.length?filtered.map((a,ai)=>{
                             const cmp=calcCompleteness(a);
                             const fees=a.fees||[];
                             const totalAmt=fees.reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                             const paidAmt=fees.filter(f=>f.paid).reduce((s,f)=>s+parseAmountKES(f.amount).kes,0);
                             return `<tr>
+                                <td class="rnum">${ai+1}</td>
                                 <td><div class="appl-name">${esc(a.fullName)}</div><div class="appl-id">${displayId(a)}</div>${a.email?`<div class="appl-email">${esc(a.email)}</div>`:''}</td>
                                 <td><div class="appl-job">${esc(a.jobTitle)||'—'}</div>${a.country?`<div class="appl-country"><img src="${flagUrl(COUNTRY_META[a.country]?.flag||'')}" alt="" loading="lazy">${esc(a.country)}</div>`:'<div class="appl-country" style="color:var(--slate-400)">—</div>'}${a.blocked?` <span class="badge badge-rose" style="font-size:9px">BLOCKED</span>`:''}</td>
                                 <td>${statusBadge(a.status)}</td>
@@ -444,8 +445,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 <td style="white-space:nowrap"><span class="fee-paid">KES ${Number(paidAmt).toLocaleString('en-KE')}</span>/<span class="fee-total">KES ${Number(totalAmt).toLocaleString('en-KE')}</span></td>
                                 <td class="date-cell">${fmtDate(a.updatedAt)}</td>
                                 <td style="white-space:nowrap">${a.phone?`<a href="https://wa.me/${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="btn-wa" title="WhatsApp ${esc(a.fullName)}"><i class="fa-brands fa-whatsapp"></i></a> `:''}<button class="btn btn-outline btn-sm" data-openapp="${appId(a)}">Review</button></td>
+                                <td class="rnum">${ai+1}</td>
                             </tr>`;
-                        }).join(""):`<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-inbox"></i></div></td></tr>`}</tbody>
+                        }).join(""):`<tr><td colspan="9"><div class="empty-state"><i class="fa-solid fa-inbox"></i></div></td></tr>`}</tbody>
                     </table>
                     </div>
                     <!-- Mobile cards -->
@@ -1619,9 +1621,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                     <div class="finance-table-wrap">
                         <table>
                             <thead><tr>
-                                <th>Client</th><th>Service / Fee</th><th>Country</th><th>Amount</th><th>Payment Method</th><th>Status</th><th>Client Status</th><th>Date</th><th></th>
+                                <th class="rnum">#</th><th>Client</th><th>Service / Fee</th><th>Country</th><th>Amount</th><th>Payment Method</th><th>Status</th><th>Client Status</th><th>Date</th><th></th><th class="rnum">#</th>
                             </tr></thead>
-                            <tbody>${filtered.length ? filtered.map(t => {
+                            <tbody>${filtered.length ? filtered.map((t,ti) => {
                                 const pm = PAYMENT_METHODS.find(p => p.id === t.paymentMethod);
                                 const pmName = pm ? pm.name : t.paymentMethod;
                                 const pmColor = pm ? pm.color : 'var(--slate-500)';
@@ -1631,6 +1633,7 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                 const csClass = t.clientStatus === 'active' ? 'finance-client-status active' : t.clientStatus === 'archived' ? 'finance-client-status archived' : t.clientStatus === 'blocked' ? 'finance-client-status blocked' : 'finance-client-status deleted';
                                 const pmIcon = pm ? pm.icon : 'fa-credit-card';
                                 return `<tr>
+                                    <td class="rnum">${ti+1}</td>
                                     <td><b style="color:var(--blue-900);font-size:13px">${esc(t.clientName)}</b><br><span style="font-size:10px;color:var(--slate-400)">${esc(t.clientId)}</span></td>
                                     <td><span style="font-size:12px">${esc(t.label)}</span><br><span style="font-size:10px;color:var(--slate-400)">${t.type}</span></td>
                                     <td>${t.country ? esc(t.country) : '—'}</td>
@@ -1640,8 +1643,9 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
                                     <td><span class="${csClass}">${csLabel}</span></td>
                                     <td style="font-size:11px;color:var(--slate-400);white-space:nowrap">${t.paidDate ? fmtDate(t.paidDate) : '—'}</td>
                                     <td><button class="btn btn-outline btn-sm" data-finance-openapp="${esc(t.clientUid)}" style="font-size:10px;padding:4px 10px">View</button></td>
+                                    <td class="rnum">${ti+1}</td>
                                 </tr>`;
-                            }).join('') : `<tr><td colspan="9"><div class="empty-state" style="padding:30px"><i class="fa-solid fa-inbox"></i><p>No transactions match filters.</p></div></td></tr>`}</tbody>
+                            }).join('') : `<tr><td colspan="11"><div class="empty-state" style="padding:30px"><i class="fa-solid fa-inbox"></i><p>No transactions match filters.</p></div></td></tr>`}</tbody>
                         </table>
                     </div>
                     <div class="finance-totals-row">

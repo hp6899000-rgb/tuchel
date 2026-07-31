@@ -356,56 +356,137 @@ footer {
 
 /* --------------------------------------------------------------------------
    13. ADMIN DASHBOARD — show the REAL applicants table on every phone size,
-   with up/down scrolling to reach every applicant. The mobile card list
-   (.app-card-row) is hidden in favour of the full table. The table keeps a
-   frozen first column (see section 1) plus horizontal scroll for wide rows.
-   No height cap: rows flow into the page so a plain up/down scroll reveals
-   every row — nothing is locked inside an inner scrollbox.
+   with Excel-style scrolling: the table sits inside its own scrollbox that
+   scrolls up/down through EVERY applicant and left/right through every
+   column. The header row stays frozen on top; the # column is frozen on
+   BOTH the left and right edges so the visible row number is always
+   readable no matter how far you scroll sideways. Rows are thinned out on
+   phones so more of them fit on screen. The mobile card list (.app-card-row)
+   is hidden in favour of the full table.
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .dash-main .table-wrap {
     display: block;
-    max-height: none;
-    overflow-x: auto;
-    overflow-y: visible;
+    max-height: 56vh;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
   .dash-main .app-card-row { display: none; }
   .dash-main .app-table { display: table; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .stat-grid .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .recent-grid { grid-template-columns: repeat(2, 1fr); }
+  .recent-grid > *,
+  .recent-card { min-width: 0; }
+  .recent-card { overflow-wrap: anywhere; }
+  .recent-card .rc-top,
+  .recent-card .rc-name { min-width: 0; }
 }
 
 @media (max-width: 480px) {
+  .dash-main .table-wrap { max-height: 52vh; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .recent-grid { grid-template-columns: 1fr; }
+  .recent-card { padding: 10px 12px; }
+  .recent-card .rc-name { font-size: 12px; }
+  .recent-card .rc-mid { font-size: 11px; }
 }
 
 /* --------------------------------------------------------------------------
-   14. FINANCE TABLE — every transaction row reachable on every phone by a
-   simple up/down page scroll. No height cap, so rows flow into the page;
-   wide columns scroll sideways and the first column stays frozen.
+   13b. FROZEN # COLUMN + THIN ROWS — shared by every admin table on phones.
+   The row-number cell is pinned to the left (first) and right (last) edges
+   and given an opaque background so scrolling content slides under it.
+   Table cells are compacted so as many rows as possible stay on screen.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .dash-main .table-wrap th,
+  .dash-main .table-wrap td,
+  .dash-main .finance-table-wrap th,
+  .dash-main .finance-table-wrap td {
+    padding: 6px 8px;
+    line-height: 1.25;
+  }
+  .dash-main .table-wrap .appl-name { font-size: 12px; margin: 0 0 1px; }
+  .dash-main .table-wrap .appl-id,
+  .dash-main .table-wrap .appl-email { font-size: 10px; line-height: 1.2; margin: 0 0 1px; }
+  .dash-main .table-wrap .appl-job { font-size: 11.5px; margin: 0 0 1px; }
+  .dash-main .table-wrap .appl-country { font-size: 10px; margin: 0 0 1px; }
+  .dash-main .table-wrap .fee-paid,
+  .dash-main .table-wrap .fee-total { font-size: 11px; }
+  .dash-main .table-wrap .date-cell { font-size: 10px; }
+
+  .dash-main .table-wrap .rnum,
+  .dash-main .finance-table-wrap .rnum {
+    min-width: 30px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--slate-500);
+    background: #fff;
+    white-space: nowrap;
+  }
+
+  .dash-main .table-wrap thead th:first-child,
+  .dash-main .table-wrap tbody td:first-child,
+  .dash-main .finance-table-wrap thead th:first-child,
+  .dash-main .finance-table-wrap tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+  }
+
+  .dash-main .table-wrap thead th:last-child,
+  .dash-main .table-wrap tbody td:last-child,
+  .dash-main .finance-table-wrap thead th:last-child,
+  .dash-main .finance-table-wrap tbody td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 3;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+  }
+
+  .dash-main .table-wrap thead th,
+  .dash-main .finance-table-wrap thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  .dash-main .table-wrap thead th:first-child,
+  .dash-main .table-wrap thead th:last-child,
+  .dash-main .finance-table-wrap thead th:first-child,
+  .dash-main .finance-table-wrap thead th:last-child {
+    z-index: 5;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   14. FINANCE TABLE — Excel-style scrolling like the applicants table: a
+   scrollbox that scrolls up/down through EVERY transaction and left/right
+   through every column, with the header frozen on top and the # column
+   frozen on both edges. Transactions table is min 640px wide so columns
+   never crush on phones.
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .dash-main .finance-table-wrap {
     display: block;
-    max-height: none;
-    overflow-x: auto;
-    overflow-y: visible;
+    max-height: 56vh;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
   .finance-table-wrap table {
     min-width: 640px;
     white-space: nowrap;
   }
-  .finance-table-wrap thead th:first-child,
-  .finance-table-wrap tbody td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    background: #fff;
-    box-shadow: 2px 0 4px rgba(0,0,0,0.04);
-  }
+  .dash-main .finance-table-wrap tbody td:first-child { background: #fff; }
+}
+
+@media (max-width: 480px) {
+  .dash-main .finance-table-wrap { max-height: 52vh; }
 }
