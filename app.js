@@ -2790,7 +2790,7 @@
                   <div class="search-input"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="adminSearch" placeholder="Search name, email, ID, job..." value="${esc(adminFilters.search)}"></div>
                 </div>
               </div>
-              <div class="stat-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+              <div class="stat-grid" style="margin-bottom:20px">
                 <div class="stat-card"><div class="n">${stats.total}</div><div class="l"><i class="fa-solid fa-users"></i> Total</div></div>
                 <div class="stat-card" style="border-left:3px solid var(--blue-500)"><div class="n">${stats.received}</div><div class="l"><i class="fa-solid fa-inbox"></i> New</div></div>
                 <div class="stat-card" style="border-left:3px solid var(--amber-500)"><div class="n">${stats.inProgress}</div><div class="l"><i class="fa-solid fa-spinner"></i> In Progress</div></div>

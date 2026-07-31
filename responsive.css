@@ -117,7 +117,6 @@ img, svg, canvas, video { max-width: 100%; height: auto; }
   .dash-quick-grid,
   .dash-services-grid,
   .dash-two-col,
-  .stat-grid,
   .chart-grid-2,
   .client-grid-4 {
     grid-template-columns: 1fr !important;
@@ -353,4 +352,29 @@ input, select, textarea {
 }
 footer {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* --------------------------------------------------------------------------
+   13. ADMIN DASHBOARD — show the REAL applicants table on every phone size,
+   with up/down scrolling to reach every applicant. The mobile card list
+   (.app-card-row) is hidden in favour of the full table. The table keeps a
+   frozen first column (see section 1) plus horizontal scroll for wide rows.
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .dash-main .table-wrap {
+    display: block;
+    max-height: 62vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dash-main .app-card-row { display: none; }
+  .dash-main .app-table { display: table; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .recent-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .recent-grid { grid-template-columns: 1fr; }
 }
