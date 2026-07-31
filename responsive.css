@@ -373,6 +373,7 @@ footer {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  touch-action: pan-x pan-y;
 }
 
 .dash-main .table-wrap th,
@@ -456,6 +457,13 @@ footer {
   .recent-card { padding: 10px 12px; }
   .recent-card .rc-name { font-size: 12px; }
   .recent-card .rc-mid { font-size: 11px; }
+}
+
+@media (max-width: 600px) {
+  .recent-card .rc-top,
+  .recent-card .rc-bot { flex-wrap: wrap; gap: 6px; }
+  .recent-card .rc-status { white-space: normal; text-align: right; }
+  .recent-card .rc-bot .btn { margin-left: auto; }
 }
 
 /* --------------------------------------------------------------------------

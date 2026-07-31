@@ -3582,7 +3582,15 @@
             const chartData=JSON.stringify({months:Object.keys(revByMonth).sort(),monthRev:Object.keys(revByMonth).sort().map(m=>revByMonth[m]),countries:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]),countryRev:Object.keys(revByCountry).sort((a,b)=>revByCountry[b]-revByCountry[a]).map(c=>revByCountry[c]),methods:Object.keys(revByMethod),methodRev:Object.keys(revByMethod).map(m=>revByMethod[m]),distPaid:dist.paid,distPending:dist.pending,distCancelled:dist.cancelled,distRefunded:dist.refunded});
             const unread=getUnreadCount();
             const methodNames={mpesa:'M-Pesa',paypal:'PayPal',stripe:'Stripe',bank_wire:'Bank Wire',crypto_usdt:'USDT',crypto_btc:'BTC',crypto_eth:'ETH',crypto_usdc:'USDC',crypto_sol:'SOL',binance_pay:'Binance',wise:'Wise',flutterwave:'Flutterwave'};
-            const pgx = pgSlice('afinance', allTxns);
+            const ff = window._ff || { country:'All', status:'All', method:'All', search:'' };
+            const filteredTxns = allTxns.filter(t => {
+                if (ff.country !== 'All' && (t.country||'') !== ff.country) return false;
+                if (ff.status !== 'All' && t.status !== ff.status) return false;
+                if (ff.method !== 'All' && (t.paymentMethod||'') !== ff.method) return false;
+                if (ff.search) { const hay = ((t.clientName||'') + ' ' + (t.label||'') + ' ' + (t.clientId||'')).toLowerCase(); if (!hay.includes(String(ff.search).toLowerCase())) return false; }
+                return true;
+            });
+            const pgx = pgSlice('afinance', filteredTxns);
             return `
           <div class="dash-shell">
             <div class="dash-side">
@@ -3646,7 +3654,7 @@
                   <table class="finance-table">
                     <thead><tr><th class="rnum">#</th><th>Client</th><th>Service/Fee</th><th>Country</th><th>Amount (KES)</th><th>Method</th><th>Status</th><th>Date</th><th class="rnum">#</th></tr></thead>
                     <tbody id="financeTxnBody">
-                      ${allTxns.length ? pgx.items.map((t,ti) => {
+                      ${filteredTxns.length ? pgx.items.map((t,ti) => {
                         const bc=t.status==='paid'?'badge-emerald':t.status==='pending'?'badge-amber':t.status==='cancelled'?'badge-rose':'badge-slate';
                         const ci=t.clientStatus==='archived'?' <i class="fa-solid fa-box-archive" title="Archived" style="color:var(--amber-500);font-size:11px"></i>':t.clientStatus==='blocked'?' <i class="fa-solid fa-ban" title="Blocked" style="color:var(--rose-500);font-size:11px"></i>':'';
                         return `<tr><td class="rnum">${pgx.start+ti+1}</td><td><div style="font-weight:600;font-size:13px">${t.clientName}${ci}</div></td><td style="font-size:12px">${t.label}</td><td>${t.country||'—'}</td><td style="font-weight:700;font-family:monospace">${fmKES(t.amountKES)}</td><td><span class="badge ${bc}" style="font-size:10px">${methodNames[t.paymentMethod]||t.paymentMethod}</span></td><td><span class="badge ${bc}">${t.status}</span></td><td style="font-size:12px;color:var(--slate-500)">${t.paidDate?new Date(t.paidDate).toLocaleDateString():'—'}</td><td class="rnum">${pgx.start+ti+1}</td></tr>`;
@@ -3657,7 +3665,7 @@
                 ${pgBar('afinance', pgx)}
               </div>
               <div class="finance-summary" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:12px 16px;background:var(--slate-50);border-radius:8px;font-size:13px">
-                <span><strong>${txnCount}</strong> transactions</span>
+                <span><strong>${filteredTxns.length}</strong> transactions</span>
                 <span><strong style="color:var(--emerald-600)">${fmKES(totalPaid)}</strong> collected · <strong style="color:var(--amber-600)">${fmKES(totalPending)}</strong> pending</span>
                 <span>1 EUR=${EUR_TO_KES} KES · 1 USD=${USD_TO_KES} KES</span>
               </div>
@@ -3725,38 +3733,21 @@
                     if(e){
                         if(savedFilters&&savedFilters[id.replace('finance','').replace('Filter','').toLowerCase()]&&savedFilters[id.replace('finance','').replace('Filter','').toLowerCase()]!=='All')
                             e.value=savedFilters[id.replace('finance','').replace('Filter','').toLowerCase()];
-                        e.addEventListener('change',()=>{saveFinanceFilters();refilterFinanceTable()});
+                        e.addEventListener('change',()=>{saveFinanceFilters();renderCurrentView()});
                     }
                 });
                 const se=document.getElementById('financeSearch');
-                if(se){if(savedFilters&&savedFilters.search)se.value=savedFilters.search;let st;se.addEventListener('input',()=>{clearTimeout(st);st=setTimeout(()=>{saveFinanceFilters();refilterFinanceTable()},400)})}
+                if(se){if(savedFilters&&savedFilters.search)se.value=savedFilters.search;let st;se.addEventListener('input',()=>{clearTimeout(st);st=setTimeout(()=>{saveFinanceFilters();renderCurrentView()},400)})}
                 const rf=document.getElementById('financeRefreshBtn');
                 if(rf)rf.addEventListener('click',()=>{try{saveFinanceFilters();renderCurrentView();toast('Finance data refreshed.','ok')}catch(e){toast('Refresh failed: '+e.message,'err')}});
                 const ex=document.getElementById('financeExportBtn');
                 if(ex)ex.addEventListener('click',()=>{try{exportFinanceCSV()}catch(e){toast('Export failed.','err')}});
-                // Apply saved filters
-                if(savedFilters)refilterFinanceTable();
             } catch(e) { console.error('wireAdminFinance error:', e); }
         }
 
         function saveFinanceFilters(){
             const g=id=>{const e=document.getElementById(id);return e?e.value:'All'};
             window._ff={country:g('financeCountryFilter'),status:g('financeStatusFilter'),method:g('financeMethodFilter'),search:g('financeSearch')};
-        }
-
-        function refilterFinanceTable(){
-            const f=window._ff||{country:'All',status:'All',method:'All',search:''};
-            const body=document.getElementById('financeTxnBody');
-            if(!body)return;
-            body.querySelectorAll('tr').forEach(row=>{
-                let show=true;
-                const c=row.children;
-                if(f.country!=='All'&&c[3]&&!c[3].textContent.includes(f.country))show=false;
-                if(f.status!=='All'&&c[6]&&!c[6].textContent.toLowerCase().includes(f.status))show=false;
-                if(f.method!=='All'&&c[5]&&!c[5].textContent.toLowerCase().includes(f.method))show=false;
-                if(f.search){const txt=row.textContent.toLowerCase();if(!txt.includes(f.search.toLowerCase()))show=false}
-                row.style.display=show?'':'none';
-            });
         }
 
         function exportFinanceCSV(){

@@ -1831,25 +1831,23 @@ function appName(a) { return a.fullName || a.appId || a.id || a.uid || 'Unknown'
         }
         // Wire up filter events
         document.getElementById('financeCountryFilter')?.addEventListener('change', function() {
-            financeFilters.country = this.value; wireFinance();
+            financeFilters.country = this.value; render();
         });
         document.getElementById('financeStatusFilter')?.addEventListener('change', function() {
-            financeFilters.status = this.value; wireFinance();
+            financeFilters.status = this.value; render();
         });
         document.getElementById('financeMethodFilter')?.addEventListener('change', function() {
-            financeFilters.paymentMethod = this.value; wireFinance();
+            financeFilters.paymentMethod = this.value; render();
         });
         document.getElementById('financeDateFilter')?.addEventListener('change', function() {
-            financeFilters.dateRange = this.value; wireFinance();
-        });
-        document.getElementById('financeSearch')?.addEventListener('input', function() {
-            financeFilters.search = this.value;
+            financeFilters.dateRange = this.value; render();
         });
         // Debounced search
         let searchTimer;
         document.getElementById('financeSearch')?.addEventListener('input', function() {
+            const v = this.value;
             clearTimeout(searchTimer);
-            searchTimer = setTimeout(() => { financeFilters.search = this.value; wireFinance(); }, 400);
+            searchTimer = setTimeout(() => { financeFilters.search = v; render(); }, 400);
         });
         // Refresh
         document.querySelector('[data-action="refresh-finance"]')?.addEventListener('click', async () => {
