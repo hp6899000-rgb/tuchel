@@ -4313,7 +4313,9 @@ function showChatUserDetails(userName, chatId) {
         // =============================================================
         const PAYMENT_METHODS = [
             { id:'mpesa', name:'M-Pesa', icon:'<svg viewBox="0 0 48 48" width="20" height="20" fill-rule="evenodd" clip-rule="evenodd"><path fill="#aed580" d="M31.003,7.001l-0.001-5.5c0-0.828,0.672-1.5,1.5-1.5c0.828,0,1.5,0.672,1.5,1.5v5.5H31.003z"/><path fill="#aed580" d="M14.964,47.999h18.073c0.533,0,0.965-0.432,0.965-0.965V4.964c0-0.533-0.432-0.965-0.965-0.965H14.964c-0.533,0-0.965,0.432-0.965,0.965v42.07C13.999,47.567,14.431,47.999,14.964,47.999z"/><path fill="#fff" d="M17.739,29.001h12.524c0.962,0,1.741-0.78,1.741-1.741V10.743c0-0.962-0.78-1.741-1.741-1.741H17.739c-0.962,0-1.741,0.78-1.741,1.741V27.26C15.997,28.222,16.777,29.001,17.739,29.001z"/><path fill="#9b2310" d="M12.001,22.001c3.643-0.7,5.865-2.448,7-5c1.135,2.552,3.357,4.3,7,5H12.001z"/><path fill="#e60023" d="M12.001,22.001c4.273,0.867,6.476,1,11,1c5.076,0,11.712-1.939,14-6l-9-4C24.039,18.139,21.863,22.001,12.001,22.001z"/></svg>', color:'#4CAF50', desc:'Mobile money — Kenya & East Africa', badge:'MPESA' },
+           { id: 'mtn_uganda', name: 'MTN Uganda', icon: 'fa-solid fa-mobile-screen-button', color: '#FFCC00', desc: 'Uganda — MTN Mobile Money (MoMo)' },
             { id:'paypal', name:'PayPal', icon:'fa-brands fa-paypal', color:'#003087', desc:'Global — Visa, MC, Amex, Discover' },
+          
             { id:'stripe', name:'Stripe', icon:'fa-brands fa-stripe-s', color:'#635BFF', desc:'Global — Cards, Apple Pay, Google Pay' },
             { id:'crypto_usdt', name:'USDT (Crypto)', icon:'fa-brands fa-bitcoin', color:'#26A17B', desc:'Tether — ERC20/TRC20/BEP20' },
             { id:'crypto_btc', name:'Bitcoin', icon:'fa-brands fa-bitcoin', color:'#F7931A', desc:'BTC — Bitcoin Network' },
@@ -4338,7 +4340,57 @@ function showChatUserDetails(userName, chatId) {
 
         function getPaymentInstructions(methodId) {
             const map = {
-                mpesa: `<b>Send to phone number:</b><br><span onclick="navigator.clipboard.writeText('0143350004');this.querySelector('.cp').textContent='Copied!';setTimeout(()=>this.querySelector('.cp').textContent='Copy',2000)" style="display:inline-flex;align-items:center;gap:8px;margin-top:4px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:15px;font-weight:700;font-family:monospace;cursor:pointer" title="Click to copy">0143350004 <span class="cp" style="font-size:11px;font-weight:400;color:#059669">Copy</span></span><ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;line-height:1.8"><li>Go to <b>M-Pesa</b> on your phone</li><li>Select <b>Send Money</b> (or <b>M-Pesa</b>)</li><li>Send to phone number <b>0143350004</b></li><li>Enter the amount shown above</li><li>Enter your PIN and <b>Send</b></li><li>Enter the M-Pesa transaction code below</li></ol>`,
+                mpesa: `<b>Send to phone number:</b><br><span 
+                onclick="navigator.clipboard.writeText('0143350004');this.querySelector('.cp').textContent='Copied!';setTimeout(()=>this.querySelector('.cp').textContent='Copy',2000)" style="display:inline-flex;align-items:center;gap:8px;margin-top:4px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:15px;font-weight:700;font-family:monospace;cursor:pointer" title="Click to copy">0143350004 <span class="cp" style="font-size:11px;font-weight:400;color:#059669">Copy</span></span><ol style="margin:6px 0 0 16px;padding:0;font-size:12.5px;line-height:1.8"><li>Go to <b>M-Pesa</b> on your phone</li><li>Select <b>Send Money</b> (or <b>M-Pesa</b>)</li><li>Send to phone number <b>0143350004</b></li><li>Enter the amount shown above</li><li>Enter your PIN and <b>Send</b></li><li>Enter the M-Pesa transaction code below</li></ol>`,
+                mtn_uganda: `<b>Pay via MTN Mobile Money (Uganda):</b><br>
+<span
+  onclick="navigator.clipboard.writeText('+256766329121');this.querySelector('.cp').textContent='Copied!';setTimeout(()=>this.querySelector('.cp').textContent='Copy',2000)"
+  style="display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:9px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:15px;font-weight:700;font-family:monospace;cursor:pointer;color:#854d0e;transition:background .2s"
+  title="Click to copy MTN number">
+  <i class="fa-solid fa-mobile-screen-button" style="color:#ca8a04"></i>
+  +256766329121
+  <span class="cp" style="font-size:11px;font-weight:500;color:#92400e;background:#fef3c7;padding:3px 7px;border-radius:4px">Copy</span>
+</span>
+
+<div style="margin-top:10px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;color:#713f12">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#ffcc00;border-radius:8px;color:#1f2937">
+      <i class="fa-solid fa-wallet"></i>
+    </span>
+    <div>
+      <b style="font-size:14px">MTN MoMo Payment</b><br>
+      <span style="font-size:11px;color:#92400e">Uganda · Mobile Money</span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 10px;background:#fff;border:1px solid #fde68a;border-radius:7px;margin-bottom:10px">
+    <span style="font-size:12px;color:#78716c">Recipient name</span>
+    <b style="font-size:14px">JOYCE</b>
+  </div>
+
+  <ol style="margin:0;padding-left:22px;font-size:12.5px;line-height:2">
+    <li>Dial <b style="font-family:monospace;background:#fff;padding:2px 5px;border-radius:4px">*165#</b> on your MTN Uganda phone.</li>
+    <li>Select <b>Send Money</b>.</li>
+    <li>Select <b>To Mobile User</b>.</li>
+    <li>Enter the recipient's number: <b>+256766329121</b>.</li>
+    <li>Confirm the recipient name is <b>JOYCE</b>.</li>
+    <li>Enter the payment amount shown above.</li>
+    <li>Review the recipient, amount and any transaction fees carefully.</li>
+    <li>Confirm the transaction and enter your <b>MTN MoMo PIN</b> when prompted.</li>
+    <li>Wait for the confirmation SMS, then enter the transaction ID below.</li>
+  </ol>
+</div>
+
+<div style="display:flex;gap:7px;align-items:flex-start;margin-top:9px;padding:9px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;color:#991b1b;font-size:11.5px;line-height:1.6">
+  <i class="fa-solid fa-shield-halved" style="margin-top:2px"></i>
+  <span><b>Security:</b> Verify the recipient and amount before confirming. Never share your MTN MoMo PIN or OTP with anyone.</span>
+</div>
+
+<div style="margin-top:10px;font-size:12.5px">
+  <b>MTN MoMo transaction ID:</b><br>
+  Enter the transaction ID from your confirmation SMS in the field below.
+</div>`,
+                
                 paypal: 'Send payment to <b>hp6899000@gmail.com</b> via PayPal. Enter the PayPal transaction ID below.',
                 stripe: 'Admin will send a secure payment link to your email. Enter the reference code below once completed.',
                 crypto_usdt: 'Send <b>USDT</b> to the wallet address provided by admin via WhatsApp. Select your network below and enter the TXID/hash.',
@@ -4433,7 +4485,7 @@ function showChatUserDetails(userName, chatId) {
             const msg = encodeURIComponent(
                 `Hello Admin/Support Agent.\n\nI would like to make a payment.\n\nService: ${label}\nAmount: ${amount}\nPreferred Payment: ${method}${chain}\n\nPlease provide the correct payment details. Thank you.`
             );
-            link.href = `https://wa.me/254703935936?text=${msg}`;
+            link.href = `https://wa.me/254754107668?text=${msg}`;
         }
 
         function closePaymentModal() {
