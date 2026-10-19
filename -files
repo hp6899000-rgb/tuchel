@@ -1,0 +1,20 @@
+[33mcommit 3a6c2bb8f1574d2561166e23370bf02094bdf244[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: amigaamg <amgamiga1@gmail.com>
+Date:   Mon Oct 19 22:20:21 2026 +0300
+
+    Update payment methods and MTN Uganda instructions
+
+[1mdiff --git a/app.js b/app.js[m
+[1mindex 5a3a60b..744fae4 100644[m
+[1m--- a/app.js[m
+[1m+++ b/app.js[m
+[36m@@ -4483,7 +4483,8 @@[m [mfunction showChatUserDetails(userName, chatId) {[m
+             const method = selectedPayMethod ? (PAYMENT_METHODS.find(p => p.id === selectedPayMethod)?.name || selectedPayMethod) : 'To be confirmed';[m
+             const chain = selectedPayChain ? `\nPreferred Network: ${selectedPayChain}` : '';[m
+             const msg = encodeURIComponent([m
+[31m-                `Hello Admin/Support Agent.\n\nI would like to make a payment.\n\nService: ${label}\nAmount: ${amount}\nPreferred Payment: ${method}${chain}\n\nPlease provide the correct payment details. Thank you.`[m
+[32m+[m[32m                `Hello Admin/Support Agent.\n\nI[m[41m [m
+[32m+[m[32m                would like to make a payment.\n\nService: ${label}\nAmount: ${amount}\nPreferred Payment: ${method}${chain}\n\nPlease provide the correct payment details. Thank you.`[m
+             );[m
+             link.href = `https://wa.me/254754107668?text=${msg}`;[m
+         }[m
